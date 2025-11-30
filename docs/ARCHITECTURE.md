@@ -21,7 +21,7 @@ src/
 ## Modules
 
 ### 1. `api/twitch`
-- `TwitchAuthManager` : flux OAuth (PKCE), stockage sécurisé des tokens.
+- `TwitchAuthManager` : flux OAuth (PKCE), stockage sécurisé des tokens, serveur de callback local TLS (mkcert) pour les redirections HTTPS.
 - `TwitchApiClient` : accès aux endpoints (streams live, VOD, manifestes).
 - `docs/twitch-api.md` décrira les endpoints utilisés et les contraintes de quota.
 - `TwitchService` : service Qt exposant l’état d’authentification, la liste des streams et la sélection de VOD vers l'UI QML.

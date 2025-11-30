@@ -1,6 +1,8 @@
 #pragma once
 
+#include <QtGlobal>
 #include <QObject>
+#include <QSslConfiguration>
 #include <QString>
 
 QT_BEGIN_NAMESPACE
@@ -51,16 +53,20 @@ private:
   QString codeChallenge(const QString& verifier) const;
 
   void handleNetworkError(QNetworkReply* reply, const QString& fallback);
+  QSslConfiguration buildSslConfiguration() const;
 
   QString m_clientId;
   QString m_redirectUri;
   QString m_clientSecret;
   QString m_scope;
-  quint16 m_listenPort = 45111;
+  quint16 m_listenPort = 8443;
   QString m_codeVerifier;
   QString m_state;
   QString m_accessToken;
   QString m_refreshToken;
+  QString m_tlsCertPath;
+  QString m_tlsKeyPath;
+  QSslConfiguration m_sslConfig;
   QNetworkAccessManager* m_networkManager = nullptr;
   QTcpServer* m_server = nullptr;
   bool m_isAuthenticated = false;

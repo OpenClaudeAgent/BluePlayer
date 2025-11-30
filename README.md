@@ -33,6 +33,7 @@ Assurez-vous d'avoir les éléments suivants installés sur votre système :
     -   Via Homebrew : `brew install ffmpeg --with-srt --with-webp --with-opus --with-videotoolbox`
     -   Assurez-vous que la variable d'environnement `FFmpeg_DIR` pointe vers l'emplacement des fichiers de configuration CMake de FFmpeg (par exemple, `$(brew --prefix)/opt/ffmpeg/lib/cmake/ffmpeg` pour Homebrew ou `$HOME/libs/ffmpeg/lib/cmake/ffmpeg` pour une compilation personnalisée).
 -   **Compte développeur Twitch** (créez une application dans la console Twitch, configurez une redirection locale et définissez `TWITCH_CLIENT_ID`, `TWITCH_REDIRECT_URI` et `TWITCH_REDIRECT_PORT`).
+-   **TLS local (mkcert)** : installez `mkcert`, générez des certificats pour `localhost` ou `127.0.0.1`, puis exportez `TWITCH_TLS_CERT_PATH` et `TWITCH_TLS_KEY_PATH` pour que le serveur OAuth écoute en HTTPS.
 
 Pour des instructions d'installation détaillées et la configuration des variables d'environnement via le fichier `.env`, consultez le document `docs/SETUP.md`.
 

@@ -2,27 +2,34 @@
 
 #include <QCryptographicHash>
 #include <QDesktopServices>
+#include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
+#include <QAbstractSocket>
 #include <QNetworkRequest>
+#include <QList>
+#include <QSsl>
+#include <QSslCertificate>
+#include <QSslConfiguration>
+#include <QSslKey>
+#include <QSslSocket>
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QUrl>
 #include <QUrlQuery>
 #include <QSettings>
 #include <QRandomGenerator>
-#include <QSettings>
 #include <QTextStream>
 #include <QTimer>
-#include <QUrl>
-#include <QByteArray>
 #include <QHostAddress>
+#include <Qt>
+#include <QIODevice>
 
 namespace {
 
-constexpr quint16 kDefaultPort = 45111;
+constexpr quint16 kDefaultPort = 8443;
 constexpr auto kAuthorizeEndpoint = "https://id.twitch.tv/oauth2/authorize";
 constexpr auto kTokenEndpoint = "https://id.twitch.tv/oauth2/token";
 
@@ -30,7 +37,10 @@ class CallbackServer : public QTcpServer {
   Q_OBJECT
 
 public:
-  explicit CallbackServer(QObject* parent = nullptr) : QTcpServer(parent) {}
+  explicit CallbackServer(const QSslConfiguration& config,
+                          quint16 port,
+                          QObject* parent = nullptr)
+      : QTcpServer(parent), m_sslConfig(config), m_port(port) {}
   ~CallbackServer() override = default;
 
 signals:
@@ -38,32 +48,68 @@ signals:
 
 protected:
   void incomingConnection(qintptr descriptor) override {
-    QTcpSocket* socket = new QTcpSocket(this);
-    if (!socket->setSocketDescriptor(descriptor)) {
-      socket->deleteLater();
-      return;
-    }
-
-    connect(socket, &QTcpSocket::readyRead, this, [this, socket]() {
-      const QByteArray request = socket->readAll();
-      const QList<QByteArray> lines = request.split('\n');
-      if (!lines.isEmpty()) {
-        const QList<QByteArray> parts = lines.first().split(' ');
-        if (parts.size() >= 2) {
-          const QByteArray path = parts.at(1);
-          const QUrl url(QStringLiteral("http://127.0.0.1") + QString::fromUtf8(path));
-          emit callbackReceived(url);
-        }
+    QTcpSocket* socket = nullptr;
+    if (m_sslConfig.isNull()) {
+      socket = new QTcpSocket(this);
+      if (!socket->setSocketDescriptor(descriptor)) {
+        socket->deleteLater();
+        return;
       }
-      const QByteArray response =
-          "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n"
-          "<html><body><h1>BluePlayer</h1><p>Vous pouvez fermer cette fenêtre.</p></body></html>";
-      socket->write(response);
-      socket->disconnectFromHost();
-    });
+      setupRead(socket);
+    } else {
+      QSslSocket* sslSocket = new QSslSocket(this);
+      if (!sslSocket->setSocketDescriptor(descriptor)) {
+        sslSocket->deleteLater();
+        return;
+      }
+      sslSocket->setSslConfiguration(m_sslConfig);
+      connect(sslSocket, &QSslSocket::encrypted, this, [this, sslSocket]() {
+        setupRead(sslSocket);
+      });
+      sslSocket->startServerEncryption();
+      socket = sslSocket;
+    }
 
     connect(socket, &QTcpSocket::disconnected, socket, &QTcpSocket::deleteLater);
   }
+
+private:
+  void setupRead(QIODevice* ioDevice) {
+    connect(ioDevice,
+            &QIODevice::readyRead,
+            this,
+            [this, ioDevice]() { handleRequest(ioDevice); },
+            Qt::UniqueConnection);
+  }
+
+  void handleRequest(QIODevice* socket) {
+    const QByteArray request = socket->readAll();
+    const QList<QByteArray> lines = request.split('\n');
+    if (!lines.isEmpty()) {
+      const QList<QByteArray> parts = lines.first().split(' ');
+      if (parts.size() >= 2) {
+        const QByteArray path = parts.at(1);
+        const QString scheme = m_sslConfig.isNull() ? QStringLiteral("http")
+                                                    : QStringLiteral("https");
+        const QUrl url =
+            QUrl(QStringLiteral("%1://127.0.0.1:%2%3")
+                     .arg(scheme)
+                     .arg(m_port)
+                     .arg(QString::fromUtf8(path)));
+        emit callbackReceived(url);
+      }
+    }
+    const QByteArray response =
+        "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n"
+        "<html><body><h1>BluePlayer</h1><p>Vous pouvez fermer cette fenêtre.</p></body></html>";
+    socket->write(response);
+    if (auto tcpSocket = qobject_cast<QAbstractSocket*>(socket)) {
+      tcpSocket->disconnectFromHost();
+    }
+  }
+
+  QSslConfiguration m_sslConfig;
+  quint16 m_port = 0;
 };
 
 QString base64UrlEncode(const QByteArray& bytes) {
@@ -95,12 +141,20 @@ TwitchAuthManager::TwitchAuthManager(QObject* parent)
       m_networkManager(new QNetworkAccessManager(this)) {
   m_clientId = QString::fromUtf8(qgetenv("TWITCH_CLIENT_ID"));
   m_clientSecret = QString::fromUtf8(qgetenv("TWITCH_CLIENT_SECRET"));
+  const QByteArray certPath = qgetenv("TWITCH_TLS_CERT_PATH");
+  if (!certPath.isEmpty()) {
+    m_tlsCertPath = QString::fromUtf8(certPath);
+  }
+  const QByteArray keyPath = qgetenv("TWITCH_TLS_KEY_PATH");
+  if (!keyPath.isEmpty()) {
+    m_tlsKeyPath = QString::fromUtf8(keyPath);
+  }
   const QByteArray redirect = qgetenv("TWITCH_REDIRECT_URI");
   if (!redirect.isEmpty()) {
     m_redirectUri = QString::fromUtf8(redirect);
   } else {
     m_redirectUri =
-        QStringLiteral("http://127.0.0.1:%1/callback").arg(QString::number(m_listenPort));
+        QStringLiteral("https://127.0.0.1:%1/callback").arg(QString::number(m_listenPort));
   }
 
   const QByteArray customPort = qgetenv("TWITCH_REDIRECT_PORT");
@@ -110,10 +164,11 @@ TwitchAuthManager::TwitchAuthManager(QObject* parent)
     if (ok) {
       m_listenPort = static_cast<quint16>(port);
       m_redirectUri =
-          QStringLiteral("http://127.0.0.1:%1/callback").arg(QString::number(m_listenPort));
+          QStringLiteral("https://127.0.0.1:%1/callback").arg(QString::number(m_listenPort));
     }
   }
 
+  m_sslConfig = buildSslConfiguration();
   loadCredentials();
 }
 
@@ -243,7 +298,8 @@ void TwitchAuthManager::startListener() {
     return;
   }
 
-  m_server = new CallbackServer(this);
+  m_sslConfig = buildSslConfiguration();
+  m_server = new CallbackServer(m_sslConfig, m_listenPort, this);
   if (auto callbackServer = qobject_cast<CallbackServer*>(m_server)) {
     connect(callbackServer,
             &CallbackServer::callbackReceived,
@@ -334,6 +390,42 @@ QString TwitchAuthManager::codeChallenge(const QString& verifier) const {
 void TwitchAuthManager::handleNetworkError(QNetworkReply* reply, const QString& fallback) {
   emit errorOccurred(
       reply->errorString().isEmpty() ? fallback : reply->errorString());
+}
+
+QSslConfiguration TwitchAuthManager::buildSslConfiguration() const {
+  if (m_tlsCertPath.isEmpty() || m_tlsKeyPath.isEmpty()) {
+    return QSslConfiguration();
+  }
+
+  QFile certFile(m_tlsCertPath);
+  if (!certFile.open(QIODevice::ReadOnly)) {
+    return QSslConfiguration();
+  }
+
+  const QList<QSslCertificate> certificates =
+      QSslCertificate::fromDevice(&certFile, QSsl::Pem);
+  certFile.close();
+  if (certificates.isEmpty()) {
+    return QSslConfiguration();
+  }
+
+  QFile keyFile(m_tlsKeyPath);
+  if (!keyFile.open(QIODevice::ReadOnly)) {
+    return QSslConfiguration();
+  }
+
+  const QSslKey key(&keyFile, QSsl::Rsa, QSsl::Pem);
+  keyFile.close();
+  if (key.isNull()) {
+    return QSslConfiguration();
+  }
+
+  QSslConfiguration config;
+  config.setLocalCertificate(certificates.first());
+  config.setPrivateKey(key);
+  config.setPeerVerifyMode(QSslSocket::VerifyNone);
+  config.setProtocol(QSsl::TlsV1_2OrLater);
+  return config;
 }
 
 }  // namespace blueplayer::api::twitch

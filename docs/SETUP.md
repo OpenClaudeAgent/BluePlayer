@@ -156,7 +156,30 @@ Le projet BluePlayer utilise [CTest](https://cmake.org/cmake/help/latest/module/
 ## 9. Intégration Twitch
 
 1.  **Créer une application Twitch**  
-    Rendez-vous dans la [console développeur Twitch](https://dev.twitch.tv/console/apps), créez une nouvelle application et configurez une URL de redirection locale (ex: `http://127.0.0.1:45111/callback`).
+    Rendez-vous dans la [console développeur Twitch](https://dev.twitch.tv/console/apps), créez une nouvelle application et configurez une URL de redirection HTTPS locale (ex: `https://127.0.0.1:8443/callback`).
+
+### 9.1. Installer mkcert pour TLS local
+
+1.  **Installer mkcert**  
+    ```bash
+    brew install mkcert
+    mkcert -install
+    ```
+
+2.  **Générer les certificats TLS**  
+    ```bash
+    mkcert -cert-file certs/twitch-cert.pem -key-file certs/twitch-key.pem localhost 127.0.0.1
+    ```
+    Stockez les fichiers `twitch-cert.pem` et `twitch-key.pem` dans un répertoire sécurisé (ex: `certs/` à la racine du projet).
+
+3.  **Exporter les chemins dans `.env`**  
+    ```
+    TWITCH_TLS_CERT_PATH=$(pwd)/certs/twitch-cert.pem
+    TWITCH_TLS_KEY_PATH=$(pwd)/certs/twitch-key.pem
+    ```
+
+4.  **Mettre à jour l’URL de redirection**  
+    Utilisez `https://127.0.0.1:8443/callback` dans la console Twitch, puis définissez `TWITCH_REDIRECT_URI=https://127.0.0.1:8443/callback` et `TWITCH_REDIRECT_PORT=8443` dans `.env`.
 
 2.  **Variables d'environnement**  
     ```
