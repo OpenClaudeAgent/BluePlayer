@@ -1,0 +1,64 @@
+set(BLUEPLAYER_CORE_SOURCES
+  core/Application.cpp
+  core/Application.hpp
+)
+
+set(BLUEPLAYER_MEDIA_SOURCES
+  media/FFmpegBridge.cpp
+  media/FFmpegBridge.hpp
+)
+
+add_library(blueplayer_media STATIC ${BLUEPLAYER_MEDIA_SOURCES})
+target_include_directories(blueplayer_media PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${FFmpeg_INCLUDE_DIRS}
+)
+target_link_libraries(blueplayer_media
+  PUBLIC
+    Qt6::Core
+    ${FFmpeg_LIBRARIES}
+)
+target_link_directories(blueplayer_media PRIVATE /opt/homebrew/lib ${FFMPEG_LIBS_LIBRARY_DIRS})
+setup_compiler_warnings(blueplayer_media)
+
+add_library(blueplayer_core STATIC ${BLUEPLAYER_CORE_SOURCES})
+target_include_directories(blueplayer_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(blueplayer_core
+  PUBLIC
+    Qt6::Core
+    blueplayer_media
+)
+setup_compiler_warnings(blueplayer_core)
+
+qt_add_executable(BluePlayer
+  main.cpp
+)
+
+qt_policy(SET QTP0001 NEW)
+qt_policy(SET QTP0004 NEW)
+
+qt_add_qml_module(BluePlayer
+  URI BluePlayer
+  VERSION 1.0
+  QML_FILES
+    ui/main.qml
+)
+
+target_link_libraries(BluePlayer
+  PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Quick
+    Qt6::Multimedia
+    blueplayer_core
+    ${FFmpeg_LIBRARIES}
+)
+target_link_directories(BluePlayer PRIVATE /opt/homebrew/lib ${FFMPEG_LIBS_LIBRARY_DIRS})
+
+set_target_properties(BluePlayer PROPERTIES
+  MACOSX_BUNDLE TRUE
+  WIN32_EXECUTABLE TRUE
+)
+
+setup_compiler_warnings(BluePlayer)
+
