@@ -1,11 +1,21 @@
 set(BLUEPLAYER_CORE_SOURCES
   core/Application.cpp
   core/Application.hpp
+  api/twitch/TwitchApiClient.cpp
+  api/twitch/TwitchApiClient.hpp
+  api/twitch/TwitchAuthManager.cpp
+  api/twitch/TwitchAuthManager.hpp
+  api/twitch/TwitchService.cpp
+  api/twitch/TwitchService.hpp
 )
 
 set(BLUEPLAYER_MEDIA_SOURCES
   media/FFmpegBridge.cpp
   media/FFmpegBridge.hpp
+  media/FFmpegMediaService.cpp
+  media/FFmpegMediaService.hpp
+  media/FFmpegMediaSource.cpp
+  media/FFmpegMediaSource.hpp
 )
 
 add_library(blueplayer_media STATIC ${BLUEPLAYER_MEDIA_SOURCES})
@@ -16,6 +26,7 @@ target_include_directories(blueplayer_media PUBLIC
 target_link_libraries(blueplayer_media
   PUBLIC
     Qt6::Core
+    Qt6::Multimedia
     ${FFmpeg_LIBRARIES}
 )
 target_link_directories(blueplayer_media PRIVATE /opt/homebrew/lib ${FFMPEG_LIBS_LIBRARY_DIRS})
@@ -27,6 +38,7 @@ target_link_libraries(blueplayer_core
   PUBLIC
     Qt6::Core
     blueplayer_media
+    Qt6::Network
 )
 setup_compiler_warnings(blueplayer_core)
 

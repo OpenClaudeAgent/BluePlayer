@@ -32,6 +32,7 @@ Assurez-vous d'avoir les éléments suivants installés sur votre système :
 -   **FFmpeg** (compilé avec `--enable-gpl --enable-nonfree`, `--enable-libdav1d --enable-libvpx --enable-libx264 --enable-libx265`, et `--enable-videotoolbox` pour macOS).
     -   Via Homebrew : `brew install ffmpeg --with-srt --with-webp --with-opus --with-videotoolbox`
     -   Assurez-vous que la variable d'environnement `FFmpeg_DIR` pointe vers l'emplacement des fichiers de configuration CMake de FFmpeg (par exemple, `$(brew --prefix)/opt/ffmpeg/lib/cmake/ffmpeg` pour Homebrew ou `$HOME/libs/ffmpeg/lib/cmake/ffmpeg` pour une compilation personnalisée).
+-   **Compte développeur Twitch** (créez une application dans la console Twitch, configurez une redirection locale et définissez `TWITCH_CLIENT_ID`, `TWITCH_REDIRECT_URI` et `TWITCH_REDIRECT_PORT`).
 
 Pour des instructions d'installation détaillées et la configuration des variables d'environnement via le fichier `.env`, consultez le document `docs/SETUP.md`.
 
@@ -41,17 +42,14 @@ Le projet utilise `CMake` pour la configuration et la compilation, orchestrées 
 
 1.  **Clonez le dépôt :**
     ```bash
-    git clone <URL_DU_DEPOT>
+    git clone https://github.com/<votre-utilisateur>/BluePlayer.git # Remplacez par l'URL de votre dépôt
     cd BluePlayer
     ```
 
-2.  **Créez le fichier `.env` :** À la racine de votre projet, créez un fichier nommé `.env` (il n'est pas versionné par Git). Adaptez les chemins et remplacez `<votre_utilisateur>` par votre nom d'utilisateur réel.
-    ```
-    BLUEPLAYER_ROOT=$(pwd)
-    QT6_DIR=/opt/homebrew/opt/qt@6/lib/cmake/Qt6
-    FFMPEG_DIR=/opt/homebrew/opt/ffmpeg/lib/cmake/ffmpeg
-    PKG_CONFIG_PATH=$FFMPEG_DIR/lib/pkgconfig:$PKG_CONFIG_PATH
-    ```
+2.  **Configurez les variables d'environnement (si nécessaire) :**
+    Si vous avez des installations personnalisées de Qt ou FFmpeg, vous devrez peut-être définir les chemins d'accès.
+    Pour Homebrew sur macOS, CMake devrait trouver les bibliothèques automatiquement.
+    Si vous rencontrez des problèmes ou que vous voulez connecter l’application à Twitch, créez un fichier `.env` à la racine de votre projet avec les variables nécessaires (`FFmpeg_DIR`, `Qt6_DIR`, `TWITCH_CLIENT_ID`, `TWITCH_REDIRECT_URI`, `TWITCH_REDIRECT_PORT`, etc.).
 
 3.  **Configurez et compilez le projet :**
     Utilisez la commande `make` à la racine du projet.
