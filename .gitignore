@@ -1,0 +1,39 @@
+# Build artifacts
+build/
+*.pro.user
+*.user
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+
+# Compiled object files
+*.o
+*.lo
+*.la
+*.so
+*.dll
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Log and temporary files
+*.log
+*.tmp
+
+# Qt specific
+moc_*
+uic_*
+qrc_*
+*.qmlc
+*.qmlr
+*.qmltypes
+
+# Dependencies (if not managed by system package manager or vcpkg/conan)
+# libs/
+
+# Environment variables file
+.env
