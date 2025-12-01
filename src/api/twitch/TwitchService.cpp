@@ -11,28 +11,29 @@ TwitchService::TwitchService(QObject* parent)
     : QObject(parent),
       m_authManager(new TwitchAuthManager(this)),
       m_apiClient(new TwitchApiClient(QString::fromUtf8(qgetenv("TWITCH_CLIENT_ID")), this)) {
-  connect(m_authManager, &TwitchAuthManager::authenticatedChanged, this, [this](bool authenticated) {
-    emit authenticatedChanged(authenticated);
-    if (authenticated) {
-      m_apiClient->setAccessToken(m_authManager->accessToken());
-    }
-  });
+  connect(m_authManager, &TwitchAuthManager::authenticatedChanged, this, &TwitchService::onAuthStateChanged, Qt::UniqueConnection);
+  connect(m_authManager, &TwitchAuthManager::accessTokenChanged, this, &TwitchService::onAccessTokenChanged, Qt::UniqueConnection);
+  connect(m_authManager, &TwitchAuthManager::errorOccurred, this, &TwitchService::errorOccurred, Qt::UniqueConnection);
 
-  connect(m_authManager, &TwitchAuthManager::accessTokenChanged, this, [this](const QString& token) {
-    m_apiClient->setAccessToken(token);
-  });
-  connect(m_authManager, &TwitchAuthManager::errorOccurred, this, &TwitchService::errorOccurred);
+  connect(m_apiClient, &TwitchApiClient::streamsReady, this, &TwitchService::onStreamsReady, Qt::UniqueConnection);
+}
 
-  connect(m_apiClient, &TwitchApiClient::streamsReady, this, [this](const QVariantList& streams) {
-    m_streams = streams;
-    emit streamsChanged();
-    selectUrl(0);
-  });
+void TwitchService::onStreamsReady(const QVariantList& streams) {
+  m_streams = streams;
+  emit streamsChanged();
+  selectUrl(0);
+}
 
-  connect(m_apiClient, &TwitchApiClient::errorOccurred, this, &TwitchService::errorOccurred);
-
-  if (m_authManager->isAuthenticated()) {
+void TwitchService::onAuthStateChanged(bool authenticated) {
+  emit authenticatedChanged(authenticated);
+  if (authenticated && m_apiClient) {
     m_apiClient->setAccessToken(m_authManager->accessToken());
+  }
+}
+
+void TwitchService::onAccessTokenChanged(const QString& token) {
+  if (m_apiClient) {
+    m_apiClient->setAccessToken(token);
   }
 }
 

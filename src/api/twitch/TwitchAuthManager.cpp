@@ -10,7 +10,6 @@
 #include <QAbstractSocket>
 #include <QNetworkRequest>
 #include <QList>
-#include <QSsl>
 #include <QSslCertificate>
 #include <QSslConfiguration>
 #include <QSslKey>
@@ -63,9 +62,10 @@ protected:
         return;
       }
       sslSocket->setSslConfiguration(m_sslConfig);
-      connect(sslSocket, &QSslSocket::encrypted, this, [this, sslSocket]() {
-        setupRead(sslSocket);
-      });
+      connect(sslSocket,
+              &QSslSocket::encrypted,
+              this,
+              &CallbackServer::onSslEncrypted);
       sslSocket->startServerEncryption();
       socket = sslSocket;
     }
@@ -78,8 +78,7 @@ private:
     connect(ioDevice,
             &QIODevice::readyRead,
             this,
-            [this, ioDevice]() { handleRequest(ioDevice); },
-            Qt::UniqueConnection);
+            [this, ioDevice]() { handleRequest(ioDevice); });
   }
 
   void handleRequest(QIODevice* socket) {
@@ -100,8 +99,24 @@ private:
       }
     }
     const QByteArray response =
-        "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n"
-        "<html><body><h1>BluePlayer</h1><p>Vous pouvez fermer cette fenêtre.</p></body></html>";
+        "HTTP/1.1 200 OK\r\n"
+        "Content-Type: text/html\r\n"
+        "\r\n"
+        "<!DOCTYPE html>"
+        "<html><head><meta charset=\"utf-8\"><title>BluePlayer</title>"
+        "<style>body{font-family:system-ui,sans-serif;background:#050d17;color:#fff;"
+        "display:flex;align-items:center;justify-content:center;height:100vh;margin:0;}"
+        ".card{padding:24px;border-radius:12px;background:rgba(2,18,44,.95);"
+        "box-shadow:0 15px 35px rgba(0,0,0,.35);text-align:center;}"
+        ".card h1{margin:0 0 8px;font-size:26px;}"
+        ".card p{margin:0;font-size:16px;color:#8aa0c1;}</style>"
+        "<script>"
+        "setTimeout(()=>{window.location.href='about:blank';},4000);"
+        "window.addEventListener('unload', ()=>window.close());"
+        "</script></head>"
+        "<body><div class=\"card\"><h1>Authentification réussie</h1>"
+        "<p>BluePlayer a bien reçu le callback OAuth. Cette page va se fermer.</p>"
+        "</div></body></html>";
     socket->write(response);
     if (auto tcpSocket = qobject_cast<QAbstractSocket*>(socket)) {
       tcpSocket->disconnectFromHost();
@@ -110,7 +125,16 @@ private:
 
   QSslConfiguration m_sslConfig;
   quint16 m_port = 0;
+
+private slots:
+  void onSslEncrypted();
 };
+
+void CallbackServer::onSslEncrypted() {
+  if (auto sslSocket = qobject_cast<QSslSocket*>(sender())) {
+    setupRead(sslSocket);
+  }
+}
 
 QString base64UrlEncode(const QByteArray& bytes) {
   return QString::fromUtf8(

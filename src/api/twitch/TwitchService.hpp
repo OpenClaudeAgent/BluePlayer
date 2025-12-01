@@ -37,6 +37,12 @@ signals:
 private:
   void selectUrl(int index);
 
+private slots:
+  void onAuthStateChanged(bool authenticated);
+  void onAccessTokenChanged(const QString& token);
+  void onStreamsReady(const QVariantList& streams);
+
+private:
   TwitchAuthManager* m_authManager = nullptr;
   TwitchApiClient* m_apiClient = nullptr;
   QVariantList m_streams;
