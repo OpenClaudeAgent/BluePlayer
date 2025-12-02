@@ -22,11 +22,16 @@ TwitchService::TwitchService(QObject* parent)
   QString clientId = QString::fromUtf8(qgetenv("TWITCH_CLIENT_ID"));
   Logger::debug(LogCategory::Twitch, QStringLiteral("Client ID: %1").arg(clientId.isEmpty() ? QStringLiteral("EMPTY") : clientId.left(10) + "..."));
   
+  if (clientId.isEmpty()) {
+    Logger::warning(LogCategory::Twitch, QStringLiteral("TWITCH_CLIENT_ID environment variable is not set! API calls may fail."));
+  }
+  
   connect(m_authManager, &TwitchAuthManager::authenticatedChanged, this, &TwitchService::onAuthStateChanged, Qt::UniqueConnection);
   connect(m_authManager, &TwitchAuthManager::accessTokenChanged, this, &TwitchService::onAccessTokenChanged, Qt::UniqueConnection);
   connect(m_authManager, &TwitchAuthManager::errorOccurred, this, &TwitchService::errorOccurred, Qt::UniqueConnection);
 
   connect(m_apiClient, &TwitchApiClient::streamsReady, this, &TwitchService::onStreamsReady, Qt::UniqueConnection);
+  connect(m_apiClient, &TwitchApiClient::recommendedStreamsReady, this, &TwitchService::onRecommendedStreamsReady, Qt::UniqueConnection);
   connect(m_apiClient, &TwitchApiClient::userInfoReady, this, &TwitchService::onUserInfoReady, Qt::UniqueConnection);
   connect(m_apiClient, &TwitchApiClient::errorOccurred, this, &TwitchService::errorOccurred, Qt::UniqueConnection);
   
@@ -58,6 +63,13 @@ void TwitchService::onStreamsReady(const QVariantList& streams) {
   }
 }
 
+void TwitchService::onRecommendedStreamsReady(const QVariantList& streams) {
+  Logger::debug(LogCategory::Twitch, QStringLiteral("onRecommendedStreamsReady() called with %1 streams").arg(streams.size()));
+  m_recommendedStreams = streams;
+  emit recommendedStreamsChanged();
+  Logger::debug(LogCategory::Twitch, QStringLiteral("Emitted recommendedStreamsChanged()"));
+}
+
 void TwitchService::onUserInfoReady(const QString& userId) {
   Logger::debug(LogCategory::Twitch, QStringLiteral("onUserInfoReady() called with userId: %1").arg(userId));
   if (m_userId != userId) {
@@ -85,12 +97,38 @@ void TwitchService::onAuthStateChanged(bool authenticated) {
     if (!m_userId.isEmpty()) {
       Logger::debug(LogCategory::Twitch, QStringLiteral("User ID already known, refreshing streams"));
       refreshStreams();
+      refreshRecommendedStreams();
     } else {
       Logger::debug(LogCategory::Twitch, QStringLiteral("User ID not known yet, will be loaded via getUserInfo"));
       // getUserInfo sera appelé par refreshStreams
       refreshStreams();
+      refreshRecommendedStreams();
     }
   }
+}
+
+void TwitchService::refreshRecommendedStreams() {
+  Logger::debug(LogCategory::Twitch, QStringLiteral("refreshRecommendedStreams() called"));
+  
+  if (!m_apiClient) {
+    Logger::error(LogCategory::Twitch, QStringLiteral("API client is null"));
+    emit errorOccurred(QStringLiteral("Client API non initialisé."));
+    return;
+  }
+
+  // Les streams recommandés peuvent être chargés même sans authentification
+  // mais avec authentification, on peut personnaliser les recommandations
+  QString token = m_authManager ? m_authManager->accessToken() : QString();
+  if (!token.isEmpty()) {
+    Logger::debug(LogCategory::Twitch, QStringLiteral("Setting access token for recommended streams, length: %1").arg(token.length()));
+    m_apiClient->setAccessToken(token);
+  } else {
+    // Même sans token, on peut récupérer les streams populaires (sans authentification)
+    Logger::debug(LogCategory::Twitch, QStringLiteral("No token available, requesting public streams"));
+  }
+
+  Logger::debug(LogCategory::Twitch, QStringLiteral("Requesting recommended streams"));
+  m_apiClient->getRecommendedStreams(20);  // Récupérer 20 streams recommandés
 }
 
 void TwitchService::onAccessTokenChanged(const QString& token) {
@@ -108,6 +146,10 @@ bool TwitchService::isAuthenticated() const {
 
 QVariantList TwitchService::streams() const {
   return m_streams;
+}
+
+QVariantList TwitchService::recommendedStreams() const {
+  return m_recommendedStreams;
 }
 
 QString TwitchService::selectedStreamUrl() const {
@@ -130,6 +172,8 @@ void TwitchService::logout() {
   }
   m_streams.clear();
   emit streamsChanged();
+  m_recommendedStreams.clear();
+  emit recommendedStreamsChanged();
   m_selectedStreamUrl.clear();
   emit selectedStreamChanged();
   m_userId.clear();

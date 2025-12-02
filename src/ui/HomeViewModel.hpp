@@ -18,6 +18,7 @@ namespace blueplayer::ui {
 class HomeViewModel : public QObject {
   Q_OBJECT
   Q_PROPERTY(QVariantList followedStreams READ followedStreams NOTIFY followedStreamsChanged)
+  Q_PROPERTY(QVariantList recommendedStreams READ recommendedStreams NOTIFY recommendedStreamsChanged)
   Q_PROPERTY(QVariantList placeholderCards READ placeholderCards CONSTANT)
   Q_PROPERTY(QVariantList sectionsData READ sectionsData NOTIFY sectionsDataChanged)
 
@@ -29,6 +30,12 @@ public:
    * @return La liste des streams
    */
   [[nodiscard]] QVariantList followedStreams() const { return m_followedStreams; }
+
+  /**
+   * @brief Obtient la liste des streams recommandés transformés
+   * @return La liste des streams recommandés
+   */
+  [[nodiscard]] QVariantList recommendedStreams() const { return m_recommendedStreams; }
 
   /**
    * @brief Obtient les cartes placeholder
@@ -55,12 +62,20 @@ public:
    */
   Q_INVOKABLE void updateFollowedStreams(const QVariantList& twitchStreams);
 
+  /**
+   * @brief Met à jour les streams recommandés depuis le service Twitch
+   * @param twitchStreams Les streams bruts depuis l'API Twitch
+   */
+  Q_INVOKABLE void updateRecommendedStreams(const QVariantList& twitchStreams);
+
 signals:
   void followedStreamsChanged();
+  void recommendedStreamsChanged();
   void sectionsDataChanged();
 
 private:
   QVariantList m_followedStreams;
+  QVariantList m_recommendedStreams;
   QVariantList m_placeholderCards;
   
   void generatePlaceholderCards();

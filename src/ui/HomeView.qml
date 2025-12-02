@@ -62,11 +62,31 @@ Item {
         viewModel.updateFollowedStreams(service.streams)
       }
     }
+    function onRecommendedStreamsChanged() {
+      console.log("[HomeView] onRecommendedStreamsChanged() signal received")
+      var service = getTwitchService()
+      if (service) {
+        console.log("[HomeView] recommendedStreams length:", service.recommendedStreams ? service.recommendedStreams.length : "null")
+        if (service.recommendedStreams && service.recommendedStreams.length > 0) {
+          console.log("[HomeView] Updating ViewModel with", service.recommendedStreams.length, "recommended streams")
+          viewModel.updateRecommendedStreams(service.recommendedStreams)
+        } else {
+          console.log("[HomeView] No recommended streams available yet")
+        }
+      }
+    }
     function onErrorOccurred(message) {
       console.log("[HomeView] ERROR Twitch:", message)
     }
     function onAuthenticatedChanged(authenticated) {
       console.log("[HomeView] onAuthenticatedChanged() signal received, authenticated:", authenticated)
+      // Charger les streams recommandés quand l'utilisateur s'authentifie
+      if (authenticated) {
+        var service = getTwitchService()
+        if (service) {
+          service.refreshRecommendedStreams()
+        }
+      }
     }
   }
 
@@ -77,11 +97,21 @@ Item {
     if (service) {
       console.log("[HomeView] twitchService.authenticated:", service.authenticated)
       console.log("[HomeView] twitchService.streams:", service.streams ? service.streams.length + " streams" : "null")
+      console.log("[HomeView] twitchService.recommendedStreams:", service.recommendedStreams ? service.recommendedStreams.length + " streams" : "null")
       if (service.streams) {
         viewModel.updateFollowedStreams(service.streams)
       }
+      if (service.recommendedStreams && service.recommendedStreams.length > 0) {
+        console.log("[HomeView] Found", service.recommendedStreams.length, "recommended streams, updating ViewModel")
+        viewModel.updateRecommendedStreams(service.recommendedStreams)
+      } else {
+        // Charger les streams recommandés même sans authentification
+        console.log("[HomeView] No recommended streams found, refreshing...")
+        service.refreshRecommendedStreams()
+      }
     }
     console.log("[HomeView] ViewModel followedStreams length:", viewModel.followedStreams.length)
+    console.log("[HomeView] ViewModel recommendedStreams length:", viewModel.recommendedStreams.length)
     console.log("[HomeView] ViewModel placeholderCards length:", viewModel.placeholderCards.length)
   }
 

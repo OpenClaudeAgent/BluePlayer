@@ -20,6 +20,7 @@ class TwitchService : public QObject {
 
   Q_PROPERTY(bool authenticated READ isAuthenticated NOTIFY authenticatedChanged)
   Q_PROPERTY(QVariantList streams READ streams NOTIFY streamsChanged)
+  Q_PROPERTY(QVariantList recommendedStreams READ recommendedStreams NOTIFY recommendedStreamsChanged)
   Q_PROPERTY(QString selectedStreamUrl READ selectedStreamUrl NOTIFY selectedStreamChanged)
   Q_PROPERTY(QString userId READ userId NOTIFY userIdChanged)
 
@@ -41,6 +42,12 @@ public:
    * @return La liste des streams (QVariantList pour QML)
    */
   [[nodiscard]] QVariantList streams() const;
+
+  /**
+   * @brief Obtient la liste des streams recommandés
+   * @return La liste des streams recommandés (QVariantList pour QML)
+   */
+  [[nodiscard]] QVariantList recommendedStreams() const;
 
   /**
    * @brief Obtient l'URL du stream sélectionné
@@ -70,6 +77,11 @@ public:
   Q_INVOKABLE void refreshStreams();
 
   /**
+   * @brief Rafraîchit la liste des streams recommandés
+   */
+  Q_INVOKABLE void refreshRecommendedStreams();
+
+  /**
    * @brief Sélectionne et prépare un stream pour la lecture
    * @param index L'index du stream dans la liste
    */
@@ -78,6 +90,7 @@ public:
 signals:
   void authenticatedChanged(bool authenticated);
   void streamsChanged();
+  void recommendedStreamsChanged();
   void selectedStreamChanged();
   void userIdChanged();
   void errorOccurred(const QString& message);
@@ -89,12 +102,14 @@ private slots:
   void onAuthStateChanged(bool authenticated);
   void onAccessTokenChanged(const QString& token);
   void onStreamsReady(const QVariantList& streams);
+  void onRecommendedStreamsReady(const QVariantList& streams);
   void onUserInfoReady(const QString& userId);
 
 private:
   TwitchAuthManager* m_authManager = nullptr;
   TwitchApiClient* m_apiClient = nullptr;
   QVariantList m_streams;
+  QVariantList m_recommendedStreams;
   QString m_selectedStreamUrl;
   QString m_userId;
 };

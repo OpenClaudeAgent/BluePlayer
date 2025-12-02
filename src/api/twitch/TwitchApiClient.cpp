@@ -43,6 +43,32 @@ void TwitchApiClient::listStreams(int limit) {
   connect(reply, &QNetworkReply::finished, this, &TwitchApiClient::handleReply);
 }
 
+void TwitchApiClient::getRecommendedStreams(int limit) {
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("getRecommendedStreams() called with limit: %1").arg(limit));
+  
+  // Vérifier que le Client-ID est configuré
+  if (m_clientId.isEmpty()) {
+    core::Logger::error(core::LogCategory::Twitch, QStringLiteral("Client ID is empty! Cannot request recommended streams."));
+    const auto error = ErrorHandler::twitchApiError(QStringLiteral("getRecommendedStreams"), QStringLiteral("Client ID manquant"));
+    emit errorOccurred(error.toString());
+    return;
+  }
+  
+  // Utiliser l'endpoint /streams pour obtenir les streams populaires comme recommandations
+  // On peut filtrer par game_id ou language si nécessaire pour personnaliser
+  QUrl url(QStringLiteral("https://api.twitch.tv/helix/streams"));
+  QUrlQuery query;
+  query.addQueryItem(QStringLiteral("first"), QString::number(limit));
+  // Optionnel: filtrer par langue ou jeu pour personnaliser les recommandations
+  // query.addQueryItem(QStringLiteral("language"), QStringLiteral("fr"));
+  url.setQuery(query);
+
+  core::Logger::debug(core::LogCategory::Network, QStringLiteral("Requesting recommended streams from: %1").arg(url.toString()));
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("Client ID configured: %1").arg(m_clientId.isEmpty() ? QStringLiteral("EMPTY") : m_clientId.left(10) + "..."));
+  QNetworkReply* reply = getJson(url);
+  connect(reply, &QNetworkReply::finished, this, &TwitchApiClient::handleRecommendedStreamsReply);
+}
+
 void TwitchApiClient::handleReply() {
   QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
   if (handleNetworkError(reply, QStringLiteral("récupération des streams"))) {
@@ -61,6 +87,37 @@ void TwitchApiClient::handleReply() {
   const QVariantList streams = parseStreamsArray(entries);
 
   emit streamsReady(streams);
+}
+
+void TwitchApiClient::handleRecommendedStreamsReply() {
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("handleRecommendedStreamsReply() called"));
+  QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
+  if (handleNetworkError(reply, QStringLiteral("récupération des streams recommandés"))) {
+    reply->deleteLater();
+    return;
+  }
+
+  const QJsonDocument document = parseJsonResponse(reply, QStringLiteral("Recommended streams"));
+  reply->deleteLater();
+  if (document.isNull()) {
+    core::Logger::warning(core::LogCategory::Twitch, QStringLiteral("Failed to parse recommended streams response"));
+    return;
+  }
+
+  const QJsonObject root = document.object();
+  const QJsonArray entries = root.value(QStringLiteral("data")).toArray();
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("Found %1 recommended streams").arg(entries.size()));
+  
+  if (entries.isEmpty()) {
+    core::Logger::warning(core::LogCategory::Twitch, QStringLiteral("No recommended streams found in API response"));
+    // Émettre une liste vide pour indiquer qu'il n'y a pas de données
+    emit recommendedStreamsReady(QVariantList());
+    return;
+  }
+  
+  const QVariantList streams = parseStreamsArray(entries);
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("Parsed %1 recommended streams, emitting signal").arg(streams.size()));
+  emit recommendedStreamsReady(streams);
 }
 
 void TwitchApiClient::getUserInfo() {

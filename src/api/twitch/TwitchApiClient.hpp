@@ -52,13 +52,21 @@ public:
    */
   Q_INVOKABLE void listFollowedStreams(const QString& userId, int limit = 100);  // Utilise constants::twitch::kDefaultStreamLimit
 
+  /**
+   * @brief Récupère les streams recommandés (streams populaires)
+   * @param limit Nombre maximum de streams à récupérer (défaut: 20)
+   */
+  Q_INVOKABLE void getRecommendedStreams(int limit = 20);
+
 signals:
   void streamsReady(const QVariantList& streams);
+  void recommendedStreamsReady(const QVariantList& streams);
   void userInfoReady(const QString& userId);
   void errorOccurred(const QString& message);  // Gardé pour compatibilité QML
 
 private slots:
   void handleReply();
+  void handleRecommendedStreamsReply();
   void handleUserInfoReply();
   void handleFollowedStreamsReply();
 

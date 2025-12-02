@@ -24,6 +24,18 @@ QVariantList HomeViewModel::sectionsData() const {
   firstSection["cards"] = cards;
   sections[0] = firstSection;
   
+  // Remplacer la deuxième section (Recommandé pour vous) avec les streams recommandés réels
+  // Toujours remplacer la section, même si m_recommendedStreams est vide (pour déclencher le signal)
+  if (sections.size() > 1) {
+    QVariantMap recommendedSection = sections[1].toMap();
+    // Utiliser les données réelles si disponibles, sinon garder les cartes par défaut
+    QVariantList recommendedCards = m_recommendedStreams.isEmpty() 
+      ? recommendedSection["cards"].toList() 
+      : m_recommendedStreams;
+    recommendedSection["cards"] = recommendedCards;
+    sections[1] = recommendedSection;
+  }
+  
   return sections;
 }
 
@@ -64,6 +76,14 @@ void HomeViewModel::updateFollowedStreams(const QVariantList& twitchStreams) {
   emit sectionsDataChanged();
 }
 
+void HomeViewModel::updateRecommendedStreams(const QVariantList& twitchStreams) {
+  Logger::debug(LogCategory::UI, QStringLiteral("updateRecommendedStreams() called with %1 streams").arg(twitchStreams.size()));
+  m_recommendedStreams = transformTwitchStreams(twitchStreams);
+  Logger::debug(LogCategory::UI, QStringLiteral("Transformed to %1 recommended streams").arg(m_recommendedStreams.size()));
+  emit recommendedStreamsChanged();
+  emit sectionsDataChanged();
+}
+
 void HomeViewModel::generatePlaceholderCards() {
   m_placeholderCards.clear();
   m_placeholderCards.reserve(blueplayer::core::constants::ui::kPlaceholderCardsCount);
@@ -83,7 +103,7 @@ QVariantList HomeViewModel::createDefaultSections() const {
   // Section 1: Streams suivis (sera remplie dynamiquement)
   QVariantMap section1;
   section1[QStringLiteral("title")] = QStringLiteral("Vos streamers suivis");
-  section1[QStringLiteral("subtitle")] = QStringLiteral("Reprenez là où vous vous êtes arrêtés");
+  section1[QStringLiteral("subtitle")] = QStringLiteral("Chaînes en direct");
   section1[QStringLiteral("cards")] = m_followedStreams.isEmpty() ? m_placeholderCards : m_followedStreams;
   sections.append(section1);
   
@@ -135,6 +155,8 @@ QVariantMap HomeViewModel::createCard(const QString& name, const QString& detail
   card[QStringLiteral("name")] = name;
   card[QStringLiteral("detail")] = detail;
   card[QStringLiteral("viewers")] = viewers;
+  card[QStringLiteral("previewImage")] = QString();  // Pas d'image pour les cartes par défaut
+  card[QStringLiteral("isPlaceholder")] = false;  // Ce sont des cartes réelles mais sans image
   return card;
 }
 

@@ -20,6 +20,12 @@ if(CMAKE_COMPILER_ID MATCHES "Clang|GNU")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
 endif()
 
+# Supprimer les warnings de duplication de bibliothèques lors du linkage
+# Ces warnings sont normaux pour les bibliothèques statiques avec dépendances circulaires
+if(APPLE)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-w")
+endif()
+
 # Déclarer les options avant de les utiliser
 option(BLUEPLAYER_ENABLE_TESTS "Build unit and integration tests" ON)
 option(BLUEPLAYER_ENABLE_PROFILING "Enable profiling instrumentation" OFF)
