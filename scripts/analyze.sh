@@ -39,3 +39,5 @@ fi
 
 echo "Static analysis complete."
 
+
+

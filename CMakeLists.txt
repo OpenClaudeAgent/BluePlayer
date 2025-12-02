@@ -20,9 +20,25 @@ if(CMAKE_COMPILER_ID MATCHES "Clang|GNU")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
 endif()
 
+# Configuration de la couverture de code avec llvm-cov
+if(BLUEPLAYER_ENABLE_COVERAGE)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        message(STATUS "Enabling code coverage with llvm-cov")
+        # Flags pour la génération de profilage et de couverture
+        # Ces flags seront appliqués uniquement aux bibliothèques et tests via target_compile_options
+        set(BLUEPLAYER_COVERAGE_ENABLED ON CACHE INTERNAL "")
+        set(BLUEPLAYER_COVERAGE_FLAGS "-fprofile-instr-generate;-fcoverage-mapping")
+    else()
+        message(WARNING "Code coverage is only supported with Clang compiler. Current compiler: ${CMAKE_CXX_COMPILER_ID}")
+        set(BLUEPLAYER_ENABLE_COVERAGE OFF)
+    endif()
+endif()
+
 option(BLUEPLAYER_ENABLE_TESTS "Build unit and integration tests" ON)
 option(BLUEPLAYER_ENABLE_PROFILING "Enable profiling instrumentation" OFF)
 option(BLUEPLAYER_ENABLE_STATIC_ANALYSIS "Enable static analysis (clang-tidy, cppcheck)" OFF)
+option(BLUEPLAYER_ENABLE_COVERAGE "Enable code coverage with llvm-cov" OFF)
+option(BLUEPLAYER_ENABLE_MUTATION_TESTING "Enable mutation testing with Mull" OFF)
 
 # Inclure CompilerWarnings.cmake directement
 include(cmake/CompilerWarnings.cmake OPTIONAL)

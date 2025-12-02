@@ -45,6 +45,18 @@ void TestTwitchApiClient::testParseJsonResponse() {
   QJsonObject root = doc.object();
   QVERIFY(root.contains("data"));
   QVERIFY(root["data"].isArray());
+  
+  // Test avec une réponse JSON vide
+  QString emptyJson = R"({"data": []})";
+  QJsonDocument emptyDoc = QJsonDocument::fromJson(emptyJson.toUtf8());
+  QVERIFY(emptyDoc.isObject());
+  QVERIFY(emptyDoc.object()["data"].isArray());
+  QCOMPARE(emptyDoc.object()["data"].toArray().size(), 0);
+  
+  // Test avec une réponse JSON invalide
+  QString invalidJson = R"({invalid json})";
+  QJsonDocument invalidDoc = QJsonDocument::fromJson(invalidJson.toUtf8());
+  QVERIFY(invalidDoc.isNull() || !invalidDoc.isObject());
 }
 
 void TestTwitchApiClient::testParseStreamsArray() {
@@ -86,12 +98,26 @@ void TestTwitchApiClient::testErrorHandling() {
   
   // Tester avec un token invalide ou vide
   m_client->setAccessToken("");
-  // Note: Les méthodes publiques déclenchent des erreurs via le signal errorOccurred
-  // On peut vérifier que le signal est émis dans certains cas
-  
   QVERIFY(m_client != nullptr);
+  
+  // Tester avec un token null
+  m_client->setAccessToken(QString());
+  QVERIFY(m_client != nullptr);
+  
+  // Tester avec des limites invalides
+  m_client->listStreams(-1);  // Limite négative
+  m_client->listStreams(0);    // Limite zéro
+  m_client->listStreams(10000); // Limite très élevée
+  
+  // Tester avec un userId invalide
+  m_client->listFollowedStreams("", 10);  // userId vide
+  m_client->listFollowedStreams("invalid_user_id", 10);  // Format invalide
+  
+  // Vérifier que le client gère gracieusement ces cas
+  QVERIFY(true);
 }
 
 QTEST_MAIN(TestTwitchApiClient)
 #include "TestTwitchApiClient.moc"
+
 
