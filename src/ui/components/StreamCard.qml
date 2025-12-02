@@ -66,7 +66,7 @@ Item {
       anchors.margins: 12
       spacing: 12
 
-        // Zone image preview (placeholder pour l'instant)
+        // Zone image preview avec chargement asynchrone et cache
         Rectangle {
           Layout.fillWidth: true
           Layout.preferredHeight: 120
@@ -74,14 +74,38 @@ Item {
           color: cardRoot.isPlaceholder ? "#1a2230" : AppleTheme.surfaceSoft
           border.color: AppleTheme.divider
           border.width: 1
+          clip: true
 
-          // Placeholder pour l'image
-          Text {
-            anchors.centerIn: parent
-            text: cardRoot.isPlaceholder ? "⋯" : "📺"
-            font.pixelSize: 32
-            color: AppleTheme.mutedText
-            opacity: 0.5
+          // Image avec chargement asynchrone et cache
+          Image {
+            id: previewImage
+            anchors.fill: parent
+            source: cardRoot.isPlaceholder ? "" : cardRoot.previewImage
+            fillMode: Image.PreserveAspectCrop
+            asynchronous: true  // Chargement asynchrone pour ne pas bloquer l'UI
+            cache: true  // Utiliser le cache Qt pour éviter les rechargements
+            visible: status === Image.Ready && !cardRoot.isPlaceholder
+            
+            // Animation de fade-in lors du chargement
+            opacity: status === Image.Ready ? 1 : 0
+            Behavior on opacity {
+              NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+            }
+          }
+
+          // Placeholder pendant le chargement ou si pas d'image
+          Rectangle {
+            anchors.fill: parent
+            color: cardRoot.isPlaceholder ? "#1a2230" : AppleTheme.surfaceSoft
+            visible: previewImage.status !== Image.Ready || cardRoot.isPlaceholder
+            
+            Text {
+              anchors.centerIn: parent
+              text: cardRoot.isPlaceholder ? "⋯" : (previewImage.status === Image.Loading ? "⏳" : "📺")
+              font.pixelSize: 32
+              color: AppleTheme.mutedText
+              opacity: 0.5
+            }
           }
 
           // Badge "LIVE" si nécessaire
@@ -93,7 +117,7 @@ Item {
             height: 20
             radius: 10
             color: AppleTheme.statusNegative
-            visible: !cardRoot.isPlaceholder
+            visible: !cardRoot.isPlaceholder && previewImage.status === Image.Ready
 
             Text {
               anchors.centerIn: parent
