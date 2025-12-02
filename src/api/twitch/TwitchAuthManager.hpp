@@ -59,7 +59,7 @@ private:
   QString m_redirectUri;
   QString m_clientSecret;
   QString m_scope;
-  quint16 m_listenPort = 8443;
+  quint16 m_listenPort = 8443;  // Utilise constants::twitch::kDefaultRedirectPort dans le constructeur
   QString m_codeVerifier;
   QString m_state;
   QString m_accessToken;

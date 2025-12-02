@@ -2,8 +2,11 @@
 
 #include "api/twitch/TwitchApiClient.hpp"
 #include "api/twitch/TwitchAuthManager.hpp"
+#include "core/Logger.hpp"
 
-#include <QDebug>
+using blueplayer::core::Logger;
+using blueplayer::core::LogCategory;
+
 #include <QVariantMap>
 
 namespace blueplayer::api::twitch {
@@ -12,9 +15,9 @@ TwitchService::TwitchService(QObject* parent)
     : QObject(parent),
       m_authManager(new TwitchAuthManager(this)),
       m_apiClient(new TwitchApiClient(QString::fromUtf8(qgetenv("TWITCH_CLIENT_ID")), this)) {
-  qDebug() << "[TwitchService] Constructor called";
+  Logger::debug(LogCategory::Twitch, QStringLiteral("Constructor called"));
   QString clientId = QString::fromUtf8(qgetenv("TWITCH_CLIENT_ID"));
-  qDebug() << "[TwitchService] Client ID:" << (clientId.isEmpty() ? "EMPTY" : clientId.left(10) + "...");
+  Logger::debug(LogCategory::Twitch, QStringLiteral("Client ID: %1").arg(clientId.isEmpty() ? QStringLiteral("EMPTY") : clientId.left(10) + "..."));
   
   connect(m_authManager, &TwitchAuthManager::authenticatedChanged, this, &TwitchService::onAuthStateChanged, Qt::UniqueConnection);
   connect(m_authManager, &TwitchAuthManager::accessTokenChanged, this, &TwitchService::onAccessTokenChanged, Qt::UniqueConnection);
@@ -24,54 +27,54 @@ TwitchService::TwitchService(QObject* parent)
   connect(m_apiClient, &TwitchApiClient::userInfoReady, this, &TwitchService::onUserInfoReady, Qt::UniqueConnection);
   connect(m_apiClient, &TwitchApiClient::errorOccurred, this, &TwitchService::errorOccurred, Qt::UniqueConnection);
   
-  qDebug() << "[TwitchService] Initial authenticated state:" << m_authManager->isAuthenticated();
+  Logger::debug(LogCategory::Twitch, QStringLiteral("Initial authenticated state: %1").arg(m_authManager->isAuthenticated()));
 }
 
 void TwitchService::onStreamsReady(const QVariantList& streams) {
-  qDebug() << "[TwitchService] onStreamsReady() called with" << streams.size() << "streams";
+  Logger::debug(LogCategory::Twitch, QStringLiteral("onStreamsReady() called with %1 streams").arg(streams.size()));
   m_streams = streams;
   emit streamsChanged();
-  qDebug() << "[TwitchService] Emitted streamsChanged()";
+  Logger::debug(LogCategory::Twitch, QStringLiteral("Emitted streamsChanged()"));
   if (!streams.isEmpty()) {
-    qDebug() << "[TwitchService] Selecting first stream";
+    Logger::debug(LogCategory::Twitch, QStringLiteral("Selecting first stream"));
     selectUrl(0);
   } else {
-    qDebug() << "[TwitchService] No streams to select";
+    Logger::debug(LogCategory::Twitch, QStringLiteral("No streams to select"));
   }
 }
 
 void TwitchService::onUserInfoReady(const QString& userId) {
-  qDebug() << "[TwitchService] onUserInfoReady() called with userId:" << userId;
+  Logger::debug(LogCategory::Twitch, QStringLiteral("onUserInfoReady() called with userId: %1").arg(userId));
   if (m_userId != userId) {
     m_userId = userId;
     emit userIdChanged();
-    qDebug() << "[TwitchService] User ID changed, emitted userIdChanged()";
+    Logger::debug(LogCategory::Twitch, QStringLiteral("User ID changed, emitted userIdChanged()"));
   }
   // Maintenant qu'on a l'ID utilisateur, on peut récupérer les streams suivis
   if (m_apiClient) {
-    qDebug() << "[TwitchService] Requesting followed streams for userId:" << userId;
+    Logger::debug(LogCategory::Twitch, QStringLiteral("Requesting followed streams for userId: %1").arg(userId));
     m_apiClient->listFollowedStreams(userId);
   } else {
-    qDebug() << "[TwitchService] ERROR: API client is null";
+    Logger::error(LogCategory::Twitch, QStringLiteral("API client is null"));
   }
 }
 
 void TwitchService::onAuthStateChanged(bool authenticated) {
-  qDebug() << "[TwitchService] onAuthStateChanged() called, authenticated:" << authenticated;
+  Logger::debug(LogCategory::Twitch, QStringLiteral("onAuthStateChanged() called, authenticated: %1").arg(authenticated));
   emit authenticatedChanged(authenticated);
   if (authenticated && m_apiClient) {
     QString token = m_authManager->accessToken();
-    qDebug() << "[TwitchService] Setting access token, length:" << token.length();
+    Logger::debug(LogCategory::Twitch, QStringLiteral("Setting access token, length: %1").arg(token.length()));
     m_apiClient->setAccessToken(token);
   }
 }
 
 void TwitchService::onAccessTokenChanged(const QString& token) {
-  qDebug() << "[TwitchService] onAccessTokenChanged() called, token length:" << token.length();
+  Logger::debug(LogCategory::Twitch, QStringLiteral("onAccessTokenChanged() called, token length: %1").arg(token.length()));
   if (m_apiClient) {
     m_apiClient->setAccessToken(token);
   } else {
-    qDebug() << "[TwitchService] ERROR: API client is null";
+    Logger::error(LogCategory::Twitch, QStringLiteral("API client is null"));
   }
 }
 
@@ -110,29 +113,29 @@ void TwitchService::logout() {
 }
 
 void TwitchService::refreshStreams() {
-  qDebug() << "[TwitchService] refreshStreams() called";
-  qDebug() << "[TwitchService] Authenticated:" << isAuthenticated();
-  qDebug() << "[TwitchService] Current userId:" << (m_userId.isEmpty() ? "EMPTY" : m_userId);
+  Logger::debug(LogCategory::Twitch, QStringLiteral("refreshStreams() called"));
+  Logger::debug(LogCategory::Twitch, QStringLiteral("Authenticated: %1").arg(isAuthenticated()));
+  Logger::debug(LogCategory::Twitch, QStringLiteral("Current userId: %1").arg(m_userId.isEmpty() ? QStringLiteral("EMPTY") : m_userId));
   
   if (!isAuthenticated()) {
-    qDebug() << "[TwitchService] ERROR: Not authenticated";
+    Logger::error(LogCategory::Twitch, QStringLiteral("Not authenticated"));
     emit errorOccurred(QStringLiteral("Authentifiez-vous d'abord."));
     return;
   }
 
   if (!m_apiClient) {
-    qDebug() << "[TwitchService] ERROR: API client is null";
+    Logger::error(LogCategory::Twitch, QStringLiteral("API client is null"));
     emit errorOccurred(QStringLiteral("Client API non initialisé."));
     return;
   }
 
   // Si on a déjà l'ID utilisateur, on peut directement récupérer les streams suivis
   if (!m_userId.isEmpty()) {
-    qDebug() << "[TwitchService] User ID already known, requesting followed streams";
+    Logger::debug(LogCategory::Twitch, QStringLiteral("User ID already known, requesting followed streams"));
     m_apiClient->listFollowedStreams(m_userId);
   } else {
     // Sinon, on récupère d'abord l'ID utilisateur
-    qDebug() << "[TwitchService] User ID unknown, requesting user info first";
+    Logger::debug(LogCategory::Twitch, QStringLiteral("User ID unknown, requesting user info first"));
     m_apiClient->getUserInfo();
   }
 }
