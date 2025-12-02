@@ -15,6 +15,7 @@ class TwitchService : public QObject {
   Q_PROPERTY(bool authenticated READ isAuthenticated NOTIFY authenticatedChanged)
   Q_PROPERTY(QVariantList streams READ streams NOTIFY streamsChanged)
   Q_PROPERTY(QString selectedStreamUrl READ selectedStreamUrl NOTIFY selectedStreamChanged)
+  Q_PROPERTY(QString userId READ userId NOTIFY userIdChanged)
 
 public:
   explicit TwitchService(QObject* parent = nullptr);
@@ -22,6 +23,7 @@ public:
   [[nodiscard]] bool isAuthenticated() const;
   [[nodiscard]] QVariantList streams() const;
   [[nodiscard]] QString selectedStreamUrl() const;
+  [[nodiscard]] QString userId() const;
 
   Q_INVOKABLE void login();
   Q_INVOKABLE void logout();
@@ -32,6 +34,7 @@ signals:
   void authenticatedChanged(bool authenticated);
   void streamsChanged();
   void selectedStreamChanged();
+  void userIdChanged();
   void errorOccurred(const QString& message);
 
 private:
@@ -41,12 +44,14 @@ private slots:
   void onAuthStateChanged(bool authenticated);
   void onAccessTokenChanged(const QString& token);
   void onStreamsReady(const QVariantList& streams);
+  void onUserInfoReady(const QString& userId);
 
 private:
   TwitchAuthManager* m_authManager = nullptr;
   TwitchApiClient* m_apiClient = nullptr;
   QVariantList m_streams;
   QString m_selectedStreamUrl;
+  QString m_userId;
 };
 
 }  // namespace blueplayer::api::twitch

@@ -9,21 +9,75 @@ import "components"
 Item {
   id: homeRoot
 
+  // Accès au service Twitch (disponible globalement)
+  // Utiliser une fonction pour éviter les boucles de binding
+  function getTwitchService() {
+    return typeof twitchService !== "undefined" ? twitchService : null
+  }
+
   // Génération de 20 cartes placeholder
   property var placeholderCards: (function() {
     var cards = [];
     for (var i = 0; i < 20; i++) {
       cards.push({ isPlaceholder: true });
     }
+    console.log("[HomeView] Generated", cards.length, "placeholder cards")
     return cards;
   })()
 
-  property var sectionsData: [
-    {
-      title: qsTr("Vos streamers suivis"),
-      subtitle: qsTr("Reprenez là où vous vous êtes arrêtés"),
-      cards: homeRoot.placeholderCards
-    },
+  // Transformation des données Twitch en format compatible avec StreamCard
+  function transformTwitchStreams(twitchStreams) {
+    console.log("[HomeView] transformTwitchStreams() called with", twitchStreams ? twitchStreams.length : 0, "streams")
+    if (!twitchStreams || twitchStreams.length === 0) {
+      console.log("[HomeView] No streams to transform")
+      return [];
+    }
+    
+    var transformed = [];
+    for (var i = 0; i < twitchStreams.length; i++) {
+      var stream = twitchStreams[i];
+      var viewerCount = stream.viewer_count || 0;
+      var viewerText = viewerCount.toLocaleString(Qt.locale(), 'f', 0) + " viewers";
+      
+      transformed.push({
+        name: stream.user_name || "",
+        detail: stream.title || "",
+        viewers: viewerText,
+        previewImage: stream.thumbnail_url || "",
+        streamUrl: stream.stream_url || ""
+      });
+      console.log("[HomeView] Transformed stream:", stream.user_name || "UNKNOWN")
+    }
+    console.log("[HomeView] Transformed", transformed.length, "streams")
+    return transformed;
+  }
+
+  // Streams suivis transformés depuis l'API Twitch
+  property var followedStreams: []
+  
+  function updateFollowedStreams() {
+    var service = getTwitchService()
+    var streams = []
+    if (service && service.streams) {
+      console.log("[HomeView] updateFollowedStreams: twitchService.streams length =", service.streams.length)
+      streams = transformTwitchStreams(service.streams)
+    } else {
+      console.log("[HomeView] updateFollowedStreams: No twitchService or no streams")
+    }
+    console.log("[HomeView] updateFollowedStreams =", streams.length, "streams")
+    followedStreams = streams
+  }
+
+  // Mise à jour des sections avec les données réelles ou les placeholders
+  property var sectionsData: {
+    var cards = followedStreams.length > 0 ? followedStreams : placeholderCards
+    console.log("[HomeView] sectionsData binding: using", cards.length, "cards (followedStreams:", followedStreams.length, ", placeholders:", placeholderCards.length, ")")
+    return [
+      {
+        title: qsTr("Vos streamers suivis"),
+        subtitle: qsTr("Reprenez là où vous vous êtes arrêtés"),
+        cards: cards
+      },
     {
       title: qsTr("Recommandé pour vous"),
       subtitle: qsTr("Basé sur vos préférences"),
@@ -58,7 +112,8 @@ Item {
         { name: "CookingShow", detail: qsTr("Recettes gourmandes"), viewers: qsTr("2 600 viewers") }
       ]
     }
-  ]
+    ]
+  }
 
   // Gestion du focus : perdre le focus quand on clique ailleurs
   Keys.onPressed: function(event) {
@@ -69,6 +124,38 @@ Item {
   }
   
   focus: true
+
+  // Connexion au service Twitch pour mettre à jour les streams
+  Connections {
+    id: twitchConnections
+    target: (function() {
+      return typeof twitchService !== "undefined" ? twitchService : null
+    })()
+    enabled: typeof twitchService !== "undefined" && twitchService !== null
+    function onStreamsChanged() {
+      console.log("[HomeView] onStreamsChanged() signal received")
+      homeRoot.updateFollowedStreams()
+    }
+    function onErrorOccurred(message) {
+      console.log("[HomeView] ERROR Twitch:", message)
+    }
+    function onAuthenticatedChanged(authenticated) {
+      console.log("[HomeView] onAuthenticatedChanged() signal received, authenticated:", authenticated)
+    }
+  }
+
+  Component.onCompleted: {
+    console.log("[HomeView] Component.onCompleted()")
+    var service = getTwitchService()
+    console.log("[HomeView] twitchService:", service ? "EXISTS" : "NULL")
+    if (service) {
+      console.log("[HomeView] twitchService.authenticated:", service.authenticated)
+      console.log("[HomeView] twitchService.streams:", service.streams ? service.streams.length + " streams" : "null")
+      homeRoot.updateFollowedStreams()
+    }
+    console.log("[HomeView] followedStreams length:", followedStreams.length)
+    console.log("[HomeView] placeholderCards length:", placeholderCards.length)
+  }
 
   ColumnLayout {
     anchors.fill: parent

@@ -55,6 +55,7 @@ qt_add_qml_module(BluePlayer
   QML_FILES
     ui/main.qml
     ui/HomeView.qml
+    ui/LoginView.qml
     ui/PreferencesView.qml
     ui/VideoPlayerApple.qml
     ui/themes/AppleTheme.js
