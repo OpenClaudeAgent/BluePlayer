@@ -9,18 +9,20 @@ import "components"
 Item {
   id: homeRoot
 
+  // Génération de 20 cartes placeholder
+  property var placeholderCards: (function() {
+    var cards = [];
+    for (var i = 0; i < 20; i++) {
+      cards.push({ isPlaceholder: true });
+    }
+    return cards;
+  })()
+
   property var sectionsData: [
     {
       title: qsTr("Vos streamers suivis"),
       subtitle: qsTr("Reprenez là où vous vous êtes arrêtés"),
-      cards: [
-        { name: "LumaCloud", detail: qsTr("Speedrun & chill"), viewers: qsTr("1 240 viewers") },
-        { name: "NoraPixel", detail: qsTr("Créations artistiques"), viewers: qsTr("845 viewers") },
-        { name: "BoraTech", detail: qsTr("Tech & hardware"), viewers: qsTr("620 viewers") },
-        { name: "DeepSeaTV", detail: qsTr("Découverte sous-marine"), viewers: qsTr("410 viewers") },
-        { name: "StreamMaster", detail: qsTr("Gaming compétitif"), viewers: qsTr("2 150 viewers") },
-        { name: "ArtVibes", detail: qsTr("Création digitale"), viewers: qsTr("890 viewers") }
-      ]
+      cards: homeRoot.placeholderCards
     },
     {
       title: qsTr("Recommandé pour vous"),

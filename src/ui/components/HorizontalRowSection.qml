@@ -11,7 +11,7 @@ Item {
   property real cardWidth: 180
   property real cardSpacing: 16
 
-  implicitHeight: titleSection.height + flickableSection.height + AppleTheme.spacingMedium
+  implicitHeight: (titleSection.visible ? titleSection.height + AppleTheme.spacingMedium : 0) + flickableSection.height
 
   ColumnLayout {
     id: container
@@ -23,6 +23,7 @@ Item {
       id: titleSection
       Layout.fillWidth: true
       spacing: 4
+      visible: root.sectionTitle !== ""
 
       Text {
         text: root.sectionTitle
