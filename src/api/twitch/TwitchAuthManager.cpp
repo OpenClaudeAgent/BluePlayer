@@ -1,5 +1,6 @@
 #include "api/twitch/TwitchAuthManager.hpp"
 
+#include <QDebug>
 #include <QCryptographicHash>
 #include <QDesktopServices>
 #include <QFile>
@@ -238,12 +239,16 @@ void TwitchAuthManager::login() {
 }
 
 void TwitchAuthManager::logout() {
+  const bool wasAuthenticated = m_isAuthenticated;
   m_accessToken.clear();
   m_refreshToken.clear();
   m_isAuthenticated = false;
   persistCredentials();
-  emitAuthenticated();
-  emitTokenChanged();
+  // Émettre explicitement le signal de déconnexion
+  if (wasAuthenticated) {
+    emit authenticatedChanged(false);
+  }
+  emit accessTokenChanged(m_accessToken);
 }
 
 void TwitchAuthManager::refresh() {
@@ -378,10 +383,36 @@ void TwitchAuthManager::persistCredentials() {
 }
 
 void TwitchAuthManager::loadCredentials() {
+  qDebug() << "[TwitchAuthManager] loadCredentials() called";
   QSettings settings(QStringLiteral("BluePlayer"), QStringLiteral("Twitch"));
   m_accessToken = settings.value(QStringLiteral("access_token")).toString();
   m_refreshToken = settings.value(QStringLiteral("refresh_token")).toString();
+  
+  qDebug() << "[TwitchAuthManager] Loaded access token, length:" << m_accessToken.length();
+  qDebug() << "[TwitchAuthManager] Loaded refresh token, length:" << m_refreshToken.length();
+  
+  const bool wasAuthenticated = m_isAuthenticated;
   m_isAuthenticated = !m_accessToken.isEmpty();
+  
+  qDebug() << "[TwitchAuthManager] Was authenticated:" << wasAuthenticated;
+  qDebug() << "[TwitchAuthManager] Is authenticated:" << m_isAuthenticated;
+  
+  // Si on a un token, émettre les signaux pour déclencher l'auto-login
+  if (m_isAuthenticated) {
+    qDebug() << "[TwitchAuthManager] Emitting authentication signals";
+    if (!wasAuthenticated) {
+      qDebug() << "[TwitchAuthManager] Emitting authenticatedChanged(true)";
+      emit authenticatedChanged(true);
+    }
+    qDebug() << "[TwitchAuthManager] Emitting accessTokenChanged()";
+    emit accessTokenChanged(m_accessToken);
+    
+    // Si on a un refresh token mais pas de token valide, essayer de rafraîchir
+    // Note: Pour une vérification complète, il faudrait aussi stocker l'expiration
+    // Pour l'instant, on assume que le token est valide s'il existe
+  } else {
+    qDebug() << "[TwitchAuthManager] No credentials found, user not authenticated";
+  }
 }
 
 void TwitchAuthManager::emitAuthenticated() {
