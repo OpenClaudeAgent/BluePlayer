@@ -1,6 +1,8 @@
 #include "media/FFmpegMediaService.hpp"
 
 #include "media/FFmpegMediaSource.hpp"
+#include "core/InputValidator.hpp"
+#include "core/Logger.hpp"
 
 #include <QUrl>
 #include <QVideoSink>
@@ -35,18 +37,35 @@ void FFmpegMediaService::setVideoSink(QVideoSink* sink) {
 }
 
 void FFmpegMediaService::play(const QUrl& source) {
+  // Validation de l'URL
+  if (!source.isValid()) {
+    Logger::error(LogCategory::Media, QStringLiteral("Invalid URL: %1").arg(source.toString()));
+    emit errorOccurred(tr("URL invalide."));
+    return;
+  }
+
   if (!source.isLocalFile()) {
     emit errorOccurred(tr("Les sources distantes ne sont pas (encore) prises en charge."));
     return;
   }
 
   const QString localPath = source.toLocalFile();
-  if (localPath.isEmpty()) {
-    emit errorOccurred(tr("Chemin invalide."));
+  
+  // Validation robuste du chemin de fichier
+  if (localPath.isEmpty() || !InputValidator::isValidFilePath(localPath)) {
+    Logger::error(LogCategory::Media, QStringLiteral("Invalid file path: %1").arg(localPath));
+    emit errorOccurred(tr("Chemin de fichier invalide ou fichier inexistant."));
     return;
   }
 
-  if (!m_source->open(localPath)) {
+  // Sanitiser le chemin pour éviter les injections
+  QString sanitizedPath = InputValidator::sanitizeString(localPath);
+  if (sanitizedPath != localPath) {
+    Logger::warning(LogCategory::Media, QStringLiteral("Path sanitized: %1 -> %2").arg(localPath).arg(sanitizedPath));
+  }
+
+  if (!m_source->open(sanitizedPath)) {
+    Logger::error(LogCategory::Media, QStringLiteral("Failed to open file: %1").arg(sanitizedPath));
     emit errorOccurred(tr("Impossible d'ouvrir le fichier."));
     return;
   }

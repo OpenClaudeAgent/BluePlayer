@@ -92,9 +92,16 @@ void TwitchApiClient::listFollowedStreams(const QString& userId, int limit) {
     return;
   }
 
-  if (userId.isEmpty()) {
-    core::Logger::error(core::LogCategory::Twitch, QStringLiteral("Empty userId"));
-    emit errorOccurred(QStringLiteral("ID utilisateur manquant."));
+  // Validation d'entrée robuste
+  if (userId.isEmpty() || !InputValidator::isValidTwitchUserId(userId)) {
+    core::Logger::error(core::LogCategory::Twitch, QStringLiteral("Invalid userId: %1").arg(userId));
+    emit errorOccurred(QStringLiteral("ID utilisateur invalide."));
+    return;
+  }
+
+  if (limit < 1 || limit > 100) {
+    core::Logger::error(core::LogCategory::Twitch, QStringLiteral("Invalid limit: %1").arg(limit));
+    emit errorOccurred(QStringLiteral("Limite invalide (doit être entre 1 et 100)."));
     return;
   }
 

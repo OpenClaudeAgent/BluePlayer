@@ -145,15 +145,20 @@ void TwitchService::playStream(int index) {
 }
 
 void TwitchService::selectUrl(int index) {
+  // Validation de l'index
   if (index < 0 || index >= m_streams.size()) {
+    Logger::error(LogCategory::Twitch, QStringLiteral("Invalid stream index: %1 (max: %2)").arg(index).arg(m_streams.size() - 1));
     emit errorOccurred(QStringLiteral("Index de stream invalide."));
     return;
   }
 
   const QVariantMap entry = m_streams.at(index).toMap();
   const QString url = entry.value(QStringLiteral("stream_url")).toString();
-  if (url.isEmpty()) {
-    emit errorOccurred(QStringLiteral("URL de stream manquante."));
+  
+  // Validation de l'URL
+  if (url.isEmpty() || !InputValidator::isValidUrl(url)) {
+    Logger::error(LogCategory::Twitch, QStringLiteral("Invalid stream URL: %1").arg(url));
+    emit errorOccurred(QStringLiteral("URL de stream invalide."));
     return;
   }
 
