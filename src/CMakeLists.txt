@@ -50,6 +50,11 @@ target_link_libraries(blueplayer_core
     Qt6::Network
     # Qt6::Multimedia retiré car Application utilise maintenant des forward declarations
 )
+# Appliquer les flags de couverture si activés
+if(BLUEPLAYER_COVERAGE_ENABLED)
+    target_compile_options(blueplayer_core PRIVATE ${BLUEPLAYER_COVERAGE_FLAGS})
+    target_link_options(blueplayer_core PRIVATE ${BLUEPLAYER_COVERAGE_FLAGS})
+endif()
 setup_compiler_warnings(blueplayer_core)
 
 add_library(blueplayer_media STATIC ${BLUEPLAYER_MEDIA_SOURCES})
@@ -70,6 +75,11 @@ target_link_libraries(blueplayer_media
     blueplayer_core  # Nécessaire pour Logger, LogCategory, InputValidator
 )
 target_link_directories(blueplayer_media PRIVATE /opt/homebrew/lib)
+# Appliquer les flags de couverture si activés
+if(BLUEPLAYER_COVERAGE_ENABLED)
+    target_compile_options(blueplayer_media PRIVATE ${BLUEPLAYER_COVERAGE_FLAGS})
+    target_link_options(blueplayer_media PRIVATE ${BLUEPLAYER_COVERAGE_FLAGS})
+endif()
 setup_compiler_warnings(blueplayer_media)
 
 # blueplayer_core utilise blueplayer_media (Application utilise FFmpegMediaService)

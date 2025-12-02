@@ -1,0 +1,53 @@
+# Configuration Mull pour BluePlayer
+# Mull est un framework de mutation testing pour C/C++
+
+# Mutateurs à utiliser
+mutators:
+  - and_or_replacement
+  - conditionals_boundary
+  - math_add
+  - math_div
+  - math_mul
+  - math_sub
+  - negate_condition
+  - remove_void_function
+  - replace_assignment
+  - replace_call
+
+# Fichiers à exclure de l'analyse de mutation
+excludePaths:
+  # Fichiers générés par Qt
+  - "**/moc_*.cpp"
+  - "**/qrc_*.cpp"
+  - "**/uic_*.cpp"
+  - "**/*_autogen/**"
+  - "**/build/src/*_autogen/**"
+  # Fichiers de test eux-mêmes
+  - "**/tests/**"
+  - "**/test_*.cpp"
+  - "**/Test*.cpp"
+  # Fichiers système
+  - "**/main.mm"
+  - "**/main.cpp"
+
+# Chemins à inclure (bibliothèques core et media)
+includePaths:
+  - "src/core/**"
+  - "src/media/**"
+  - "src/api/**"
+  - "src/ui/**"
+
+# Timeout pour chaque mutation (en millisecondes)
+timeout: 30000
+
+# Nombre de threads à utiliser
+threads: 4
+
+# Reporter à utiliser
+reporter: IDE
+
+# Options supplémentaires
+dryRun: false
+workers: 4
+
+

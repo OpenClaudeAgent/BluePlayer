@@ -38,3 +38,17 @@ qrc_*
 # Environment variables file
 .env
 build/
+
+# Code coverage reports
+coverage/
+*.profdata
+*.profraw
+
+# Mutation testing reports
+mutation-reports/
+build/mull-download/
+usr/
+
+# Mull compilation artifacts
+*.bc
+*.ll

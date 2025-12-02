@@ -150,8 +150,73 @@ Le projet BluePlayer utilise [CTest](https://cmake.org/cmake/help/latest/module/
 
 ### 8.1. Types de tests
 
-1.  **Tests Unitaires :** Pour valider le bon fonctionnement des composants individuels (ex: `FFmpegBridge`, `Application`). Il est recommandé d'utiliser un framework tel que [Google Test](https://github.com/google/googletest) ou [Catch2](https://github.com/catchorg/Catch2).
+1.  **Tests Unitaires :** Pour valider le bon fonctionnement des composants individuels (ex: `FFmpegBridge`, `Application`). Le projet utilise Qt Test Framework.
 2.  **Tests d'Intégration :** Pour vérifier l'interaction entre les différents modules du projet (ex: lecture vidéo avec l'interface utilisateur). Ces tests assurent que les composants fonctionnent ensemble comme prévu.
+
+### 8.2. Couverture de code avec llvm-cov
+
+BluePlayer utilise `llvm-cov` pour générer des rapports de couverture de code.
+
+#### Prérequis
+
+- Clang avec support de couverture (inclus avec Xcode)
+- `llvm-cov` et `llvm-profdata` disponibles via Xcode ou LLVM complet
+
+#### Génération du rapport de couverture
+
+```bash
+make coverage
+```
+
+Cela génère un rapport HTML dans `coverage/html/index.html` et un rapport texte dans `coverage/coverage_report.txt`.
+
+Le script `scripts/generate_coverage.sh` :
+- Compile le projet avec les flags de couverture (`BLUEPLAYER_ENABLE_COVERAGE=ON`)
+- Exécute tous les tests avec génération de profils
+- Merge les profils et génère les rapports HTML et texte
+- Exclut automatiquement les fichiers générés par Qt (moc_, qrc_, autogen) et les fichiers de test
+
+### 8.3. Mutation testing avec Mull
+
+BluePlayer utilise Mull pour identifier les tests faibles ou manquants.
+
+#### Prérequis
+
+1. **Installer LLVM 19** :
+   ```bash
+   brew install llvm@19
+   ```
+
+2. **Installer Mull** :
+   - Téléchargez les binaires depuis [GitHub Releases](https://github.com/mull-project/mull/releases)
+   - Ou compilez depuis les sources : https://github.com/mull-project/mull
+   - Assurez-vous que `mull-runner-19` (ou `mull-runner`) est dans votre PATH
+
+#### Exécution des tests de mutation
+
+```bash
+make mutation-test
+```
+
+Cela exécute Mull avec la configuration définie dans `mull.yml` et génère des rapports dans `mutation-reports/`.
+
+Le script `scripts/run_mutation_tests.sh` :
+- Vérifie la présence de Mull et LLVM 19
+- Utilise `compile_commands.json` généré par CMake
+- Exclut automatiquement les fichiers générés par Qt
+- Génère des rapports HTML, JSON et IDE
+
+### 8.4. Validation complète du build
+
+Pour compiler, tester et vérifier la couverture en une seule commande :
+
+```bash
+make validate
+```
+
+Ce script vérifie qu'un seuil minimum de couverture (70%) est atteint.
+
+Voir `docs/TESTING.md` pour plus de détails sur la stratégie de test et les conventions.
 
 ## 9. Intégration Twitch
 

@@ -70,12 +70,22 @@ void TestFFmpegMediaService::testOpenInvalidFile() {
 }
 
 void TestFFmpegMediaService::testPlay() {
-  // Test de la méthode play()
-  // Note: play() nécessite qu'un fichier soit ouvert
+  // Test de la méthode play() avec une URL
   QVERIFY(m_service != nullptr);
   
-  // Tester play() sans fichier ouvert devrait être géré gracieusement
-  // (l'implémentation devrait vérifier qu'un fichier est ouvert)
+  // Tester play() avec une URL invalide (devrait être géré gracieusement)
+  QUrl invalidUrl("file:///nonexistent/file.mp4");
+  m_service->play(invalidUrl);
+  
+  // Test que play() peut être appelé plusieurs fois sans problème
+  m_service->play(invalidUrl);
+  m_service->play(invalidUrl);
+  
+  // Test que play() après stop() fonctionne
+  m_service->stop();
+  m_service->play(invalidUrl);
+  
+  QVERIFY(m_service != nullptr);
 }
 
 void TestFFmpegMediaService::testStop() {
@@ -93,9 +103,22 @@ void TestFFmpegMediaService::testErrorHandling() {
   // Tester avec des chemins invalides (utiliser playFile)
   m_service->playFile("");
   m_service->playFile("/nonexistent/path.mp4");
+  m_service->playFile("relative/path.mp4");
+  
+  // Tester avec des formats non supportés (si applicable)
+  m_service->playFile("test.txt");  // Fichier texte
+  m_service->playFile("test.exe");  // Exécutable
+  
+  // Tester avec des chemins contenant des caractères spéciaux
+  m_service->playFile("/path/with spaces/file.mp4");
+  m_service->playFile("/path/with\nnewline/file.mp4");
   
   // Vérifier que les erreurs sont signalées (si l'implémentation le fait)
   // Note: Cela dépend de l'implémentation réelle de FFmpegMediaService
+  QVERIFY(m_service != nullptr);
+  
+  // Test que stop() peut être appelé même après une erreur
+  m_service->stop();
   QVERIFY(m_service != nullptr);
 }
 

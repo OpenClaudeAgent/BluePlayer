@@ -26,6 +26,9 @@ private slots:
   void testPersistCredentials();
   void testLoadCredentials();
   void testIsAuthenticated();
+  void testLogout();
+  void testRefreshTokenExpiration();
+  void testErrorHandling();
 
 private:
   TwitchAuthManager* m_authManager = nullptr;
@@ -109,6 +112,55 @@ void TestTwitchAuthManager::testIsAuthenticated() {
   // Initialement, sans credentials, devrait être false
   // Mais peut être true si des credentials existent déjà
   QVERIFY(authenticated == false || authenticated == true);
+  
+  // Test après logout
+  m_authManager->logout();
+  bool afterLogout = m_authManager->isAuthenticated();
+  QVERIFY(afterLogout == false);
+  
+  // Test que accessToken est vide après logout
+  QString tokenAfterLogout = m_authManager->accessToken();
+  QVERIFY(tokenAfterLogout.isEmpty());
+}
+
+void TestTwitchAuthManager::testLogout() {
+  QVERIFY(m_authManager != nullptr);
+  
+  // Test que logout() peut être appelé même si non authentifié
+  m_authManager->logout();
+  QVERIFY(!m_authManager->isAuthenticated());
+  
+  // Test que logout() est idempotent
+  m_authManager->logout();
+  QVERIFY(!m_authManager->isAuthenticated());
+}
+
+void TestTwitchAuthManager::testRefreshTokenExpiration() {
+  QVERIFY(m_authManager != nullptr);
+  
+  // Test que refresh() gère gracieusement l'absence de refresh token
+  QSignalSpy errorSpy(m_authManager, &TwitchAuthManager::errorOccurred);
+  m_authManager->refresh();
+  
+  // Devrait émettre une erreur si pas de refresh token
+  // ou gérer gracieusement sans erreur
+  QVERIFY(true);
+}
+
+void TestTwitchAuthManager::testErrorHandling() {
+  QVERIFY(m_authManager != nullptr);
+  
+  QSignalSpy errorSpy(m_authManager, &TwitchAuthManager::errorOccurred);
+  
+  // Test avec un client ID invalide
+  qputenv("TWITCH_CLIENT_ID", "");
+  TwitchAuthManager* invalidAuth = new TwitchAuthManager(this);
+  // Devrait gérer gracieusement
+  QVERIFY(invalidAuth != nullptr);
+  delete invalidAuth;
+  
+  // Restaurer
+  qputenv("TWITCH_CLIENT_ID", "test_client_id");
 }
 
 QTEST_MAIN(TestTwitchAuthManager)

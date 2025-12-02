@@ -21,3 +21,5 @@ find "$PROJECT_ROOT/src" -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.c
 
 echo "Formatage terminé."
 
+
+
