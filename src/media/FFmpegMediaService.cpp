@@ -3,6 +3,7 @@
 #include "media/FFmpegMediaSource.hpp"
 #include "core/InputValidator.hpp"
 #include "core/Logger.hpp"
+#include "core/ErrorHandler.hpp"
 
 #include <QUrl>
 #include <QVideoSink>
@@ -12,6 +13,8 @@
 using blueplayer::core::Logger;
 using blueplayer::core::LogCategory;
 using blueplayer::core::InputValidator;
+using blueplayer::core::ErrorHandler;
+using blueplayer::core::ErrorCode;
 
 namespace blueplayer::media {
 
@@ -44,12 +47,14 @@ void FFmpegMediaService::play(const QUrl& source) {
   // Validation de l'URL
   if (!source.isValid()) {
     Logger::error(LogCategory::Media, QStringLiteral("Invalid URL: %1").arg(source.toString()));
-    emit errorOccurred(tr("URL invalide."));
+    const auto error = ErrorHandler::mediaError(ErrorCode::MediaFileNotFound, QStringLiteral("play"), QStringLiteral("URL invalide"));
+    emit errorOccurred(error.toString());
     return;
   }
 
   if (!source.isLocalFile()) {
-    emit errorOccurred(tr("Les sources distantes ne sont pas (encore) prises en charge."));
+    const auto error = ErrorHandler::mediaError(ErrorCode::MediaFormatNotSupported, QStringLiteral("play"), QStringLiteral("Les sources distantes ne sont pas (encore) prises en charge"));
+    emit errorOccurred(error.toString());
     return;
   }
 
@@ -58,7 +63,8 @@ void FFmpegMediaService::play(const QUrl& source) {
   // Validation robuste du chemin de fichier
   if (localPath.isEmpty() || !InputValidator::isValidFilePath(localPath)) {
     Logger::error(LogCategory::Media, QStringLiteral("Invalid file path: %1").arg(localPath));
-    emit errorOccurred(tr("Chemin de fichier invalide ou fichier inexistant."));
+    const auto error = ErrorHandler::mediaError(ErrorCode::MediaFileNotFound, QStringLiteral("play"), QStringLiteral("Chemin de fichier invalide ou fichier inexistant"));
+    emit errorOccurred(error.toString());
     return;
   }
 
@@ -70,12 +76,14 @@ void FFmpegMediaService::play(const QUrl& source) {
 
   if (!m_source->open(sanitizedPath)) {
     Logger::error(LogCategory::Media, QStringLiteral("Failed to open file: %1").arg(sanitizedPath));
-    emit errorOccurred(tr("Impossible d'ouvrir le fichier."));
+    const auto error = ErrorHandler::mediaError(ErrorCode::MediaDecodeError, QStringLiteral("play"), QStringLiteral("Impossible d'ouvrir le fichier"));
+    emit errorOccurred(error.toString());
     return;
   }
 
   if (m_videoSink == nullptr) {
-    emit errorOccurred(tr("Aucune cible vidéo n'est configurée."));
+    const auto error = ErrorHandler::mediaError(ErrorCode::MediaDeviceError, QStringLiteral("play"), QStringLiteral("Aucune cible vidéo n'est configurée"));
+    emit errorOccurred(error.toString());
     return;
   }
 

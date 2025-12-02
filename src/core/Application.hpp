@@ -3,8 +3,14 @@
 #include <memory>
 #include <QObject>
 
-#include "api/twitch/TwitchService.hpp"
-#include "media/FFmpegMediaService.hpp"
+// Forward declarations pour éviter les dépendances circulaires
+namespace blueplayer::media {
+class FFmpegMediaService;
+}
+
+namespace blueplayer::api::twitch {
+class TwitchService;
+}
 
 namespace blueplayer::core {
 
@@ -13,8 +19,9 @@ class Application final : public QObject {
 
 public:
   explicit Application(QObject* parent = nullptr);
+  ~Application();  // Déclaré ici, défini dans .cpp pour permettre forward declarations
 
-  // Point d’extension futur pour initialiser les services (API, streaming, etc.)
+  // Point d'extension futur pour initialiser les services (API, streaming, etc.)
   void initialize();
 
   [[nodiscard]] blueplayer::media::FFmpegMediaService* mediaService() const;

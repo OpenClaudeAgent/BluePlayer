@@ -16,6 +16,8 @@ Application::Application(QObject* parent)
       m_mediaService(std::make_unique<media::FFmpegMediaService>(this)),
       m_twitchService(std::make_unique<api::twitch::TwitchService>(this)) {}
 
+Application::~Application() = default;  // Défini ici pour permettre forward declarations dans le header
+
 void Application::initialize() {
   Config::instance().load();
   Logger::initialize();
