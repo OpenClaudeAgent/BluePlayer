@@ -59,6 +59,10 @@ void FFmpegMediaService::play(const QUrl& source) {
   m_source->play();
 }
 
+void FFmpegMediaService::playFile(const QString& filePath) {
+  play(QUrl::fromLocalFile(filePath));
+}
+
 void FFmpegMediaService::stop() {
   if (m_source) {
     m_source->stop();

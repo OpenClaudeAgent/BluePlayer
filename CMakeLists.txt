@@ -29,7 +29,7 @@ include(cmake/CompilerWarnings.cmake OPTIONAL)
 # Suppression de l'inclusion du chemin du module cmake pour éviter le FindFFmpeg.cmake personnalisé
 # list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-find_package(Qt6 6.5 COMPONENTS Core Quick Gui Multimedia REQUIRED)
+find_package(Qt6 6.5 COMPONENTS Core Quick Gui Multimedia Widgets REQUIRED)
 
 # Désactiver pkg_search_module et FindFFmpeg.cmake pour FFmpeg
 # et lier les bibliothèques manuellement.

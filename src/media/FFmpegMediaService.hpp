@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <QObject>
+#include <QString>
 
 #include <QVideoSink>
 
@@ -25,6 +26,7 @@ public:
   void setVideoSink(QVideoSink* sink);
 
   Q_INVOKABLE void play(const QUrl& source);
+  Q_INVOKABLE void playFile(const QString& filePath);
   Q_INVOKABLE void stop();
 
 signals:
