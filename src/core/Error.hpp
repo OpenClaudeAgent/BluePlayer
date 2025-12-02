@@ -107,6 +107,18 @@ public:
    */
   static QString localizedMessage(ErrorCode code);
 
+  /**
+   * @brief Convertit l'erreur en QString pour compatibilité QML
+   * @return Le message d'erreur sous forme de QString
+   */
+  [[nodiscard]] QString toQString() const { return toString(); }
+
+  /**
+   * @brief Opérateur de conversion implicite vers QString pour compatibilité QML
+   * @return Le message d'erreur sous forme de QString
+   */
+  operator QString() const { return toString(); }
+
 private:
   ErrorCode m_code = ErrorCode::Unknown;
   QString m_message;
