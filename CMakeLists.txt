@@ -93,7 +93,9 @@ if(NOT FFmpeg_FOUND)
     find_library(FFmpeg_swscale_LIBRARY swscale PATHS ${CMAKE_SYSTEM_PREFIX_PATH}/lib /usr/lib /usr/local/lib /opt/homebrew/lib ENV FFMPEG_LIB_DIR)
     find_library(FFmpeg_swresample_LIBRARY swresample PATHS ${CMAKE_SYSTEM_PREFIX_PATH}/lib /usr/lib /usr/local/lib /opt/homebrew/lib ENV FFMPEG_LIB_DIR)
     
-    if(FFmpeg_avcodec_LIBRARY AND FFmpeg_avformat_LIBRARY AND FFmpeg_avutil_LIBRARY)
+    # Vérifier que toutes les bibliothèques requises sont trouvées avant de les ajouter à la liste
+    # Évite l'inclusion de bibliothèques *-NOTFOUND qui causeraient des erreurs de linkage
+    if(FFmpeg_avcodec_LIBRARY AND FFmpeg_avformat_LIBRARY AND FFmpeg_avutil_LIBRARY AND FFmpeg_swscale_LIBRARY AND FFmpeg_swresample_LIBRARY)
       set(FFmpeg_LIBRARIES ${FFmpeg_avcodec_LIBRARY} ${FFmpeg_avformat_LIBRARY} ${FFmpeg_avutil_LIBRARY} ${FFmpeg_swscale_LIBRARY} ${FFmpeg_swresample_LIBRARY})
       set(FFmpeg_FOUND TRUE)
     endif()
