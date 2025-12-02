@@ -76,8 +76,83 @@ Item {
         viewModel.updateCategories(service.categories)
       }
     }
+    function onPopularClipsChanged() {
+      console.log("[DEBUG HomeView] onPopularClipsChanged() called")
+      var service = getTwitchService()
+      console.log("[DEBUG HomeView] service:", service ? "exists" : "null")
+      if (service) {
+        console.log("[DEBUG HomeView] service.popularClips:", service.popularClips ? "exists" : "null", "length:", service.popularClips ? service.popularClips.length : 0)
+        if (service.popularClips && service.popularClips.length > 0) {
+          console.log("[DEBUG HomeView] Calling viewModel.updatePopularClips()")
+          viewModel.updatePopularClips(service.popularClips)
+        } else {
+          console.log("[DEBUG HomeView] No popular clips to update")
+        }
+      }
+    }
+    function onFollowedClipsChanged() {
+      console.log("[DEBUG HomeView] onFollowedClipsChanged() called")
+      var service = getTwitchService()
+      if (service && service.followedClips && service.followedClips.length > 0) {
+        console.log("[DEBUG HomeView] Calling viewModel.updateFollowedClips() with", service.followedClips.length, "clips")
+        viewModel.updateFollowedClips(service.followedClips)
+      } else {
+        console.log("[DEBUG HomeView] No followed clips to update")
+      }
+    }
+    function onVideosChanged() {
+      console.log("[DEBUG HomeView] onVideosChanged() called")
+      var service = getTwitchService()
+      if (service && service.videos && service.videos.length > 0) {
+        console.log("[DEBUG HomeView] Calling viewModel.updateVideos() with", service.videos.length, "videos")
+        viewModel.updateVideos(service.videos)
+      } else {
+        console.log("[DEBUG HomeView] No videos to update")
+      }
+    }
+    function onFollowedChannelsChanged() {
+      console.log("[DEBUG HomeView] onFollowedChannelsChanged() called")
+      var service = getTwitchService()
+      if (service && service.followedChannels && service.followedChannels.length > 0) {
+        console.log("[DEBUG HomeView] Calling viewModel.updateFollowedChannels() with", service.followedChannels.length, "channels")
+        viewModel.updateFollowedChannels(service.followedChannels)
+      } else {
+        console.log("[DEBUG HomeView] No followed channels to update")
+      }
+    }
+    function onTrendingStreamsChanged() {
+      var service = getTwitchService()
+      if (service && service.trendingStreams && service.trendingStreams.length > 0) {
+        viewModel.updateTrendingStreams(service.trendingStreams)
+      }
+    }
+    function onNewStreamersChanged() {
+      var service = getTwitchService()
+      if (service && service.newStreamers && service.newStreamers.length > 0) {
+        viewModel.updateNewStreamers(service.newStreamers)
+      }
+    }
+    function onCategoryStreamsChanged() {
+      console.log("[DEBUG HomeView] onCategoryStreamsChanged() called")
+      var service = getTwitchService()
+      console.log("[DEBUG HomeView] service:", service ? "exists" : "null")
+      console.log("[DEBUG HomeView] service.categoryStreams:", service && service.categoryStreams ? "exists" : "null", "length:", service && service.categoryStreams ? service.categoryStreams.length : 0)
+      if (service && service.categoryStreams && service.categoryStreams.length > 0) {
+        console.log("[DEBUG HomeView] Calling viewModel.updateCategoryStreams() with", service.categoryStreams.length, "streams")
+        viewModel.updateCategoryStreams(service.categoryStreams)
+      } else {
+        console.log("[DEBUG HomeView] No category streams to update - service:", service ? "exists" : "null", "categoryStreams:", service && service.categoryStreams ? "exists" : "null", "length:", service && service.categoryStreams ? service.categoryStreams.length : 0)
+      }
+    }
     function onErrorOccurred(message) {
       console.log("[HomeView] ERROR Twitch:", message)
+    }
+    function onUserIdChanged() {
+      console.log("[DEBUG HomeView] onUserIdChanged() called")
+      var service = getTwitchService()
+      if (service && service.userId) {
+        console.log("[DEBUG HomeView] UserId available:", service.userId, "- user-specific data should be loaded")
+      }
     }
     function onAuthenticatedChanged(authenticated) {
       // Charger les streams recommandés et catégories quand l'utilisateur s'authentifie
@@ -108,6 +183,17 @@ Item {
       } else {
         // Charger les catégories même sans authentification
         service.refreshCategories()
+      }
+      // Charger les sections publiques même sans authentification
+      console.log("[DEBUG HomeView] Loading public sections")
+      service.refreshPopularClips()
+      service.refreshTrendingStreams()
+      
+      // Charger les sections nécessitant authentification si l'utilisateur est authentifié
+      if (service.authenticated) {
+        console.log("[DEBUG HomeView] User authenticated, will load user-specific data after userId is available")
+        // Les données spécifiques à l'utilisateur seront chargées dans TwitchService::onUserInfoReady()
+        // après que userId soit disponible
       }
     }
   }
@@ -280,10 +366,22 @@ Item {
             Layout.topMargin: Repeater.index === 0 ? AppleTheme.spacingLarge * 2 : 0
             sectionTitle: modelData.title
             sectionSubtitle: modelData.subtitle
+            sectionType: modelData.type || ""
             cardsModel: modelData.cards
             rowHeight: 220
             cardWidth: 180
             cardSpacing: 16
+            
+            onCategoryClicked: function(categoryId, categoryName) {
+              console.log("[DEBUG HomeView] Category clicked:", categoryName, "ID:", categoryId)
+              const service = getTwitchService()
+              if (service && categoryId) {
+                console.log("[DEBUG HomeView] Calling service.refreshCategoryStreams() with gameId:", categoryId)
+                service.refreshCategoryStreams(categoryId)
+              } else {
+                console.log("[DEBUG HomeView] Cannot refresh category streams - service:", service ? "exists" : "null", "categoryId:", categoryId)
+              }
+            }
           }
         }
 

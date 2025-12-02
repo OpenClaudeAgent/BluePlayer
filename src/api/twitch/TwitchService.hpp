@@ -22,6 +22,13 @@ class TwitchService : public QObject {
   Q_PROPERTY(QVariantList streams READ streams NOTIFY streamsChanged)
   Q_PROPERTY(QVariantList recommendedStreams READ recommendedStreams NOTIFY recommendedStreamsChanged)
   Q_PROPERTY(QVariantList categories READ categories NOTIFY categoriesChanged)
+  Q_PROPERTY(QVariantList popularClips READ popularClips NOTIFY popularClipsChanged)
+  Q_PROPERTY(QVariantList followedClips READ followedClips NOTIFY followedClipsChanged)
+  Q_PROPERTY(QVariantList videos READ videos NOTIFY videosChanged)
+  Q_PROPERTY(QVariantList followedChannels READ followedChannels NOTIFY followedChannelsChanged)
+  Q_PROPERTY(QVariantList trendingStreams READ trendingStreams NOTIFY trendingStreamsChanged)
+  Q_PROPERTY(QVariantList newStreamers READ newStreamers NOTIFY newStreamersChanged)
+  Q_PROPERTY(QVariantList categoryStreams READ categoryStreams NOTIFY categoryStreamsChanged)
   Q_PROPERTY(QString selectedStreamUrl READ selectedStreamUrl NOTIFY selectedStreamChanged)
   Q_PROPERTY(QString userId READ userId NOTIFY userIdChanged)
 
@@ -55,6 +62,48 @@ public:
    * @return La liste des catégories (QVariantList pour QML)
    */
   [[nodiscard]] QVariantList categories() const;
+
+  /**
+   * @brief Obtient la liste des clips populaires
+   * @return La liste des clips populaires (QVariantList pour QML)
+   */
+  [[nodiscard]] QVariantList popularClips() const;
+
+  /**
+   * @brief Obtient la liste des clips des streamers suivis
+   * @return La liste des clips suivis (QVariantList pour QML)
+   */
+  [[nodiscard]] QVariantList followedClips() const;
+
+  /**
+   * @brief Obtient la liste des VODs
+   * @return La liste des VODs (QVariantList pour QML)
+   */
+  [[nodiscard]] QVariantList videos() const;
+
+  /**
+   * @brief Obtient la liste des chaînes suivies
+   * @return La liste des chaînes suivies (QVariantList pour QML)
+   */
+  [[nodiscard]] QVariantList followedChannels() const;
+
+  /**
+   * @brief Obtient la liste des streams tendances
+   * @return La liste des streams tendances (QVariantList pour QML)
+   */
+  [[nodiscard]] QVariantList trendingStreams() const;
+
+  /**
+   * @brief Obtient la liste des nouveaux streamers suivis
+   * @return La liste des nouveaux streamers (QVariantList pour QML)
+   */
+  [[nodiscard]] QVariantList newStreamers() const;
+
+  /**
+   * @brief Obtient la liste des streams par catégorie
+   * @return La liste des streams par catégorie (QVariantList pour QML)
+   */
+  [[nodiscard]] QVariantList categoryStreams() const;
 
   /**
    * @brief Obtient l'URL du stream sélectionné
@@ -94,6 +143,42 @@ public:
   Q_INVOKABLE void refreshCategories();
 
   /**
+   * @brief Rafraîchit la liste des clips populaires
+   */
+  Q_INVOKABLE void refreshPopularClips();
+
+  /**
+   * @brief Rafraîchit la liste des clips des streamers suivis
+   */
+  Q_INVOKABLE void refreshFollowedClips();
+
+  /**
+   * @brief Rafraîchit la liste des VODs de l'utilisateur
+   */
+  Q_INVOKABLE void refreshVideos();
+
+  /**
+   * @brief Rafraîchit la liste des chaînes suivies
+   */
+  Q_INVOKABLE void refreshFollowedChannels();
+
+  /**
+   * @brief Rafraîchit la liste des streams tendances
+   */
+  Q_INVOKABLE void refreshTrendingStreams();
+
+  /**
+   * @brief Rafraîchit la liste des nouveaux streamers suivis
+   */
+  Q_INVOKABLE void refreshNewStreamers();
+
+  /**
+   * @brief Rafraîchit la liste des streams d'une catégorie spécifique
+   * @param gameId L'ID du jeu/catégorie
+   */
+  Q_INVOKABLE void refreshCategoryStreams(const QString& gameId);
+
+  /**
    * @brief Sélectionne et prépare un stream pour la lecture
    * @param index L'index du stream dans la liste
    */
@@ -104,6 +189,13 @@ signals:
   void streamsChanged();
   void recommendedStreamsChanged();
   void categoriesChanged();
+  void popularClipsChanged();
+  void followedClipsChanged();
+  void videosChanged();
+  void followedChannelsChanged();
+  void trendingStreamsChanged();
+  void newStreamersChanged();
+  void categoryStreamsChanged();
   void selectedStreamChanged();
   void userIdChanged();
   void errorOccurred(const QString& message);
@@ -117,6 +209,13 @@ private slots:
   void onStreamsReady(const QVariantList& streams);
   void onRecommendedStreamsReady(const QVariantList& streams);
   void onCategoriesReady(const QVariantList& categories);
+  void onPopularClipsReady(const QVariantList& clips);
+  void onFollowedClipsReady(const QVariantList& clips);
+  void onVideosReady(const QVariantList& videos);
+  void onFollowedChannelsReady(const QVariantList& channels);
+  void onTrendingStreamsReady(const QVariantList& streams);
+  void onNewStreamersReady(const QVariantList& streamers);
+  void onCategoryStreamsReady(const QVariantList& streams);
   void onUserInfoReady(const QString& userId);
 
 private:
@@ -125,6 +224,13 @@ private:
   QVariantList m_streams;
   QVariantList m_recommendedStreams;
   QVariantList m_categories;
+  QVariantList m_popularClips;
+  QVariantList m_followedClips;
+  QVariantList m_videos;
+  QVariantList m_followedChannels;
+  QVariantList m_trendingStreams;
+  QVariantList m_newStreamers;
+  QVariantList m_categoryStreams;
   QString m_selectedStreamUrl;
   QString m_userId;
 };

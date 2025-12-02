@@ -19,13 +19,15 @@ HomeViewModel::HomeViewModel(QObject* parent) : QObject(parent) {
 void HomeViewModel::updateSectionsData() {
   QVariantList sections = createDefaultSections();
   
-  // Remplacer la première section avec les streams suivis ou les placeholders
-  QVariantMap firstSection = sections.first().toMap();
-  QVariantList cards = m_followedStreams.isEmpty() ? m_placeholderCards : m_followedStreams;
-  firstSection["cards"] = cards;
-  sections[0] = firstSection;
+  // Section 1: Streams suivis
+  if (sections.size() > 0) {
+    QVariantMap firstSection = sections[0].toMap();
+    QVariantList cards = m_followedStreams.isEmpty() ? m_placeholderCards : m_followedStreams;
+    firstSection["cards"] = cards;
+    sections[0] = firstSection;
+  }
   
-  // Remplacer la deuxième section (Recommandé pour vous) avec les streams recommandés réels
+  // Section 2: Recommandé pour vous
   if (sections.size() > 1) {
     QVariantMap recommendedSection = sections[1].toMap();
     QVariantList recommendedCards = m_recommendedStreams.isEmpty() 
@@ -35,7 +37,7 @@ void HomeViewModel::updateSectionsData() {
     sections[1] = recommendedSection;
   }
   
-  // Remplacer la troisième section (Parcourir) avec les catégories réelles
+  // Section 3: Parcourir (catégories)
   if (sections.size() > 2) {
     QVariantMap browseSection = sections[2].toMap();
     QVariantList categoryCards = m_categories.isEmpty() 
@@ -43,6 +45,72 @@ void HomeViewModel::updateSectionsData() {
       : m_categories;
     browseSection["cards"] = categoryCards;
     sections[2] = browseSection;
+  }
+  
+  // Section 4: En direct maintenant (utilise trendingStreams ou recommendedStreams)
+  if (sections.size() > 3) {
+    QVariantMap liveSection = sections[3].toMap();
+    // Utiliser trendingStreams en priorité, sinon recommendedStreams, sinon placeholders
+    QVariantList liveCards;
+    if (!m_trendingStreams.isEmpty()) {
+      liveCards = m_trendingStreams;
+    } else if (!m_recommendedStreams.isEmpty()) {
+      liveCards = m_recommendedStreams;
+    } else {
+      liveCards = liveSection["cards"].toList();
+    }
+    liveSection["cards"] = liveCards;
+    sections[3] = liveSection;
+  }
+  
+  // Section 5: Populaire cette semaine (utilise recommendedStreams ou trendingStreams)
+  if (sections.size() > 4) {
+    QVariantMap popularSection = sections[4].toMap();
+    // Utiliser recommendedStreams en priorité, sinon trendingStreams, sinon placeholders
+    QVariantList popularCards;
+    if (!m_recommendedStreams.isEmpty()) {
+      popularCards = m_recommendedStreams;
+    } else if (!m_trendingStreams.isEmpty()) {
+      popularCards = m_trendingStreams;
+    } else {
+      popularCards = popularSection["cards"].toList();
+    }
+    popularSection["cards"] = popularCards;
+    sections[4] = popularSection;
+  }
+  
+  // Section 6: Clips populaires
+  if (sections.size() > 5) {
+    QVariantMap popularClipsSection = sections[5].toMap();
+    QVariantList clipsCards = m_popularClips.isEmpty() 
+      ? popularClipsSection["cards"].toList() 
+      : m_popularClips;
+    popularClipsSection["cards"] = clipsCards;
+    sections[5] = popularClipsSection;
+  }
+  
+  // Section 7: Tendances du jour
+  if (sections.size() > 6) {
+    QVariantMap trendingSection = sections[6].toMap();
+    QVariantList trendingCards = m_trendingStreams.isEmpty() 
+      ? trendingSection["cards"].toList() 
+      : m_trendingStreams;
+    trendingSection["cards"] = trendingCards;
+    sections[6] = trendingSection;
+  }
+  
+  // Section 8: Recommandations par catégorie
+  if (sections.size() > 7) {
+    QVariantMap categoryStreamsSection = sections[7].toMap();
+    Logger::debug(LogCategory::UI, QStringLiteral("[DEBUG] Updating section 8 (Recommandations par catégorie), m_categoryStreams.size(): %1").arg(m_categoryStreams.size()));
+    QVariantList categoryStreamsCards = m_categoryStreams.isEmpty() 
+      ? categoryStreamsSection["cards"].toList() 
+      : m_categoryStreams;
+    Logger::debug(LogCategory::UI, QStringLiteral("[DEBUG] Section 8 cards count: %1").arg(categoryStreamsCards.size()));
+    categoryStreamsSection["cards"] = categoryStreamsCards;
+    sections[7] = categoryStreamsSection;
+  } else {
+    Logger::warning(LogCategory::UI, QStringLiteral("[DEBUG] Sections size is %1, cannot update section 8").arg(sections.size()));
   }
   
   m_sectionsData = sections;
@@ -115,6 +183,201 @@ void HomeViewModel::updateCategories(const QVariantList& twitchCategories) {
   updateSectionsData();
 }
 
+QVariantList HomeViewModel::transformClips(const QVariantList& twitchClips) {
+  if (twitchClips.isEmpty()) {
+    return QVariantList();
+  }
+  
+  QVariantList transformed;
+  transformed.reserve(twitchClips.size());
+  
+  for (const QVariant& clipVar : twitchClips) {
+    const QVariantMap clip = clipVar.toMap();
+    QVariantMap transformedClip;
+    
+    const QString title = clip.value(QStringLiteral("title")).toString();
+    const QString broadcasterName = clip.value(QStringLiteral("broadcaster_name")).toString();
+    const int viewCount = clip.value(QStringLiteral("view_count")).toInt();
+    const double duration = clip.value(QStringLiteral("duration")).toDouble();
+    const QString thumbnailUrl = clip.value(QStringLiteral("thumbnail_url")).toString();
+    const QString url = clip.value(QStringLiteral("url")).toString();
+    
+    const QString viewText = QString::number(viewCount).replace(QRegularExpression("(\\d)(?=(\\d{3})+(?!\\d))"), "\\1 ");
+    const QString durationText = QString::number(static_cast<int>(duration)) + "s";
+    
+    transformedClip[QStringLiteral("clipTitle")] = title;
+    transformedClip[QStringLiteral("broadcasterName")] = broadcasterName;
+    transformedClip[QStringLiteral("viewCount")] = viewText;
+    transformedClip[QStringLiteral("duration")] = durationText;
+    transformedClip[QStringLiteral("thumbnailUrl")] = thumbnailUrl;
+    transformedClip[QStringLiteral("url")] = url;
+    transformedClip[QStringLiteral("isPlaceholder")] = false;
+    
+    transformed.append(transformedClip);
+  }
+  
+  return transformed;
+}
+
+QVariantList HomeViewModel::transformVideos(const QVariantList& twitchVideos) {
+  if (twitchVideos.isEmpty()) {
+    return QVariantList();
+  }
+  
+  QVariantList transformed;
+  transformed.reserve(twitchVideos.size());
+  
+  for (const QVariant& videoVar : twitchVideos) {
+    const QVariantMap video = videoVar.toMap();
+    QVariantMap transformedVideo;
+    
+    const QString title = video.value(QStringLiteral("title")).toString();
+    const QString userName = video.value(QStringLiteral("user_name")).toString();
+    const int viewCount = video.value(QStringLiteral("view_count")).toInt();
+    const QString duration = video.value(QStringLiteral("duration")).toString();
+    const QString thumbnailUrl = video.value(QStringLiteral("thumbnail_url")).toString();
+    const QString videoId = video.value(QStringLiteral("id")).toString();
+    const QString url = video.value(QStringLiteral("url")).toString();
+    
+    const QString viewText = QString::number(viewCount).replace(QRegularExpression("(\\d)(?=(\\d{3})+(?!\\d))"), "\\1 ");
+    
+    transformedVideo[QStringLiteral("videoTitle")] = title;
+    transformedVideo[QStringLiteral("userName")] = userName;
+    transformedVideo[QStringLiteral("viewCount")] = viewText;
+    transformedVideo[QStringLiteral("duration")] = duration;
+    transformedVideo[QStringLiteral("thumbnailUrl")] = thumbnailUrl;
+    transformedVideo[QStringLiteral("videoId")] = videoId;
+    transformedVideo[QStringLiteral("url")] = url;
+    transformedVideo[QStringLiteral("hasProgress")] = false;  // TODO: Vérifier avec WatchHistory
+    transformedVideo[QStringLiteral("watchPosition")] = 0;  // TODO: Récupérer depuis WatchHistory
+    transformedVideo[QStringLiteral("isPlaceholder")] = false;
+    
+    transformed.append(transformedVideo);
+  }
+  
+  return transformed;
+}
+
+QVariantList HomeViewModel::transformChannels(const QVariantList& twitchChannels) {
+  if (twitchChannels.isEmpty()) {
+    return QVariantList();
+  }
+  
+  QVariantList transformed;
+  transformed.reserve(twitchChannels.size());
+  
+  for (const QVariant& channelVar : twitchChannels) {
+    const QVariantMap channel = channelVar.toMap();
+    QVariantMap transformedChannel;
+    
+    const QString channelName = channel.value(QStringLiteral("broadcaster_name")).toString();
+    const QString displayName = channel.value(QStringLiteral("display_name")).toString();
+    QString thumbnailUrl = channel.value(QStringLiteral("thumbnail_url")).toString();
+    const QString broadcasterLogin = channel.value(QStringLiteral("broadcaster_login")).toString();
+    const bool isLive = channel.value(QStringLiteral("is_live")).toBool();
+    const QString gameName = channel.value(QStringLiteral("game_name")).toString();
+    
+    // Si thumbnail_url est vide, construire l'URL de l'avatar de profil à partir du login
+    if (thumbnailUrl.isEmpty() && !broadcasterLogin.isEmpty()) {
+      thumbnailUrl = QStringLiteral("https://static-cdn.jtvnw.net/jtv_user_pictures/%1-profile_image-300x300.png").arg(broadcasterLogin);
+    }
+    
+    transformedChannel[QStringLiteral("channelName")] = channelName;
+    transformedChannel[QStringLiteral("displayName")] = displayName;
+    transformedChannel[QStringLiteral("thumbnailUrl")] = thumbnailUrl;
+    transformedChannel[QStringLiteral("isLive")] = isLive;
+    transformedChannel[QStringLiteral("gameName")] = gameName;
+    transformedChannel[QStringLiteral("isPlaceholder")] = thumbnailUrl.isEmpty();
+    
+    transformed.append(transformedChannel);
+  }
+  
+  return transformed;
+}
+
+void HomeViewModel::updatePopularClips(const QVariantList& twitchClips) {
+  Logger::debug(LogCategory::UI, QStringLiteral("[DEBUG] updatePopularClips() called with %1 clips").arg(twitchClips.size()));
+  m_popularClips = transformClips(twitchClips);
+  Logger::debug(LogCategory::UI, QStringLiteral("[DEBUG] Transformed clips: %1").arg(m_popularClips.size()));
+  emit popularClipsChanged();
+  updateSectionsData();
+}
+
+void HomeViewModel::updateFollowedClips(const QVariantList& twitchClips) {
+  Logger::debug(LogCategory::UI, QStringLiteral("[DEBUG] updateFollowedClips() called with %1 clips").arg(twitchClips.size()));
+  m_followedClips = transformClips(twitchClips);
+  Logger::debug(LogCategory::UI, QStringLiteral("[DEBUG] Transformed clips: %1").arg(m_followedClips.size()));
+  emit followedClipsChanged();
+  updateSectionsData();
+}
+
+void HomeViewModel::updateVideos(const QVariantList& twitchVideos) {
+  Logger::debug(LogCategory::UI, QStringLiteral("[DEBUG] updateVideos() called with %1 videos").arg(twitchVideos.size()));
+  m_videos = transformVideos(twitchVideos);
+  Logger::debug(LogCategory::UI, QStringLiteral("[DEBUG] Transformed videos: %1").arg(m_videos.size()));
+  emit videosChanged();
+  updateSectionsData();
+}
+
+void HomeViewModel::updateFollowedChannels(const QVariantList& twitchChannels) {
+  Logger::debug(LogCategory::UI, QStringLiteral("[DEBUG] updateFollowedChannels() called with %1 channels").arg(twitchChannels.size()));
+  m_followedChannels = transformChannels(twitchChannels);
+  Logger::debug(LogCategory::UI, QStringLiteral("[DEBUG] Transformed channels: %1").arg(m_followedChannels.size()));
+  emit followedChannelsChanged();
+  updateSectionsData();
+}
+
+void HomeViewModel::updateTrendingStreams(const QVariantList& twitchStreams) {
+  m_trendingStreams = transformTwitchStreams(twitchStreams);
+  emit trendingStreamsChanged();
+  updateSectionsData();
+}
+
+void HomeViewModel::updateNewStreamers(const QVariantList& twitchStreamers) {
+  // Les nouveaux streamers sont déjà dans le format streamer, on les transforme en streams
+  QVariantList transformed;
+  transformed.reserve(twitchStreamers.size());
+  
+  for (const QVariant& streamerVar : twitchStreamers) {
+    const QVariantMap streamer = streamerVar.toMap();
+    QVariantMap transformedStreamer;
+    
+    transformedStreamer[QStringLiteral("user_name")] = streamer.value(QStringLiteral("user_name")).toString();
+    transformedStreamer[QStringLiteral("title")] = QStringLiteral("Nouveau streamer suivi");
+    transformedStreamer[QStringLiteral("viewer_count")] = 0;
+    transformedStreamer[QStringLiteral("thumbnail_url")] = QString();
+    transformedStreamer[QStringLiteral("stream_url")] = QStringLiteral("https://www.twitch.tv/%1").arg(streamer.value(QStringLiteral("user_name")).toString());
+    
+    transformed.append(transformedStreamer);
+  }
+  
+  m_newStreamers = transformTwitchStreams(transformed);
+  emit newStreamersChanged();
+  updateSectionsData();
+}
+
+void HomeViewModel::updateCategoryStreams(const QVariantList& twitchStreams) {
+  Logger::debug(LogCategory::UI, QStringLiteral("[DEBUG] updateCategoryStreams() called with %1 streams").arg(twitchStreams.size()));
+  
+  if (!twitchStreams.isEmpty()) {
+    const QVariantMap firstStream = twitchStreams.first().toMap();
+    Logger::debug(LogCategory::UI, QStringLiteral("[DEBUG] First stream keys: %1").arg(firstStream.keys().join(", ")));
+    Logger::debug(LogCategory::UI, QStringLiteral("[DEBUG] First stream user_name: %1").arg(firstStream.value(QStringLiteral("user_name")).toString()));
+  }
+  
+  m_categoryStreams = transformTwitchStreams(twitchStreams);
+  Logger::debug(LogCategory::UI, QStringLiteral("[DEBUG] Transformed streams: %1").arg(m_categoryStreams.size()));
+  
+  if (!m_categoryStreams.isEmpty()) {
+    const QVariantMap firstTransformed = m_categoryStreams.first().toMap();
+    Logger::debug(LogCategory::UI, QStringLiteral("[DEBUG] First transformed stream name: %1, isPlaceholder: %2").arg(firstTransformed.value(QStringLiteral("name")).toString()).arg(firstTransformed.value(QStringLiteral("isPlaceholder")).toBool()));
+  }
+  
+  emit categoryStreamsChanged();
+  updateSectionsData();
+  Logger::debug(LogCategory::UI, QStringLiteral("[DEBUG] Sections data updated, m_categoryStreams.size() = %1").arg(m_categoryStreams.size()));
+}
+
 void HomeViewModel::generatePlaceholderCards() {
   m_placeholderCards.clear();
   m_placeholderCards.reserve(blueplayer::core::constants::ui::kPlaceholderCardsCount);
@@ -167,31 +430,45 @@ QVariantList HomeViewModel::createDefaultSections() const {
   section3[QStringLiteral("cards")] = categoryCards;
   sections.append(section3);
   
-  // Section 4: En direct maintenant
+  // Section 4: En direct maintenant (utilisera m_trendingStreams ou m_recommendedStreams)
   QVariantMap section4;
   section4[QStringLiteral("title")] = QStringLiteral("En direct maintenant");
   section4[QStringLiteral("subtitle")] = QStringLiteral("Les streams les plus populaires");
-  QVariantList liveCards;
-  liveCards.append(createCard("EpicGamer", "Tournoi esport", "5 240 viewers"));
-  liveCards.append(createCard("CreativeHub", "Design & illustration", "3 890 viewers"));
-  liveCards.append(createCard("MusicLive", "Concert en direct", "2 670 viewers"));
-  liveCards.append(createCard("TechTalk", "Débat technologique", "1 950 viewers"));
-  liveCards.append(createCard("FoodieStream", "Cuisine en direct", "1 420 viewers"));
-  section4[QStringLiteral("cards")] = liveCards;
+  section4[QStringLiteral("type")] = QStringLiteral("streams");
+  section4[QStringLiteral("cards")] = m_placeholderCards;  // Sera remplacé par de vraies données dans updateSectionsData()
   sections.append(section4);
   
-  // Section 5: Populaire cette semaine
+  // Section 5: Populaire cette semaine (utilisera m_recommendedStreams ou m_trendingStreams)
   QVariantMap section5;
   section5[QStringLiteral("title")] = QStringLiteral("Populaire cette semaine");
   section5[QStringLiteral("subtitle")] = QStringLiteral("Les tendances du moment");
-  QVariantList popularCards;
-  popularCards.append(createCard("GamingPro", "Speedrun record", "8 500 viewers"));
-  popularCards.append(createCard("ArtStudio", "Création en temps réel", "6 200 viewers"));
-  popularCards.append(createCard("MusicFest", "Festival virtuel", "4 800 viewers"));
-  popularCards.append(createCard("TechReview", "Tests produits", "3 100 viewers"));
-  popularCards.append(createCard("CookingShow", "Recettes gourmandes", "2 600 viewers"));
-  section5[QStringLiteral("cards")] = popularCards;
+  section5[QStringLiteral("type")] = QStringLiteral("streams");
+  section5[QStringLiteral("cards")] = m_placeholderCards;  // Sera remplacé par de vraies données dans updateSectionsData()
   sections.append(section5);
+  
+  // Section 6: Clips populaires
+  QVariantMap section6;
+  section6[QStringLiteral("title")] = QStringLiteral("Clips populaires");
+  section6[QStringLiteral("subtitle")] = QStringLiteral("Les meilleurs moments");
+  section6[QStringLiteral("type")] = QStringLiteral("clips");
+  section6[QStringLiteral("cards")] = m_placeholderCards;
+  sections.append(section6);
+  
+  // Section 7: Tendances du jour
+  QVariantMap section7;
+  section7[QStringLiteral("title")] = QStringLiteral("Tendances du jour");
+  section7[QStringLiteral("subtitle")] = QStringLiteral("Streams en croissance");
+  section7[QStringLiteral("type")] = QStringLiteral("streams");
+  section7[QStringLiteral("cards")] = m_placeholderCards;
+  sections.append(section7);
+  
+  // Section 8: Recommandations par catégorie (dynamique)
+  QVariantMap section8;
+  section8[QStringLiteral("title")] = QStringLiteral("Recommandations par catégorie");
+  section8[QStringLiteral("subtitle")] = QStringLiteral("Découvrez par jeu");
+  section8[QStringLiteral("type")] = QStringLiteral("streams");
+  section8[QStringLiteral("cards")] = m_placeholderCards;
+  sections.append(section8);
   
   return sections;
 }
@@ -202,7 +479,7 @@ QVariantMap HomeViewModel::createCard(const QString& name, const QString& detail
   card[QStringLiteral("detail")] = detail;
   card[QStringLiteral("viewers")] = viewers;
   card[QStringLiteral("previewImage")] = QString();  // Pas d'image pour les cartes par défaut
-  card[QStringLiteral("isPlaceholder")] = false;  // Ce sont des cartes réelles mais sans image
+  card[QStringLiteral("isPlaceholder")] = true;  // Marquer comme placeholder car pas d'image
   return card;
 }
 

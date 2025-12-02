@@ -20,6 +20,13 @@ class HomeViewModel : public QObject {
   Q_PROPERTY(QVariantList followedStreams READ followedStreams NOTIFY followedStreamsChanged)
   Q_PROPERTY(QVariantList recommendedStreams READ recommendedStreams NOTIFY recommendedStreamsChanged)
   Q_PROPERTY(QVariantList categories READ categories NOTIFY categoriesChanged)
+  Q_PROPERTY(QVariantList popularClips READ popularClips NOTIFY popularClipsChanged)
+  Q_PROPERTY(QVariantList followedClips READ followedClips NOTIFY followedClipsChanged)
+  Q_PROPERTY(QVariantList videos READ videos NOTIFY videosChanged)
+  Q_PROPERTY(QVariantList followedChannels READ followedChannels NOTIFY followedChannelsChanged)
+  Q_PROPERTY(QVariantList trendingStreams READ trendingStreams NOTIFY trendingStreamsChanged)
+  Q_PROPERTY(QVariantList newStreamers READ newStreamers NOTIFY newStreamersChanged)
+  Q_PROPERTY(QVariantList categoryStreams READ categoryStreams NOTIFY categoryStreamsChanged)
   Q_PROPERTY(QVariantList placeholderCards READ placeholderCards CONSTANT)
   Q_PROPERTY(QVariantList sectionsData READ sectionsData NOTIFY sectionsDataChanged)
 
@@ -43,6 +50,48 @@ public:
    * @return La liste des catégories
    */
   [[nodiscard]] QVariantList categories() const { return m_categories; }
+
+  /**
+   * @brief Obtient la liste des clips populaires transformés
+   * @return La liste des clips populaires
+   */
+  [[nodiscard]] QVariantList popularClips() const { return m_popularClips; }
+
+  /**
+   * @brief Obtient la liste des clips suivis transformés
+   * @return La liste des clips suivis
+   */
+  [[nodiscard]] QVariantList followedClips() const { return m_followedClips; }
+
+  /**
+   * @brief Obtient la liste des VODs transformés
+   * @return La liste des VODs
+   */
+  [[nodiscard]] QVariantList videos() const { return m_videos; }
+
+  /**
+   * @brief Obtient la liste des chaînes suivies transformées
+   * @return La liste des chaînes suivies
+   */
+  [[nodiscard]] QVariantList followedChannels() const { return m_followedChannels; }
+
+  /**
+   * @brief Obtient la liste des streams tendances transformés
+   * @return La liste des streams tendances
+   */
+  [[nodiscard]] QVariantList trendingStreams() const { return m_trendingStreams; }
+
+  /**
+   * @brief Obtient la liste des nouveaux streamers transformés
+   * @return La liste des nouveaux streamers
+   */
+  [[nodiscard]] QVariantList newStreamers() const { return m_newStreamers; }
+
+  /**
+   * @brief Obtient la liste des streams par catégorie transformés
+   * @return La liste des streams par catégorie
+   */
+  [[nodiscard]] QVariantList categoryStreams() const { return m_categoryStreams; }
 
   /**
    * @brief Obtient les cartes placeholder
@@ -81,16 +130,72 @@ public:
    */
   Q_INVOKABLE void updateCategories(const QVariantList& twitchCategories);
 
+  /**
+   * @brief Met à jour les clips populaires depuis le service Twitch
+   * @param twitchClips Les clips bruts depuis l'API Twitch
+   */
+  Q_INVOKABLE void updatePopularClips(const QVariantList& twitchClips);
+
+  /**
+   * @brief Met à jour les clips suivis depuis le service Twitch
+   * @param twitchClips Les clips bruts depuis l'API Twitch
+   */
+  Q_INVOKABLE void updateFollowedClips(const QVariantList& twitchClips);
+
+  /**
+   * @brief Met à jour les VODs depuis le service Twitch
+   * @param twitchVideos Les VODs bruts depuis l'API Twitch
+   */
+  Q_INVOKABLE void updateVideos(const QVariantList& twitchVideos);
+
+  /**
+   * @brief Met à jour les chaînes suivies depuis le service Twitch
+   * @param twitchChannels Les chaînes brutes depuis l'API Twitch
+   */
+  Q_INVOKABLE void updateFollowedChannels(const QVariantList& twitchChannels);
+
+  /**
+   * @brief Met à jour les streams tendances depuis le service Twitch
+   * @param twitchStreams Les streams bruts depuis l'API Twitch
+   */
+  Q_INVOKABLE void updateTrendingStreams(const QVariantList& twitchStreams);
+
+  /**
+   * @brief Met à jour les nouveaux streamers depuis le service Twitch
+   * @param twitchStreamers Les streamers bruts depuis l'API Twitch
+   */
+  Q_INVOKABLE void updateNewStreamers(const QVariantList& twitchStreamers);
+
+  /**
+   * @brief Met à jour les streams par catégorie depuis le service Twitch
+   * @param twitchStreams Les streams bruts depuis l'API Twitch
+   */
+  Q_INVOKABLE void updateCategoryStreams(const QVariantList& twitchStreams);
+
 signals:
   void followedStreamsChanged();
   void recommendedStreamsChanged();
   void categoriesChanged();
+  void popularClipsChanged();
+  void followedClipsChanged();
+  void videosChanged();
+  void followedChannelsChanged();
+  void trendingStreamsChanged();
+  void newStreamersChanged();
+  void categoryStreamsChanged();
   void sectionsDataChanged();
 
 private:
   QVariantList m_followedStreams;
   QVariantList m_recommendedStreams;
   QVariantList m_categories;
+  QVariantList m_popularClips;
+  QVariantList m_followedClips;
+  QVariantList m_videos;
+  QVariantList m_followedChannels;
+  QVariantList m_trendingStreams;
+  QVariantList m_newStreamers;
+  QVariantList m_categoryStreams;
   QVariantList m_placeholderCards;
   QVariantList m_sectionsData;
   
@@ -99,6 +204,9 @@ private:
   QVariantList createDefaultSections() const;
   QVariantMap createCard(const QString& name, const QString& detail, const QString& viewers) const;
   QVariantMap createCategoryCard(const QString& name, const QString& id, const QString& boxArtUrl) const;
+  QVariantList transformClips(const QVariantList& twitchClips);
+  QVariantList transformVideos(const QVariantList& twitchVideos);
+  QVariantList transformChannels(const QVariantList& twitchChannels);
 };
 
 }  // namespace blueplayer::ui

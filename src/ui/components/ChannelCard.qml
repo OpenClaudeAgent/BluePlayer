@@ -4,13 +4,14 @@ import "../themes/AppleTheme.js" as AppleTheme
 
 Item {
   id: cardRoot
-  property string categoryName: ""
-  property string categoryId: ""
-  property string boxArtUrl: ""
+  property string channelName: ""
+  property string displayName: ""
+  property string thumbnailUrl: ""
+  property bool isLive: false
+  property string gameName: ""
   property bool isPlaceholder: false
 
-  // Dimensions adaptées pour les box art Twitch (ratio 285x380 ≈ 0.75)
-  // Largeur standard, hauteur augmentée pour mieux afficher les box art
+  // Dimensions adaptées comme pour les catégories
   implicitWidth: 180
   implicitHeight: 260
 
@@ -22,7 +23,6 @@ Item {
     border.color: AppleTheme.divider
     border.width: 1
 
-    // Hover effect
     states: [
       State {
         name: "hovered"
@@ -50,7 +50,6 @@ Item {
       }
     }
 
-    // Ombre subtile
     Rectangle {
       id: cardShadow
       anchors.fill: parent
@@ -67,11 +66,10 @@ Item {
       anchors.margins: 12
       spacing: 12
 
-      // Zone image preview adaptée pour les box art Twitch (ratio 285x380)
-      // Hauteur augmentée pour éviter de couper l'image
+      // Zone image preview adaptée comme pour les catégories
       Rectangle {
         Layout.fillWidth: true
-        Layout.preferredHeight: 200  // Augmenté de 120 à 200 pour mieux afficher les box art
+        Layout.preferredHeight: 200  // Augmenté de 120 à 200 comme pour les catégories
         radius: 8
         color: cardRoot.isPlaceholder ? "#1a2230" : AppleTheme.surfaceSoft
         border.color: AppleTheme.divider
@@ -80,10 +78,10 @@ Item {
 
         // Image avec chargement asynchrone et cache
         Image {
-          id: categoryImage
+          id: avatarImage
           anchors.fill: parent
-          source: cardRoot.isPlaceholder ? "" : cardRoot.boxArtUrl
-          fillMode: Image.PreserveAspectFit  // Changé de PreserveAspectCrop à PreserveAspectFit pour voir toute l'image
+          source: cardRoot.isPlaceholder ? "" : cardRoot.thumbnailUrl
+          fillMode: Image.PreserveAspectFit  // Comme pour les catégories
           asynchronous: true
           cache: true
           visible: status === Image.Ready && !cardRoot.isPlaceholder
@@ -95,25 +93,43 @@ Item {
           }
         }
 
-        // Placeholder pendant le chargement ou si pas d'image
         Rectangle {
           anchors.fill: parent
           color: cardRoot.isPlaceholder ? "#1a2230" : AppleTheme.surfaceSoft
-          visible: categoryImage.status !== Image.Ready || cardRoot.isPlaceholder
+          visible: avatarImage.status !== Image.Ready || cardRoot.isPlaceholder
           
           Text {
             anchors.centerIn: parent
-            text: cardRoot.isPlaceholder ? "⋯" : (categoryImage.status === Image.Loading ? "⏳" : "🎮")
+            text: cardRoot.isPlaceholder ? "⋯" : (avatarImage.status === Image.Loading ? "⏳" : "👤")
             font.pixelSize: 32
             color: AppleTheme.mutedText
             opacity: 0.5
           }
         }
+
+        Rectangle {
+          anchors.top: parent.top
+          anchors.right: parent.right
+          anchors.margins: 6
+          width: 40
+          height: 20
+          radius: 10
+          color: AppleTheme.statusNegative
+          visible: cardRoot.isLive && !cardRoot.isPlaceholder && avatarImage.status === Image.Ready
+
+          Text {
+            anchors.centerIn: parent
+            text: "LIVE"
+            font.pixelSize: 10
+            font.bold: true
+            color: "#fff"
+          }
+        }
       }
 
-      // Nom de la catégorie
+      // Nom de la chaîne (centré comme pour les catégories)
       Text {
-        text: cardRoot.categoryName
+        text: cardRoot.displayName !== "" ? cardRoot.displayName : cardRoot.channelName
         font.family: AppleTheme.fontFamily
         font.pixelSize: 14
         font.bold: true
@@ -122,12 +138,21 @@ Item {
         Layout.fillWidth: true
         horizontalAlignment: Text.AlignHCenter
       }
+      
+      // Statut (seulement si en direct avec nom du jeu)
+      Text {
+        text: cardRoot.isLive && cardRoot.gameName !== "" ? cardRoot.gameName : ""
+        font.family: AppleTheme.fontFamily
+        font.pixelSize: 11
+        color: AppleTheme.accent
+        elide: Text.ElideRight
+        Layout.fillWidth: true
+        horizontalAlignment: Text.AlignHCenter
+        visible: text !== ""
+      }
     }
   }
 
-  // Signal émis quand une catégorie est cliquée
-  signal categoryClicked(string categoryId, string categoryName)
-  
   MouseArea {
     id: mouseArea
     anchors.fill: parent
@@ -135,10 +160,11 @@ Item {
     cursorShape: Qt.PointingHandCursor
     onClicked: {
       if (!cardRoot.isPlaceholder) {
-        console.log("[DEBUG CategoryCard] Clicked on category:", cardRoot.categoryName, "ID:", cardRoot.categoryId)
-        cardRoot.categoryClicked(cardRoot.categoryId, cardRoot.categoryName)
+        console.log("Clicked on channel:", cardRoot.channelName)
+        // TODO: Navigate to channel
       }
     }
   }
 }
+
 

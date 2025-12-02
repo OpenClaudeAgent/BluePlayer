@@ -13,6 +13,8 @@ set(BLUEPLAYER_CORE_SOURCES
   core/NetworkCache.hpp
   core/SecureStorage.cpp
   core/SecureStorage.hpp
+  core/WatchHistory.cpp
+  core/WatchHistory.hpp
   core/InputValidator.cpp
   core/InputValidator.hpp
   core/network/HttpClient.cpp
@@ -108,6 +110,9 @@ qt_add_qml_module(BluePlayer
     ui/components/AppleButton.qml
     ui/components/CategoriesScroller.qml
     ui/components/CategoryCard.qml
+    ui/components/ClipCard.qml
+    ui/components/VideoCard.qml
+    ui/components/ChannelCard.qml
     ui/components/LocalPlaybackCard.qml
     ui/components/HorizontalRowSection.qml
     ui/components/StreamCard.qml
