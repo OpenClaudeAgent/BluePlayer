@@ -1,12 +1,11 @@
 #pragma once
 
+#include "core/network/ApiClientBase.hpp"
 #include <QObject>
 #include <QVariantList>
 
 QT_BEGIN_NAMESPACE
-class QNetworkAccessManager;
 class QNetworkReply;
-class QNetworkRequest;
 class QUrl;
 QT_END_NAMESPACE
 
@@ -16,9 +15,9 @@ namespace blueplayer::api::twitch {
  * @brief Client pour l'API Twitch Helix
  * 
  * Gère les requêtes HTTP vers l'API Twitch et le parsing des réponses JSON.
- * Utilise QNetworkAccessManager avec cache pour optimiser les performances.
+ * Utilise ApiClientBase pour la gestion réseau centralisée.
  */
-class TwitchApiClient : public QObject {
+class TwitchApiClient : public blueplayer::core::network::ApiClientBase {
   Q_OBJECT
 
 public:
@@ -56,7 +55,7 @@ public:
 signals:
   void streamsReady(const QVariantList& streams);
   void userInfoReady(const QString& userId);
-  void errorOccurred(const QString& message);
+  void errorOccurred(const QString& message);  // Gardé pour compatibilité QML
 
 private slots:
   void handleReply();
@@ -65,17 +64,9 @@ private slots:
 
 private:
   QString expandThumbnail(const QString& templateUrl) const;
-  QNetworkRequest buildRequest(const QUrl& url) const;
-  
-  // Méthodes génériques pour réduire la duplication
-  bool handleNetworkError(QNetworkReply* reply, const QString& errorContext);
-  QJsonDocument parseJsonResponse(QNetworkReply* reply, const QString& errorContext);
   QVariantList parseStreamsArray(const QJsonArray& entries);
   
   QString m_clientId;
-  QString m_accessToken;
-  QNetworkAccessManager* m_networkManager = nullptr;
 };
 
 }  // namespace blueplayer::api::twitch
-
