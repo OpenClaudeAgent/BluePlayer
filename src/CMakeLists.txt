@@ -91,6 +91,7 @@ target_link_libraries(BluePlayer
     Qt6::Core
     Qt6::Gui
     Qt6::Quick
+    Qt6::QuickControls2
     Qt6::Widgets
     Qt6::Multimedia
     blueplayer_core
