@@ -2,6 +2,17 @@
 
 #include <QtGlobal>
 
+/**
+ * @file Constants.hpp
+ * @brief Constantes centralisées pour BluePlayer
+ * 
+ * Ce fichier centralise toutes les constantes utilisées dans l'application :
+ * - Endpoints API Twitch
+ * - Ports et configurations réseau
+ * - Limites et tailles par défaut
+ * - Constantes UI
+ */
+
 namespace blueplayer::core::constants {
 
 // Twitch API

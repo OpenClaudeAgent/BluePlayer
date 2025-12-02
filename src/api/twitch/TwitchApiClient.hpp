@@ -12,15 +12,45 @@ QT_END_NAMESPACE
 
 namespace blueplayer::api::twitch {
 
+/**
+ * @brief Client pour l'API Twitch Helix
+ * 
+ * Gère les requêtes HTTP vers l'API Twitch et le parsing des réponses JSON.
+ * Utilise QNetworkAccessManager avec cache pour optimiser les performances.
+ */
 class TwitchApiClient : public QObject {
   Q_OBJECT
 
 public:
+  /**
+   * @brief Constructeur
+   * @param clientId L'ID client Twitch
+   * @param parent Le parent QObject
+   */
   explicit TwitchApiClient(const QString& clientId, QObject* parent = nullptr);
 
+  /**
+   * @brief Configure le token d'accès OAuth
+   * @param token Le token d'accès
+   */
   void setAccessToken(const QString& token);
+
+  /**
+   * @brief Liste les streams populaires
+   * @param limit Nombre maximum de streams à récupérer (défaut: 12)
+   */
   Q_INVOKABLE void listStreams(int limit = 12);  // Utilise constants::twitch::kDefaultStreamListLimit
+
+  /**
+   * @brief Récupère les informations de l'utilisateur authentifié
+   */
   Q_INVOKABLE void getUserInfo();
+
+  /**
+   * @brief Liste les streams suivis par un utilisateur
+   * @param userId L'ID de l'utilisateur
+   * @param limit Nombre maximum de streams (défaut: 100)
+   */
   Q_INVOKABLE void listFollowedStreams(const QString& userId, int limit = 100);  // Utilise constants::twitch::kDefaultStreamLimit
 
 signals:
