@@ -37,3 +37,4 @@ qrc_*
 
 # Environment variables file
 .env
+build/
