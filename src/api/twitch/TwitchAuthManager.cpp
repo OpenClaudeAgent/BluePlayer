@@ -1,6 +1,13 @@
 #include "api/twitch/TwitchAuthManager.hpp"
 
-#include <QDebug>
+#include "core/Constants.hpp"
+#include "core/Logger.hpp"
+#include "core/SecureStorage.hpp"
+
+using blueplayer::core::Logger;
+using blueplayer::core::LogCategory;
+using blueplayer::core::SecureStorage;
+
 #include <QCryptographicHash>
 #include <QDesktopServices>
 #include <QFile>
@@ -28,10 +35,6 @@
 #include <QIODevice>
 
 namespace {
-
-constexpr quint16 kDefaultPort = 8443;
-constexpr auto kAuthorizeEndpoint = "https://id.twitch.tv/oauth2/authorize";
-constexpr auto kTokenEndpoint = "https://id.twitch.tv/oauth2/token";
 
 class CallbackServer : public QTcpServer {
   Q_OBJECT
@@ -161,8 +164,8 @@ namespace blueplayer::api::twitch {
 
 TwitchAuthManager::TwitchAuthManager(QObject* parent)
     : QObject(parent),
-      m_scope(QStringLiteral("user:read:email user:read:follows")),
-      m_listenPort(kDefaultPort),
+      m_scope(QString::fromUtf8(blueplayer::core::constants::twitch::kDefaultScope)),
+      m_listenPort(blueplayer::core::constants::twitch::kDefaultRedirectPort),
       m_networkManager(new QNetworkAccessManager(this)) {
   m_clientId = QString::fromUtf8(qgetenv("TWITCH_CLIENT_ID"));
   m_clientSecret = QString::fromUtf8(qgetenv("TWITCH_CLIENT_SECRET"));
@@ -224,7 +227,7 @@ void TwitchAuthManager::login() {
   m_codeVerifier = generateCodeVerifier();
   m_state = generateState();
 
-  QUrl url(QString::fromUtf8(kAuthorizeEndpoint));
+  QUrl url(QString::fromUtf8(blueplayer::core::constants::twitch::kAuthorizeEndpoint));
   QUrlQuery query;
   query.addQueryItem(QStringLiteral("response_type"), QStringLiteral("code"));
   query.addQueryItem(QStringLiteral("client_id"), m_clientId);
@@ -257,7 +260,7 @@ void TwitchAuthManager::refresh() {
     return;
   }
 
-  QUrl tokenUrl(QString::fromUtf8(kTokenEndpoint));
+  QUrl tokenUrl(QString::fromUtf8(blueplayer::core::constants::twitch::kTokenEndpoint));
   QNetworkRequest request(tokenUrl);
   request.setHeader(QNetworkRequest::ContentTypeHeader,
                     QStringLiteral("application/x-www-form-urlencoded"));
@@ -357,7 +360,7 @@ void TwitchAuthManager::consumeAuthorizationCode(const QString& code, const QStr
 }
 
 void TwitchAuthManager::requestAccessToken(const QString& code) {
-  QUrl tokenUrl(QString::fromUtf8(kTokenEndpoint));
+  QUrl tokenUrl(QString::fromUtf8(blueplayer::core::constants::twitch::kTokenEndpoint));
   QNetworkRequest request(tokenUrl);
   request.setHeader(QNetworkRequest::ContentTypeHeader,
                     QStringLiteral("application/x-www-form-urlencoded"));
@@ -377,41 +380,54 @@ void TwitchAuthManager::requestAccessToken(const QString& code) {
 }
 
 void TwitchAuthManager::persistCredentials() {
-  QSettings settings(QStringLiteral("BluePlayer"), QStringLiteral("Twitch"));
-  settings.setValue(QStringLiteral("access_token"), m_accessToken);
-  settings.setValue(QStringLiteral("refresh_token"), m_refreshToken);
+  // Utiliser SecureStorage pour chiffrer les tokens
+  SecureStorage secureStorage(this);
+  
+  // Ne logger que les premiers caractères du token pour la sécurité
+  QString tokenPreview = m_accessToken.isEmpty() ? QStringLiteral("EMPTY") 
+                                                  : m_accessToken.left(8) + "...";
+  Logger::debug(LogCategory::Twitch, QStringLiteral("Persisting access token: %1").arg(tokenPreview));
+  
+  secureStorage.store(QStringLiteral("access_token"), m_accessToken);
+  secureStorage.store(QStringLiteral("refresh_token"), m_refreshToken);
 }
 
 void TwitchAuthManager::loadCredentials() {
-  qDebug() << "[TwitchAuthManager] loadCredentials() called";
-  QSettings settings(QStringLiteral("BluePlayer"), QStringLiteral("Twitch"));
-  m_accessToken = settings.value(QStringLiteral("access_token")).toString();
-  m_refreshToken = settings.value(QStringLiteral("refresh_token")).toString();
+  Logger::debug(LogCategory::Twitch, QStringLiteral("loadCredentials() called"));
   
-  qDebug() << "[TwitchAuthManager] Loaded access token, length:" << m_accessToken.length();
-  qDebug() << "[TwitchAuthManager] Loaded refresh token, length:" << m_refreshToken.length();
+  // Utiliser SecureStorage pour déchiffrer les tokens
+  SecureStorage secureStorage(this);
+  
+  m_accessToken = secureStorage.retrieve(QStringLiteral("access_token"));
+  m_refreshToken = secureStorage.retrieve(QStringLiteral("refresh_token"));
+  
+  // Ne logger que les premiers caractères du token pour la sécurité
+  QString tokenPreview = m_accessToken.isEmpty() ? QStringLiteral("EMPTY") 
+                                                  : m_accessToken.left(8) + "...";
+  Logger::debug(LogCategory::Twitch, QStringLiteral("Loaded access token: %1 (length: %2)").arg(tokenPreview).arg(m_accessToken.length()));
+  Logger::debug(LogCategory::Twitch, QStringLiteral("Loaded refresh token, length: %1").arg(m_refreshToken.length()));
   
   const bool wasAuthenticated = m_isAuthenticated;
   m_isAuthenticated = !m_accessToken.isEmpty();
   
-  qDebug() << "[TwitchAuthManager] Was authenticated:" << wasAuthenticated;
-  qDebug() << "[TwitchAuthManager] Is authenticated:" << m_isAuthenticated;
+  Logger::debug(LogCategory::Twitch, QStringLiteral("Was authenticated: %1").arg(wasAuthenticated));
+  Logger::debug(LogCategory::Twitch, QStringLiteral("Is authenticated: %1").arg(m_isAuthenticated));
   
   // Si on a un token, émettre les signaux pour déclencher l'auto-login
   if (m_isAuthenticated) {
-    qDebug() << "[TwitchAuthManager] Emitting authentication signals";
+    Logger::debug(LogCategory::Twitch, QStringLiteral("Emitting authentication signals"));
     if (!wasAuthenticated) {
-      qDebug() << "[TwitchAuthManager] Emitting authenticatedChanged(true)";
+      Logger::debug(LogCategory::Twitch, QStringLiteral("Emitting authenticatedChanged(true)"));
       emit authenticatedChanged(true);
     }
-    qDebug() << "[TwitchAuthManager] Emitting accessTokenChanged()";
+    Logger::debug(LogCategory::Twitch, QStringLiteral("Emitting accessTokenChanged()"));
     emit accessTokenChanged(m_accessToken);
     
     // Si on a un refresh token mais pas de token valide, essayer de rafraîchir
     // Note: Pour une vérification complète, il faudrait aussi stocker l'expiration
     // Pour l'instant, on assume que le token est valide s'il existe
   } else {
-    qDebug() << "[TwitchAuthManager] No credentials found, user not authenticated";
+    Logger::debug(LogCategory::Twitch, QStringLiteral("No credentials found, user not authenticated"));
   }
 }
 

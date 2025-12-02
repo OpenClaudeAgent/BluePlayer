@@ -125,6 +125,19 @@ Item {
   
   focus: true
 
+  // Timer pour debouncing de la recherche (300ms)
+  Timer {
+    id: searchDebounceTimer
+    interval: 300
+    onTriggered: {
+      if (searchField.text.length > 0) {
+        console.log("[HomeView] Recherche déclenchée après debounce:", searchField.text)
+        // TODO: Implémenter la recherche réelle ici
+        // Exemple: twitchService.searchStreams(searchField.text)
+      }
+    }
+  }
+
   // Connexion au service Twitch pour mettre à jour les streams
   Connections {
     id: twitchConnections
@@ -262,10 +275,23 @@ Item {
               Behavior on topPadding {
                 NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
               }
+              onTextChanged: {
+                // Annuler le timer précédent si l'utilisateur tape encore
+                searchDebounceTimer.stop()
+                // Redémarrer le timer pour attendre 300ms après la dernière frappe
+                if (text.length > 0) {
+                  searchDebounceTimer.start()
+                }
+              }
               onAccepted: {
-                console.log("Recherche :", text)
+                // Recherche immédiate si l'utilisateur appuie sur Entrée
+                searchDebounceTimer.stop()
+                console.log("[HomeView] Recherche immédiate:", text)
+                // TODO: Implémenter la recherche réelle ici
+                // Exemple: twitchService.searchStreams(text)
               }
               Keys.onEscapePressed: {
+                searchDebounceTimer.stop()
                 focus = false
               }
             }

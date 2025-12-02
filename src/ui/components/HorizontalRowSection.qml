@@ -42,38 +42,32 @@ Item {
       }
     }
 
-    // Zone scrollable horizontale
-    Flickable {
+    // Zone scrollable horizontale avec virtualisation pour optimiser les performances
+    ListView {
       id: flickableSection
       Layout.fillWidth: true
       Layout.preferredHeight: root.rowHeight
-      contentWidth: Math.max(parent.width, cardsRow.implicitWidth + AppleTheme.spacingLarge)
+      orientation: ListView.Horizontal
+      spacing: root.cardSpacing
       clip: true
-      flickableDirection: Flickable.HorizontalFlick
       interactive: true
-
-      Row {
-        id: cardsRow
-        anchors.left: parent.left
-        anchors.leftMargin: 0
-        anchors.verticalCenter: parent.verticalCenter
-        spacing: root.cardSpacing
-        height: parent.height
-
-        property real implicitWidth: root.cardsModel.length * (root.cardWidth + root.cardSpacing) - root.cardSpacing
-
-        Repeater {
-          model: root.cardsModel
+      
+      // Optimisation: cacheBuffer pour précharger les éléments hors écran
+      // Cache 2 écrans supplémentaires de chaque côté pour une navigation fluide
+      cacheBuffer: Math.max(parent.width * 2, root.cardWidth * 4)
+      
+      // Modèle avec lazy loading: ne charge que les éléments visibles
+      model: root.cardsModel
+      
           delegate: StreamCard {
             width: root.cardWidth
             height: root.rowHeight
             streamerName: modelData.name || ""
             streamTitle: modelData.detail || ""
             viewerCount: modelData.viewers || ""
+            previewImage: modelData.previewImage || ""
             isPlaceholder: modelData.isPlaceholder || false
           }
-        }
-      }
     }
   }
 }

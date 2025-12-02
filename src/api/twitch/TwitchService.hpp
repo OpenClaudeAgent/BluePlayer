@@ -9,6 +9,12 @@ namespace blueplayer::api::twitch {
 class TwitchAuthManager;
 class TwitchApiClient;
 
+/**
+ * @brief Service principal pour l'intégration Twitch
+ * 
+ * Gère l'authentification et la récupération des streams Twitch.
+ * Expose une API simple pour QML avec les propriétés et méthodes nécessaires.
+ */
 class TwitchService : public QObject {
   Q_OBJECT
 
@@ -18,16 +24,55 @@ class TwitchService : public QObject {
   Q_PROPERTY(QString userId READ userId NOTIFY userIdChanged)
 
 public:
+  /**
+   * @brief Constructeur
+   * @param parent Le parent QObject
+   */
   explicit TwitchService(QObject* parent = nullptr);
 
+  /**
+   * @brief Vérifie si l'utilisateur est authentifié
+   * @return true si authentifié
+   */
   [[nodiscard]] bool isAuthenticated() const;
+
+  /**
+   * @brief Obtient la liste des streams suivis
+   * @return La liste des streams (QVariantList pour QML)
+   */
   [[nodiscard]] QVariantList streams() const;
+
+  /**
+   * @brief Obtient l'URL du stream sélectionné
+   * @return L'URL du stream
+   */
   [[nodiscard]] QString selectedStreamUrl() const;
+
+  /**
+   * @brief Obtient l'ID utilisateur Twitch
+   * @return L'ID utilisateur
+   */
   [[nodiscard]] QString userId() const;
 
+  /**
+   * @brief Lance le processus d'authentification OAuth
+   */
   Q_INVOKABLE void login();
+
+  /**
+   * @brief Déconnecte l'utilisateur et efface les tokens
+   */
   Q_INVOKABLE void logout();
+
+  /**
+   * @brief Rafraîchit la liste des streams suivis
+   */
   Q_INVOKABLE void refreshStreams();
+
+  /**
+   * @brief Sélectionne et prépare un stream pour la lecture
+   * @param index L'index du stream dans la liste
+   */
   Q_INVOKABLE void playStream(int index);
 
 signals:

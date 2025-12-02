@@ -22,6 +22,7 @@ endif()
 
 option(BLUEPLAYER_ENABLE_TESTS "Build unit and integration tests" ON)
 option(BLUEPLAYER_ENABLE_PROFILING "Enable profiling instrumentation" OFF)
+option(BLUEPLAYER_ENABLE_STATIC_ANALYSIS "Enable static analysis (clang-tidy, cppcheck)" OFF)
 
 # Inclure CompilerWarnings.cmake directement
 include(cmake/CompilerWarnings.cmake OPTIONAL)
@@ -29,7 +30,7 @@ include(cmake/CompilerWarnings.cmake OPTIONAL)
 # Suppression de l'inclusion du chemin du module cmake pour éviter le FindFFmpeg.cmake personnalisé
 # list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-find_package(Qt6 6.5 COMPONENTS Core Quick Gui Multimedia Widgets REQUIRED)
+find_package(Qt6 6.5 COMPONENTS Core Quick Gui Multimedia QuickControls2 Widgets REQUIRED)
 
 # Désactiver pkg_search_module et FindFFmpeg.cmake pour FFmpeg
 # et lier les bibliothèques manuellement.
@@ -43,9 +44,26 @@ if(BLUEPLAYER_ENABLE_TESTS)
   add_subdirectory(tests)
 endif()
 
+# Analyse statique avec clang-tidy
+if(BLUEPLAYER_ENABLE_STATIC_ANALYSIS)
+  find_program(CLANG_TIDY_EXE NAMES clang-tidy clang-tidy-15 clang-tidy-16 clang-tidy-17)
+  if(CLANG_TIDY_EXE)
+    message(STATUS "Found clang-tidy: ${CLANG_TIDY_EXE}")
+    set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXE}" "-checks=bugprone-*,cert-*,cppcoreguidelines-*,performance-*,readability-*,modernize-*")
+  else()
+    message(WARNING "clang-tidy not found. Static analysis disabled.")
+  endif()
+  
+  # cppcheck optionnel
+  find_program(CPPCHECK_EXE NAMES cppcheck)
+  if(CPPCHECK_EXE)
+    message(STATUS "Found cppcheck: ${CPPCHECK_EXE}")
+    # cppcheck peut être ajouté comme target personnalisé si nécessaire
+  endif()
+endif()
+
 # Installation (optionnel, pour déployer l'application)
 install(TARGETS BluePlayer
         RUNTIME DESTINATION bin
         BUNDLE DESTINATION . # Pour les bundles macOS, installe dans le répertoire courant de l'installation
 )
-
