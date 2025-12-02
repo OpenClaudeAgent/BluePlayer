@@ -40,11 +40,16 @@ QByteArray SecureStorage::deriveEncryptionKey() const {
 #ifdef Q_OS_MAC
   // Sur macOS, utiliser le UUID de la plateforme via IOKit
   mach_port_t masterPort = 0;
+  // IOMasterPort est deprecated depuis macOS 12.0, mais toujours fonctionnel
+  // Utiliser pragma pour supprimer le warning sur les versions récentes
+  #pragma clang diagnostic push
+  #pragma clang diagnostic ignored "-Wdeprecated-declarations"
   if (IOMasterPort(MACH_PORT_NULL, &masterPort) == KERN_SUCCESS) {
+  #pragma clang diagnostic pop
     io_registry_entry_t ioRegistryRoot = IORegistryEntryFromPath(masterPort, "IOService:/");
     if (ioRegistryRoot != 0) {
-      CFStringRef uuidCf = (CFStringRef)IORegistryEntryCreateCFProperty(
-          ioRegistryRoot, CFSTR(kIOPlatformUUIDKey), kCFAllocatorDefault, 0);
+      CFStringRef uuidCf = static_cast<CFStringRef>(IORegistryEntryCreateCFProperty(
+          ioRegistryRoot, CFSTR(kIOPlatformUUIDKey), kCFAllocatorDefault, 0));
       if (uuidCf) {
         char uuid[128];
         if (CFStringGetCString(uuidCf, uuid, 128, kCFStringEncodingUTF8)) {

@@ -20,6 +20,13 @@ if(CMAKE_COMPILER_ID MATCHES "Clang|GNU")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
 endif()
 
+# Déclarer les options avant de les utiliser
+option(BLUEPLAYER_ENABLE_TESTS "Build unit and integration tests" ON)
+option(BLUEPLAYER_ENABLE_PROFILING "Enable profiling instrumentation" OFF)
+option(BLUEPLAYER_ENABLE_STATIC_ANALYSIS "Enable static analysis (clang-tidy, cppcheck)" OFF)
+option(BLUEPLAYER_ENABLE_COVERAGE "Enable code coverage with llvm-cov" OFF)
+option(BLUEPLAYER_ENABLE_MUTATION_TESTING "Enable mutation testing with Mull" OFF)
+
 # Configuration de la couverture de code avec llvm-cov
 if(BLUEPLAYER_ENABLE_COVERAGE)
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -33,12 +40,6 @@ if(BLUEPLAYER_ENABLE_COVERAGE)
         set(BLUEPLAYER_ENABLE_COVERAGE OFF)
     endif()
 endif()
-
-option(BLUEPLAYER_ENABLE_TESTS "Build unit and integration tests" ON)
-option(BLUEPLAYER_ENABLE_PROFILING "Enable profiling instrumentation" OFF)
-option(BLUEPLAYER_ENABLE_STATIC_ANALYSIS "Enable static analysis (clang-tidy, cppcheck)" OFF)
-option(BLUEPLAYER_ENABLE_COVERAGE "Enable code coverage with llvm-cov" OFF)
-option(BLUEPLAYER_ENABLE_MUTATION_TESTING "Enable mutation testing with Mull" OFF)
 
 # Inclure CompilerWarnings.cmake directement
 include(cmake/CompilerWarnings.cmake OPTIONAL)

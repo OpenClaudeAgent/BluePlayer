@@ -217,6 +217,8 @@ bool TwitchAuthManager::isAuthenticated() const {
 }
 
 QString TwitchAuthManager::accessToken() const {
+  // Vérifier et rafraîchir le token si nécessaire avant de le retourner
+  const_cast<TwitchAuthManager*>(this)->ensureValidToken();
   return m_accessToken;
 }
 
@@ -267,8 +269,18 @@ void TwitchAuthManager::refresh() {
   if (m_refreshToken.isEmpty()) {
     const auto error = ErrorHandler::twitchAuthError(QStringLiteral("refresh"), QStringLiteral("Jeton de rafraîchissement manquant"));
     emit errorOccurred(error.toString());
+    Logger::warning(LogCategory::Twitch, QStringLiteral("Cannot refresh token: refresh token is empty"));
+    m_isRefreshing = false;
     return;
   }
+
+  if (m_isRefreshing) {
+    Logger::debug(LogCategory::Twitch, QStringLiteral("Token refresh already in progress, skipping"));
+    return;
+  }
+
+  m_isRefreshing = true;
+  Logger::debug(LogCategory::Twitch, QStringLiteral("Refreshing access token..."));
 
   QUrl tokenUrl(QString::fromUtf8(blueplayer::core::constants::twitch::kTokenEndpoint));
   QUrlQuery body;
@@ -314,6 +326,7 @@ void TwitchAuthManager::handleTokenReply() {
 
   const blueplayer::core::Error networkError = blueplayer::core::network::HttpClient::checkNetworkError(reply, QStringLiteral("requête OAuth"));
   if (networkError.isValid()) {
+    m_isRefreshing = false;
     emit errorOccurred(networkError.toString());
     reply->deleteLater();
     return;
@@ -322,6 +335,7 @@ void TwitchAuthManager::handleTokenReply() {
   const QByteArray data = reply->readAll();
   const QJsonDocument document = QJsonDocument::fromJson(data);
   if (!document.isObject()) {
+    m_isRefreshing = false;
     const auto error = ErrorHandler::twitchAuthError(QStringLiteral("handleTokenReply"), QStringLiteral("Réponse OAuth invalide"));
     emit errorOccurred(error.toString());
     reply->deleteLater();
@@ -330,7 +344,23 @@ void TwitchAuthManager::handleTokenReply() {
 
   const QJsonObject object = document.object();
   m_accessToken = object.value(QStringLiteral("access_token")).toString();
-  m_refreshToken = object.value(QStringLiteral("refresh_token")).toString();
+  
+  // Récupérer le refresh_token s'il est présent (peut être absent lors d'un refresh)
+  const QString newRefreshToken = object.value(QStringLiteral("refresh_token")).toString();
+  if (!newRefreshToken.isEmpty()) {
+    m_refreshToken = newRefreshToken;
+  }
+  
+  // Récupérer expires_in et calculer la date d'expiration
+  // expires_in est en secondes, par défaut 4 heures (14400 secondes) pour Twitch
+  const int expiresIn = object.value(QStringLiteral("expires_in")).toInt(14400);
+  m_tokenExpirationTime = QDateTime::currentDateTimeUtc().addSecs(expiresIn);
+  
+  Logger::debug(LogCategory::Twitch, QStringLiteral("Token expires at: %1 (in %2 seconds)")
+               .arg(m_tokenExpirationTime.toString(Qt::ISODate))
+               .arg(expiresIn));
+  
+  m_isRefreshing = false;
   persistCredentials();
   emitTokenChanged();
   emitAuthenticated();
@@ -401,6 +431,11 @@ void TwitchAuthManager::persistCredentials() {
   
   secureStorage.store(QStringLiteral("access_token"), m_accessToken);
   secureStorage.store(QStringLiteral("refresh_token"), m_refreshToken);
+  
+  // Stocker la date d'expiration (en format ISO string)
+  if (m_tokenExpirationTime.isValid()) {
+    secureStorage.store(QStringLiteral("token_expiration"), m_tokenExpirationTime.toString(Qt::ISODate));
+  }
 }
 
 void TwitchAuthManager::loadCredentials() {
@@ -411,6 +446,16 @@ void TwitchAuthManager::loadCredentials() {
   
   m_accessToken = secureStorage.retrieve(QStringLiteral("access_token"));
   m_refreshToken = secureStorage.retrieve(QStringLiteral("refresh_token"));
+  
+  // Charger la date d'expiration du token
+  const QString expirationStr = secureStorage.retrieve(QStringLiteral("token_expiration"));
+  if (!expirationStr.isEmpty()) {
+    m_tokenExpirationTime = QDateTime::fromString(expirationStr, Qt::ISODate);
+    if (!m_tokenExpirationTime.isValid()) {
+      Logger::warning(LogCategory::Twitch, QStringLiteral("Invalid token expiration date: %1").arg(expirationStr));
+      m_tokenExpirationTime = QDateTime();  // Invalider
+    }
+  }
   
   // Migration depuis l'ancien QSettings si SecureStorage est vide
   if (m_accessToken.isEmpty()) {
@@ -456,9 +501,11 @@ void TwitchAuthManager::loadCredentials() {
     Logger::debug(LogCategory::Twitch, QStringLiteral("Emitting accessTokenChanged()"));
     emit accessTokenChanged(m_accessToken);
     
-    // Si on a un refresh token mais pas de token valide, essayer de rafraîchir
-    // Note: Pour une vérification complète, il faudrait aussi stocker l'expiration
-    // Pour l'instant, on assume que le token est valide s'il existe
+    // Vérifier si le token est expiré ou va expirer bientôt et le rafraîchir si nécessaire
+    if (isTokenExpiredOrExpiringSoon() && !m_refreshToken.isEmpty()) {
+      Logger::debug(LogCategory::Twitch, QStringLiteral("Token expired or expiring soon, refreshing..."));
+      refresh();
+    }
   } else {
     Logger::debug(LogCategory::Twitch, QStringLiteral("No credentials found, user not authenticated"));
   }
@@ -475,6 +522,46 @@ void TwitchAuthManager::emitAuthenticated() {
 void TwitchAuthManager::emitTokenChanged() {
   emit accessTokenChanged(m_accessToken);
   emitAuthenticated();
+}
+
+bool TwitchAuthManager::isTokenExpiredOrExpiringSoon() const {
+  if (!m_tokenExpirationTime.isValid()) {
+    // Si pas de date d'expiration stockée, considérer comme expiré pour forcer un refresh
+    // (utile pour les tokens existants avant cette implémentation)
+    return true;
+  }
+  
+  const QDateTime now = QDateTime::currentDateTimeUtc();
+  const qint64 secondsUntilExpiration = now.secsTo(m_tokenExpirationTime);
+  
+  // Rafraîchir si le token est expiré ou va expirer dans les 5 prochaines minutes
+  constexpr qint64 refreshThresholdSeconds = 300;  // 5 minutes
+  
+  return secondsUntilExpiration <= refreshThresholdSeconds;
+}
+
+void TwitchAuthManager::ensureValidToken() {
+  // Ne rien faire si on n'a pas de token
+  if (m_accessToken.isEmpty()) {
+    return;
+  }
+  
+  // Ne rien faire si un rafraîchissement est déjà en cours
+  if (m_isRefreshing) {
+    return;
+  }
+  
+  // Vérifier si le token est expiré ou va expirer bientôt
+  if (isTokenExpiredOrExpiringSoon()) {
+    if (!m_refreshToken.isEmpty()) {
+      Logger::debug(LogCategory::Twitch, QStringLiteral("Token expired or expiring soon, refreshing automatically..."));
+      refresh();
+    } else {
+      Logger::warning(LogCategory::Twitch, QStringLiteral("Token expired but no refresh token available"));
+      // Le token est expiré et on ne peut pas le rafraîchir, déconnecter l'utilisateur
+      logout();
+    }
+  }
 }
 
 QString TwitchAuthManager::generateCodeVerifier() {

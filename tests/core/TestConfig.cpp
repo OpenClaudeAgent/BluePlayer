@@ -139,7 +139,8 @@ void TestConfig::testDefaultValues() {
   // Si une variable d'environnement est définie, elle prendra le dessus
   QVERIFY(config.networkCacheSize() > 0);
   QVERIFY(config.networkCacheTTL() > 0);
-  QVERIFY(config.twitchRedirectPort() > 0 && config.twitchRedirectPort() < 65536);
+  // quint16 a une valeur maximale de 65535
+  QVERIFY(config.twitchRedirectPort() > 0 && config.twitchRedirectPort() <= 65535);
 }
 
 void TestConfig::testLogLevel() {

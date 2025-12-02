@@ -3,6 +3,7 @@
 #include "core/network/HttpClient.hpp"
 #include <QtGlobal>
 #include <QObject>
+#include <QDateTime>
 #include <QSslConfiguration>
 #include <QString>
 
@@ -80,6 +81,8 @@ private:
   void loadCredentials();
   void emitAuthenticated();
   void emitTokenChanged();
+  void ensureValidToken();  // Vérifie et rafraîchit le token si nécessaire
+  bool isTokenExpiredOrExpiringSoon() const;  // Vérifie si le token est expiré ou va expirer bientôt
   QString generateCodeVerifier();
   QString generateState() const;
   QString codeChallenge(const QString& verifier) const;
@@ -95,12 +98,14 @@ private:
   QString m_state;
   QString m_accessToken;
   QString m_refreshToken;
+  QDateTime m_tokenExpirationTime;  // Date d'expiration du token d'accès
   QString m_tlsCertPath;
   QString m_tlsKeyPath;
   QSslConfiguration m_sslConfig;
   blueplayer::core::network::HttpClient* m_httpClient = nullptr;
   QTcpServer* m_server = nullptr;
   bool m_isAuthenticated = false;
+  bool m_isRefreshing = false;  // Pour éviter les rafraîchissements multiples simultanés
 };
 
 }  // namespace blueplayer::api::twitch
