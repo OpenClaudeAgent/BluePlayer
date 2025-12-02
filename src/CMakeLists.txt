@@ -9,6 +9,10 @@ set(BLUEPLAYER_CORE_SOURCES
   core/Logger.hpp
   core/NetworkCache.cpp
   core/NetworkCache.hpp
+  core/SecureStorage.cpp
+  core/SecureStorage.hpp
+  core/InputValidator.cpp
+  core/InputValidator.hpp
   api/twitch/TwitchApiClient.cpp
   api/twitch/TwitchApiClient.hpp
   api/twitch/TwitchAuthManager.cpp
