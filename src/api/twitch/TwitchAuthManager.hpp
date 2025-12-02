@@ -1,12 +1,12 @@
 #pragma once
 
+#include "core/network/HttpClient.hpp"
 #include <QtGlobal>
 #include <QObject>
 #include <QSslConfiguration>
 #include <QString>
 
 QT_BEGIN_NAMESPACE
-class QNetworkAccessManager;
 class QNetworkReply;
 class QTcpServer;
 class QUrl;
@@ -84,7 +84,6 @@ private:
   QString generateState() const;
   QString codeChallenge(const QString& verifier) const;
 
-  void handleNetworkError(QNetworkReply* reply, const QString& fallback);
   QSslConfiguration buildSslConfiguration() const;
 
   QString m_clientId;
@@ -99,7 +98,7 @@ private:
   QString m_tlsCertPath;
   QString m_tlsKeyPath;
   QSslConfiguration m_sslConfig;
-  QNetworkAccessManager* m_networkManager = nullptr;
+  blueplayer::core::network::HttpClient* m_httpClient = nullptr;
   QTcpServer* m_server = nullptr;
   bool m_isAuthenticated = false;
 };

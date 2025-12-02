@@ -3,12 +3,14 @@
 #include "core/Constants.hpp"
 #include "core/Logger.hpp"
 #include "core/SecureStorage.hpp"
+#include "core/ErrorHandler.hpp"
 
 #include <QSettings>  // Pour migration depuis ancien stockage
 
 using blueplayer::core::Logger;
 using blueplayer::core::LogCategory;
 using blueplayer::core::SecureStorage;
+using blueplayer::core::ErrorHandler;
 
 #include <QCryptographicHash>
 #include <QDesktopServices>
@@ -168,7 +170,11 @@ TwitchAuthManager::TwitchAuthManager(QObject* parent)
     : QObject(parent),
       m_scope(QString::fromUtf8(blueplayer::core::constants::twitch::kDefaultScope)),
       m_listenPort(blueplayer::core::constants::twitch::kDefaultRedirectPort),
-      m_networkManager(new QNetworkAccessManager(this)) {
+      m_httpClient(new blueplayer::core::network::HttpClient(this)) {
+  // Connecter les erreurs réseau de HttpClient
+  connect(m_httpClient, &blueplayer::core::network::HttpClient::networkError, this, [this](const blueplayer::core::Error& error) {
+    emit errorOccurred(error.toString());
+  });
   m_clientId = QString::fromUtf8(qgetenv("TWITCH_CLIENT_ID"));
   m_clientSecret = QString::fromUtf8(qgetenv("TWITCH_CLIENT_SECRET"));
   const QByteArray certPath = qgetenv("TWITCH_TLS_CERT_PATH");
@@ -216,7 +222,8 @@ QString TwitchAuthManager::accessToken() const {
 
 void TwitchAuthManager::login() {
   if (m_clientId.isEmpty()) {
-    emit errorOccurred(QStringLiteral("TWITCH_CLIENT_ID n'est pas défini."));
+    const auto error = ErrorHandler::twitchAuthError(QStringLiteral("login"), QStringLiteral("TWITCH_CLIENT_ID n'est pas défini"));
+    emit errorOccurred(error.toString());
     return;
   }
 
@@ -258,14 +265,12 @@ void TwitchAuthManager::logout() {
 
 void TwitchAuthManager::refresh() {
   if (m_refreshToken.isEmpty()) {
-    emit errorOccurred(QStringLiteral("Jeton de rafraîchissement manquant."));
+    const auto error = ErrorHandler::twitchAuthError(QStringLiteral("refresh"), QStringLiteral("Jeton de rafraîchissement manquant"));
+    emit errorOccurred(error.toString());
     return;
   }
 
   QUrl tokenUrl(QString::fromUtf8(blueplayer::core::constants::twitch::kTokenEndpoint));
-  QNetworkRequest request(tokenUrl);
-  request.setHeader(QNetworkRequest::ContentTypeHeader,
-                    QStringLiteral("application/x-www-form-urlencoded"));
   QUrlQuery body;
   body.addQueryItem(QStringLiteral("client_id"), m_clientId);
   body.addQueryItem(QStringLiteral("grant_type"), QStringLiteral("refresh_token"));
@@ -274,8 +279,9 @@ void TwitchAuthManager::refresh() {
     body.addQueryItem(QStringLiteral("client_secret"), m_clientSecret);
   }
 
-  QNetworkReply* reply =
-      m_networkManager->post(request, body.query(QUrl::FullyEncoded).toUtf8());
+  QHash<QString, QString> headers;
+  headers.insert(QStringLiteral("Content-Type"), QStringLiteral("application/x-www-form-urlencoded"));
+  QNetworkReply* reply = m_httpClient->post(tokenUrl, body.query(QUrl::FullyEncoded).toUtf8(), headers);
   connect(reply, &QNetworkReply::finished, this, &TwitchAuthManager::handleTokenReply);
 }
 
@@ -286,12 +292,14 @@ void TwitchAuthManager::handleLocalCallback(const QUrl& location) {
   const QString code = query.queryItemValue(QStringLiteral("code"));
 
   if (state != m_state) {
-    emit errorOccurred(QStringLiteral("État OAuth incohérent."));
+    const auto error = ErrorHandler::twitchAuthError(QStringLiteral("handleLocalCallback"), QStringLiteral("État OAuth incohérent"));
+    emit errorOccurred(error.toString());
     return;
   }
 
   if (code.isEmpty()) {
-    emit errorOccurred(QStringLiteral("Code d'autorisation manquant."));
+    const auto error = ErrorHandler::twitchAuthError(QStringLiteral("handleLocalCallback"), QStringLiteral("Code d'autorisation manquant"));
+    emit errorOccurred(error.toString());
     return;
   }
 
@@ -304,16 +312,18 @@ void TwitchAuthManager::handleTokenReply() {
     return;
   }
 
-  const auto data = reply->readAll();
-  if (reply->error() != QNetworkReply::NoError) {
-    handleNetworkError(reply, QString::fromUtf8(data));
+  const blueplayer::core::Error networkError = blueplayer::core::network::HttpClient::checkNetworkError(reply, QStringLiteral("requête OAuth"));
+  if (networkError.isValid()) {
+    emit errorOccurred(networkError.toString());
     reply->deleteLater();
     return;
   }
 
+  const QByteArray data = reply->readAll();
   const QJsonDocument document = QJsonDocument::fromJson(data);
   if (!document.isObject()) {
-    handleNetworkError(reply, QStringLiteral("Réponse OAuth invalide."));
+    const auto error = ErrorHandler::twitchAuthError(QStringLiteral("handleTokenReply"), QStringLiteral("Réponse OAuth invalide"));
+    emit errorOccurred(error.toString());
     reply->deleteLater();
     return;
   }
@@ -342,7 +352,8 @@ void TwitchAuthManager::startListener() {
   }
 
   if (!m_server->listen(QHostAddress::LocalHost, m_listenPort)) {
-    emit errorOccurred(QStringLiteral("Impossible d'écouter le port local pour OAuth."));
+    const auto error = ErrorHandler::networkError(QStringLiteral("startListener"), QStringLiteral("Impossible d'écouter le port local pour OAuth"));
+    emit errorOccurred(error.toString());
     stopListener();
   }
 }
@@ -363,9 +374,6 @@ void TwitchAuthManager::consumeAuthorizationCode(const QString& code, const QStr
 
 void TwitchAuthManager::requestAccessToken(const QString& code) {
   QUrl tokenUrl(QString::fromUtf8(blueplayer::core::constants::twitch::kTokenEndpoint));
-  QNetworkRequest request(tokenUrl);
-  request.setHeader(QNetworkRequest::ContentTypeHeader,
-                    QStringLiteral("application/x-www-form-urlencoded"));
   QUrlQuery body;
   body.addQueryItem(QStringLiteral("client_id"), m_clientId);
   body.addQueryItem(QStringLiteral("grant_type"), QStringLiteral("authorization_code"));
@@ -376,8 +384,9 @@ void TwitchAuthManager::requestAccessToken(const QString& code) {
     body.addQueryItem(QStringLiteral("client_secret"), m_clientSecret);
   }
 
-  QNetworkReply* reply =
-      m_networkManager->post(request, body.query(QUrl::FullyEncoded).toUtf8());
+  QHash<QString, QString> headers;
+  headers.insert(QStringLiteral("Content-Type"), QStringLiteral("application/x-www-form-urlencoded"));
+  QNetworkReply* reply = m_httpClient->post(tokenUrl, body.query(QUrl::FullyEncoded).toUtf8(), headers);
   connect(reply, &QNetworkReply::finished, this, &TwitchAuthManager::handleTokenReply);
 }
 
@@ -482,10 +491,6 @@ QString TwitchAuthManager::codeChallenge(const QString& verifier) const {
   return base64UrlEncode(hash);
 }
 
-void TwitchAuthManager::handleNetworkError(QNetworkReply* reply, const QString& fallback) {
-  emit errorOccurred(
-      reply->errorString().isEmpty() ? fallback : reply->errorString());
-}
 
 QSslConfiguration TwitchAuthManager::buildSslConfiguration() const {
   if (m_tlsCertPath.isEmpty() || m_tlsKeyPath.isEmpty()) {
