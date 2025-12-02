@@ -98,6 +98,10 @@ if(NOT FFmpeg_FOUND)
     if(FFmpeg_avcodec_LIBRARY AND FFmpeg_avformat_LIBRARY AND FFmpeg_avutil_LIBRARY AND FFmpeg_swscale_LIBRARY AND FFmpeg_swresample_LIBRARY)
       set(FFmpeg_LIBRARIES ${FFmpeg_avcodec_LIBRARY} ${FFmpeg_avformat_LIBRARY} ${FFmpeg_avutil_LIBRARY} ${FFmpeg_swscale_LIBRARY} ${FFmpeg_swresample_LIBRARY})
       set(FFmpeg_FOUND TRUE)
+    else()
+      # Réinitialiser FFmpeg_INCLUDE_DIRS si les bibliothèques ne sont pas toutes trouvées
+      # pour éviter un état incohérent où les headers sont définis mais pas les bibliothèques
+      unset(FFmpeg_INCLUDE_DIRS CACHE)
     endif()
   endif()
 endif()
