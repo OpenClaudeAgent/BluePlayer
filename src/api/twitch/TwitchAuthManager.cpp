@@ -378,18 +378,31 @@ void TwitchAuthManager::requestAccessToken(const QString& code) {
 }
 
 void TwitchAuthManager::persistCredentials() {
-  QSettings settings(QStringLiteral("BluePlayer"), QStringLiteral("Twitch"));
-  settings.setValue(QStringLiteral("access_token"), m_accessToken);
-  settings.setValue(QStringLiteral("refresh_token"), m_refreshToken);
+  // Utiliser SecureStorage pour chiffrer les tokens
+  SecureStorage secureStorage(this);
+  
+  // Ne logger que les premiers caractères du token pour la sécurité
+  QString tokenPreview = m_accessToken.isEmpty() ? QStringLiteral("EMPTY") 
+                                                  : m_accessToken.left(8) + "...";
+  Logger::debug(LogCategory::Twitch, QStringLiteral("Persisting access token: %1").arg(tokenPreview));
+  
+  secureStorage.store(QStringLiteral("access_token"), m_accessToken);
+  secureStorage.store(QStringLiteral("refresh_token"), m_refreshToken);
 }
 
 void TwitchAuthManager::loadCredentials() {
   Logger::debug(LogCategory::Twitch, QStringLiteral("loadCredentials() called"));
-  QSettings settings(QStringLiteral("BluePlayer"), QStringLiteral("Twitch"));
-  m_accessToken = settings.value(QStringLiteral("access_token")).toString();
-  m_refreshToken = settings.value(QStringLiteral("refresh_token")).toString();
   
-  Logger::debug(LogCategory::Twitch, QStringLiteral("Loaded access token, length: %1").arg(m_accessToken.length()));
+  // Utiliser SecureStorage pour déchiffrer les tokens
+  SecureStorage secureStorage(this);
+  
+  m_accessToken = secureStorage.retrieve(QStringLiteral("access_token"));
+  m_refreshToken = secureStorage.retrieve(QStringLiteral("refresh_token"));
+  
+  // Ne logger que les premiers caractères du token pour la sécurité
+  QString tokenPreview = m_accessToken.isEmpty() ? QStringLiteral("EMPTY") 
+                                                  : m_accessToken.left(8) + "...";
+  Logger::debug(LogCategory::Twitch, QStringLiteral("Loaded access token: %1 (length: %2)").arg(tokenPreview).arg(m_accessToken.length()));
   Logger::debug(LogCategory::Twitch, QStringLiteral("Loaded refresh token, length: %1").arg(m_refreshToken.length()));
   
   const bool wasAuthenticated = m_isAuthenticated;
