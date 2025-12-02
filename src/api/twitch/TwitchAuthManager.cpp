@@ -4,6 +4,8 @@
 #include "core/Logger.hpp"
 #include "core/SecureStorage.hpp"
 
+#include <QSettings>  // Pour migration depuis ancien stockage
+
 using blueplayer::core::Logger;
 using blueplayer::core::LogCategory;
 using blueplayer::core::SecureStorage;
@@ -400,6 +402,28 @@ void TwitchAuthManager::loadCredentials() {
   
   m_accessToken = secureStorage.retrieve(QStringLiteral("access_token"));
   m_refreshToken = secureStorage.retrieve(QStringLiteral("refresh_token"));
+  
+  // Migration depuis l'ancien QSettings si SecureStorage est vide
+  if (m_accessToken.isEmpty()) {
+    Logger::debug(LogCategory::Twitch, QStringLiteral("No tokens in SecureStorage, checking legacy QSettings"));
+    QSettings legacySettings(QStringLiteral("BluePlayer"), QStringLiteral("Twitch"));
+    QString legacyAccessToken = legacySettings.value(QStringLiteral("access_token")).toString();
+    QString legacyRefreshToken = legacySettings.value(QStringLiteral("refresh_token")).toString();
+    
+    if (!legacyAccessToken.isEmpty()) {
+      Logger::debug(LogCategory::Twitch, QStringLiteral("Found legacy tokens, migrating to SecureStorage"));
+      m_accessToken = legacyAccessToken;
+      m_refreshToken = legacyRefreshToken;
+      // Migrer vers SecureStorage
+      secureStorage.store(QStringLiteral("access_token"), m_accessToken);
+      secureStorage.store(QStringLiteral("refresh_token"), m_refreshToken);
+      // Supprimer les anciens tokens
+      legacySettings.remove(QStringLiteral("access_token"));
+      legacySettings.remove(QStringLiteral("refresh_token"));
+      legacySettings.sync();
+      Logger::debug(LogCategory::Twitch, QStringLiteral("Migration completed"));
+    }
+  }
   
   // Ne logger que les premiers caractères du token pour la sécurité
   QString tokenPreview = m_accessToken.isEmpty() ? QStringLiteral("EMPTY") 

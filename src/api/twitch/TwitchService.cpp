@@ -10,6 +10,7 @@ using blueplayer::core::LogCategory;
 using blueplayer::core::InputValidator;
 
 #include <QVariantMap>
+#include <QTimer>
 
 namespace blueplayer::api::twitch {
 
@@ -30,6 +31,18 @@ TwitchService::TwitchService(QObject* parent)
   connect(m_apiClient, &TwitchApiClient::errorOccurred, this, &TwitchService::errorOccurred, Qt::UniqueConnection);
   
   Logger::debug(LogCategory::Twitch, QStringLiteral("Initial authenticated state: %1").arg(m_authManager->isAuthenticated()));
+  
+  // Si l'utilisateur est déjà authentifié au démarrage (tokens chargés depuis SecureStorage),
+  // s'assurer que le token est défini dans TwitchApiClient
+  if (m_authManager->isAuthenticated()) {
+    QString token = m_authManager->accessToken();
+    if (!token.isEmpty()) {
+      Logger::debug(LogCategory::Twitch, QStringLiteral("User already authenticated, setting token in API client, length: %1").arg(token.length()));
+      m_apiClient->setAccessToken(token);
+    } else {
+      Logger::warning(LogCategory::Twitch, QStringLiteral("User marked as authenticated but token is empty"));
+    }
+  }
 }
 
 void TwitchService::onStreamsReady(const QVariantList& streams) {
@@ -68,6 +81,15 @@ void TwitchService::onAuthStateChanged(bool authenticated) {
     QString token = m_authManager->accessToken();
     Logger::debug(LogCategory::Twitch, QStringLiteral("Setting access token, length: %1").arg(token.length()));
     m_apiClient->setAccessToken(token);
+    // Si on vient de s'authentifier, charger les streams automatiquement
+    if (!m_userId.isEmpty()) {
+      Logger::debug(LogCategory::Twitch, QStringLiteral("User ID already known, refreshing streams"));
+      refreshStreams();
+    } else {
+      Logger::debug(LogCategory::Twitch, QStringLiteral("User ID not known yet, will be loaded via getUserInfo"));
+      // getUserInfo sera appelé par refreshStreams
+      refreshStreams();
+    }
   }
 }
 
@@ -130,6 +152,16 @@ void TwitchService::refreshStreams() {
     emit errorOccurred(QStringLiteral("Client API non initialisé."));
     return;
   }
+
+  // S'assurer que le token est défini dans TwitchApiClient avant de faire des appels
+  QString token = m_authManager->accessToken();
+  if (token.isEmpty()) {
+    Logger::error(LogCategory::Twitch, QStringLiteral("Access token is empty"));
+    emit errorOccurred(QStringLiteral("Token d'accès manquant."));
+    return;
+  }
+  Logger::debug(LogCategory::Twitch, QStringLiteral("Ensuring access token is set in API client, length: %1").arg(token.length()));
+  m_apiClient->setAccessToken(token);
 
   // Si on a déjà l'ID utilisateur, on peut directement récupérer les streams suivis
   if (!m_userId.isEmpty()) {

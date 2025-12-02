@@ -3,6 +3,8 @@ import QtQuick.Controls 6.5
 import QtQuick.Layouts 1.15
 import QtQuick.Window 2.15
 
+import BluePlayer.UI 1.0
+
 import "themes/AppleTheme.js" as AppleTheme
 import "components"
 
@@ -15,105 +17,13 @@ Item {
     return typeof twitchService !== "undefined" ? twitchService : null
   }
 
-  // Génération de 20 cartes placeholder
-  property var placeholderCards: (function() {
-    var cards = [];
-    for (var i = 0; i < 20; i++) {
-      cards.push({ isPlaceholder: true });
-    }
-    console.log("[HomeView] Generated", cards.length, "placeholder cards")
-    return cards;
-  })()
-
-  // Transformation des données Twitch en format compatible avec StreamCard
-  function transformTwitchStreams(twitchStreams) {
-    console.log("[HomeView] transformTwitchStreams() called with", twitchStreams ? twitchStreams.length : 0, "streams")
-    if (!twitchStreams || twitchStreams.length === 0) {
-      console.log("[HomeView] No streams to transform")
-      return [];
-    }
-    
-    var transformed = [];
-    for (var i = 0; i < twitchStreams.length; i++) {
-      var stream = twitchStreams[i];
-      var viewerCount = stream.viewer_count || 0;
-      var viewerText = viewerCount.toLocaleString(Qt.locale(), 'f', 0) + " viewers";
-      
-      transformed.push({
-        name: stream.user_name || "",
-        detail: stream.title || "",
-        viewers: viewerText,
-        previewImage: stream.thumbnail_url || "",
-        streamUrl: stream.stream_url || ""
-      });
-      console.log("[HomeView] Transformed stream:", stream.user_name || "UNKNOWN")
-    }
-    console.log("[HomeView] Transformed", transformed.length, "streams")
-    return transformed;
+  // HomeViewModel pour gérer la logique métier
+  HomeViewModel {
+    id: viewModel
   }
 
-  // Streams suivis transformés depuis l'API Twitch
-  property var followedStreams: []
-  
-  function updateFollowedStreams() {
-    var service = getTwitchService()
-    var streams = []
-    if (service && service.streams) {
-      console.log("[HomeView] updateFollowedStreams: twitchService.streams length =", service.streams.length)
-      streams = transformTwitchStreams(service.streams)
-    } else {
-      console.log("[HomeView] updateFollowedStreams: No twitchService or no streams")
-    }
-    console.log("[HomeView] updateFollowedStreams =", streams.length, "streams")
-    followedStreams = streams
-  }
-
-  // Mise à jour des sections avec les données réelles ou les placeholders
-  property var sectionsData: {
-    var cards = followedStreams.length > 0 ? followedStreams : placeholderCards
-    console.log("[HomeView] sectionsData binding: using", cards.length, "cards (followedStreams:", followedStreams.length, ", placeholders:", placeholderCards.length, ")")
-    return [
-      {
-        title: qsTr("Vos streamers suivis"),
-        subtitle: qsTr("Reprenez là où vous vous êtes arrêtés"),
-        cards: cards
-      },
-    {
-      title: qsTr("Recommandé pour vous"),
-      subtitle: qsTr("Basé sur vos préférences"),
-      cards: [
-        { name: "AuroraPlay", detail: qsTr("Aventure narrative"), viewers: qsTr("310 viewers") },
-        { name: "ZenGarden", detail: qsTr("ASMR & mindfulness"), viewers: qsTr("480 viewers") },
-        { name: "NeoArena", detail: qsTr("Jeux compétitifs"), viewers: qsTr("1 050 viewers") },
-        { name: "FluxLuxe", detail: qsTr("Talk-show premium"), viewers: qsTr("690 viewers") },
-        { name: "PixelCraft", detail: qsTr("Création de jeux"), viewers: qsTr("520 viewers") },
-        { name: "RetroWave", detail: qsTr("Musique rétro"), viewers: qsTr("380 viewers") }
-      ]
-    },
-    {
-      title: qsTr("En direct maintenant"),
-      subtitle: qsTr("Les streams les plus populaires"),
-      cards: [
-        { name: "EpicGamer", detail: qsTr("Tournoi esport"), viewers: qsTr("5 240 viewers") },
-        { name: "CreativeHub", detail: qsTr("Design & illustration"), viewers: qsTr("3 890 viewers") },
-        { name: "MusicLive", detail: qsTr("Concert en direct"), viewers: qsTr("2 670 viewers") },
-        { name: "TechTalk", detail: qsTr("Débat technologique"), viewers: qsTr("1 950 viewers") },
-        { name: "FoodieStream", detail: qsTr("Cuisine en direct"), viewers: qsTr("1 420 viewers") }
-      ]
-    },
-    {
-      title: qsTr("Populaire cette semaine"),
-      subtitle: qsTr("Les tendances du moment"),
-      cards: [
-        { name: "GamingPro", detail: qsTr("Speedrun record"), viewers: qsTr("8 500 viewers") },
-        { name: "ArtStudio", detail: qsTr("Création en temps réel"), viewers: qsTr("6 200 viewers") },
-        { name: "MusicFest", detail: qsTr("Festival virtuel"), viewers: qsTr("4 800 viewers") },
-        { name: "TechReview", detail: qsTr("Tests produits"), viewers: qsTr("3 100 viewers") },
-        { name: "CookingShow", detail: qsTr("Recettes gourmandes"), viewers: qsTr("2 600 viewers") }
-      ]
-    }
-    ]
-  }
+  // Utiliser sectionsData du ViewModel au lieu de la propriété locale
+  property var sectionsData: viewModel.sectionsData
 
   // Gestion du focus : perdre le focus quand on clique ailleurs
   Keys.onPressed: function(event) {
@@ -138,7 +48,7 @@ Item {
     }
   }
 
-  // Connexion au service Twitch pour mettre à jour les streams
+  // Connexion au service Twitch pour mettre à jour les streams via le ViewModel
   Connections {
     id: twitchConnections
     target: (function() {
@@ -147,7 +57,10 @@ Item {
     enabled: typeof twitchService !== "undefined" && twitchService !== null
     function onStreamsChanged() {
       console.log("[HomeView] onStreamsChanged() signal received")
-      homeRoot.updateFollowedStreams()
+      var service = getTwitchService()
+      if (service && service.streams) {
+        viewModel.updateFollowedStreams(service.streams)
+      }
     }
     function onErrorOccurred(message) {
       console.log("[HomeView] ERROR Twitch:", message)
@@ -164,10 +77,12 @@ Item {
     if (service) {
       console.log("[HomeView] twitchService.authenticated:", service.authenticated)
       console.log("[HomeView] twitchService.streams:", service.streams ? service.streams.length + " streams" : "null")
-      homeRoot.updateFollowedStreams()
+      if (service.streams) {
+        viewModel.updateFollowedStreams(service.streams)
+      }
     }
-    console.log("[HomeView] followedStreams length:", followedStreams.length)
-    console.log("[HomeView] placeholderCards length:", placeholderCards.length)
+    console.log("[HomeView] ViewModel followedStreams length:", viewModel.followedStreams.length)
+    console.log("[HomeView] ViewModel placeholderCards length:", viewModel.placeholderCards.length)
   }
 
   ColumnLayout {
