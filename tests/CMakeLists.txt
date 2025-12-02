@@ -28,12 +28,12 @@ set(TEST_INCLUDE_DIRS
 )
 
 # Bibliothèques communes pour les tests
+# Note: FFmpeg_LIBRARIES n'est pas inclus ici car elles sont déjà liées via blueplayer_media
 set(TEST_LIBS
   Qt6::Core
   Qt6::Test
   Qt6::Network  # Pour QNetworkAccessManager, QSslConfiguration
   Qt6::Multimedia  # Pour QVideoSink
-  ${FFmpeg_LIBRARIES}
 )
 
 # Helpers et fixtures pour les tests
