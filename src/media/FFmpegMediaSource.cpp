@@ -238,13 +238,19 @@ void FFmpegMediaSource::decodeLoop(QString path) {
                 convertedFrame->data,
                 convertedFrame->linesize);
 
+      // Créer QImage sans copie en utilisant les données directement
+      // Note: QImage prend possession des données seulement si on utilise QImage::fromData
+      // Ici on utilise un wrapper qui ne copie pas
       QImage frameImage(convertedFrame->data[0],
                         targetWidth,
                         targetHeight,
                         convertedFrame->linesize[0],
                         QImage::Format_RGB32);
 
-      deliverFrame(QVideoFrame(frameImage.copy()));
+      // Créer QVideoFrame avec référence partagée au lieu de copie
+      // QVideoFrame fait une copie shallow si possible
+      QVideoFrame videoFrame(frameImage);
+      deliverFrame(videoFrame);
     }
 
     av_packet_unref(packet);
@@ -258,13 +264,14 @@ void FFmpegMediaSource::deliverFrame(const QVideoFrame& frame) {
     return;
   }
 
-  QVideoFrame frameCopy(frame);
+  // QVideoFrame utilise le copy-on-write, donc pas besoin de copie explicite
+  // La frame sera copiée seulement si nécessaire lors de l'accès
   QVideoSink* sink = m_videoSink;
   QMetaObject::invokeMethod(
       sink,
-      [sink, frameCopy]() mutable {
+      [sink, frame]() mutable {
         if (sink) {
-          sink->setVideoFrame(frameCopy);
+          sink->setVideoFrame(frame);
         }
       },
       Qt::QueuedConnection);
