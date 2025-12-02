@@ -5,6 +5,8 @@ set(BLUEPLAYER_CORE_SOURCES
   core/Config.hpp
   core/Error.cpp
   core/Error.hpp
+  core/ErrorHandler.cpp
+  core/ErrorHandler.hpp
   core/Logger.cpp
   core/Logger.hpp
   core/NetworkCache.cpp
@@ -13,6 +15,10 @@ set(BLUEPLAYER_CORE_SOURCES
   core/SecureStorage.hpp
   core/InputValidator.cpp
   core/InputValidator.hpp
+  core/network/HttpClient.cpp
+  core/network/HttpClient.hpp
+  core/network/ApiClientBase.cpp
+  core/network/ApiClientBase.hpp
   api/twitch/TwitchApiClient.cpp
   api/twitch/TwitchApiClient.hpp
   api/twitch/TwitchAuthManager.cpp
@@ -32,9 +38,9 @@ set(BLUEPLAYER_MEDIA_SOURCES
   media/FFmpegMediaSource.hpp
 )
 
-# blueplayer_core doit être créé avant blueplayer_media car blueplayer_media en dépend
-# Mais blueplayer_core utilise aussi blueplayer_media (Application utilise FFmpegMediaService)
-# On résout cela en liant blueplayer_media après sa création
+# blueplayer_core et blueplayer_media ont une dépendance circulaire résolue via forward declarations
+# blueplayer_media dépend de blueplayer_core (Logger, InputValidator)
+# blueplayer_core utilise blueplayer_media (Application utilise FFmpegMediaService via forward declarations)
 add_library(blueplayer_core STATIC ${BLUEPLAYER_CORE_SOURCES})
 target_include_directories(blueplayer_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(blueplayer_core
@@ -42,7 +48,7 @@ target_link_libraries(blueplayer_core
     Qt6::Core
     Qt6::Quick
     Qt6::Network
-    Qt6::Multimedia  # Nécessaire car Application.hpp inclut FFmpegMediaService.hpp
+    # Qt6::Multimedia retiré car Application utilise maintenant des forward declarations
 )
 setup_compiler_warnings(blueplayer_core)
 
@@ -67,7 +73,8 @@ target_link_directories(blueplayer_media PRIVATE /opt/homebrew/lib)
 setup_compiler_warnings(blueplayer_media)
 
 # blueplayer_core utilise blueplayer_media (Application utilise FFmpegMediaService)
-# On doit lier blueplayer_media après sa création pour éviter la dépendance circulaire
+# La dépendance circulaire est résolue via forward declarations dans Application.hpp
+# On lie blueplayer_media après sa création pour permettre la résolution des symboles
 target_link_libraries(blueplayer_core PRIVATE blueplayer_media)
 
 qt_add_executable(BluePlayer
