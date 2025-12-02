@@ -2,9 +2,11 @@
 
 #include "core/Constants.hpp"
 #include "core/Logger.hpp"
+#include "core/SecureStorage.hpp"
 
 using blueplayer::core::Logger;
 using blueplayer::core::LogCategory;
+using blueplayer::core::SecureStorage;
 
 #include <QCryptographicHash>
 #include <QDesktopServices>

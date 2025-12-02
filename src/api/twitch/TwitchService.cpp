@@ -3,9 +3,11 @@
 #include "api/twitch/TwitchApiClient.hpp"
 #include "api/twitch/TwitchAuthManager.hpp"
 #include "core/Logger.hpp"
+#include "core/InputValidator.hpp"
 
 using blueplayer::core::Logger;
 using blueplayer::core::LogCategory;
+using blueplayer::core::InputValidator;
 
 #include <QVariantMap>
 

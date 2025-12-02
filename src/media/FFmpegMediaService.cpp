@@ -9,6 +9,10 @@
 #include <QDebug>
 #include <QString>
 
+using blueplayer::core::Logger;
+using blueplayer::core::LogCategory;
+using blueplayer::core::InputValidator;
+
 namespace blueplayer::media {
 
 FFmpegMediaService::FFmpegMediaService(QObject* parent)

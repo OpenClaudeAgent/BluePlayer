@@ -35,7 +35,7 @@ private:
 };
 
 void TestMediaPipeline::initTestCase() {
-  m_tempDir = new QTemporaryDir(this);
+  m_tempDir = new QTemporaryDir();  // QTemporaryDir n'accepte pas de parent dans Qt6
   QVERIFY(m_tempDir->isValid());
 }
 
@@ -64,10 +64,11 @@ void TestMediaPipeline::testFileOpenPipeline() {
     file.close();
   }
   
-  // Tester l'ouverture
-  bool opened = m_service->open(testFile);
-  // Note: FFmpeg peut rejeter un fichier invalide, donc opened peut être false
-  QVERIFY(opened == false || opened == true);
+  // Tester l'ouverture avec playFile (qui appelle play() en interne)
+  QSignalSpy errorSpy(m_service, &FFmpegMediaService::errorOccurred);
+  m_service->playFile(testFile);
+  // Note: FFmpeg peut rejeter un fichier invalide, donc une erreur peut être émise
+  QVERIFY(m_service != nullptr);
 }
 
 void TestMediaPipeline::testPlaybackPipeline() {
@@ -76,9 +77,10 @@ void TestMediaPipeline::testPlaybackPipeline() {
   
   QSignalSpy playingSpy(m_service, &FFmpegMediaService::playingChanged);
   
-  // Tester play() sans fichier ouvert
-  // Devrait être géré gracieusement
-  m_service->play();
+  // Tester play() avec une URL invalide (sans fichier ouvert)
+  // Devrait être géré gracieusement et émettre une erreur
+  QSignalSpy errorSpy(m_service, &FFmpegMediaService::errorOccurred);
+  m_service->play(QUrl::fromLocalFile(""));
   
   // Note: Pour un vrai test, il faudrait un fichier média valide
   QVERIFY(m_service != nullptr);
@@ -90,10 +92,10 @@ void TestMediaPipeline::testErrorHandlingPipeline() {
   
   QSignalSpy errorSpy(m_service, &FFmpegMediaService::errorOccurred);
   
-  // Tester avec des chemins invalides
-  m_service->open("");
-  m_service->open("/nonexistent/path.mp4");
-  m_service->play(); // Sans fichier ouvert
+  // Tester avec des chemins invalides (utiliser playFile)
+  m_service->playFile("");
+  m_service->playFile("/nonexistent/path.mp4");
+  m_service->play(QUrl::fromLocalFile("")); // Sans fichier ouvert
   
   // Vérifier que les erreurs sont gérées
   // Note: Cela dépend de l'implémentation réelle

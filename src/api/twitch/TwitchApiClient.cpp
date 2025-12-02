@@ -2,9 +2,12 @@
 
 #include "core/Constants.hpp"
 #include "core/Logger.hpp"
+#include "core/InputValidator.hpp"
 
 #include <QNetworkReply>
 #include "core/NetworkCache.hpp"
+
+using blueplayer::core::InputValidator;
 
 #include <QJsonArray>
 #include <QJsonDocument>
