@@ -107,6 +107,7 @@ qt_add_qml_module(BluePlayer
     ui/components/AppleCard.qml
     ui/components/AppleButton.qml
     ui/components/CategoriesScroller.qml
+    ui/components/CategoryCard.qml
     ui/components/LocalPlaybackCard.qml
     ui/components/HorizontalRowSection.qml
     ui/components/StreamCard.qml

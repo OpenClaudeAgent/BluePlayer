@@ -32,6 +32,7 @@ TwitchService::TwitchService(QObject* parent)
 
   connect(m_apiClient, &TwitchApiClient::streamsReady, this, &TwitchService::onStreamsReady, Qt::UniqueConnection);
   connect(m_apiClient, &TwitchApiClient::recommendedStreamsReady, this, &TwitchService::onRecommendedStreamsReady, Qt::UniqueConnection);
+  connect(m_apiClient, &TwitchApiClient::categoriesReady, this, &TwitchService::onCategoriesReady, Qt::UniqueConnection);
   connect(m_apiClient, &TwitchApiClient::userInfoReady, this, &TwitchService::onUserInfoReady, Qt::UniqueConnection);
   connect(m_apiClient, &TwitchApiClient::errorOccurred, this, &TwitchService::errorOccurred, Qt::UniqueConnection);
   
@@ -70,6 +71,13 @@ void TwitchService::onRecommendedStreamsReady(const QVariantList& streams) {
   Logger::debug(LogCategory::Twitch, QStringLiteral("Emitted recommendedStreamsChanged()"));
 }
 
+void TwitchService::onCategoriesReady(const QVariantList& categories) {
+  Logger::debug(LogCategory::Twitch, QStringLiteral("onCategoriesReady() called with %1 categories").arg(categories.size()));
+  m_categories = categories;
+  emit categoriesChanged();
+  Logger::debug(LogCategory::Twitch, QStringLiteral("Emitted categoriesChanged()"));
+}
+
 void TwitchService::onUserInfoReady(const QString& userId) {
   Logger::debug(LogCategory::Twitch, QStringLiteral("onUserInfoReady() called with userId: %1").arg(userId));
   if (m_userId != userId) {
@@ -98,11 +106,13 @@ void TwitchService::onAuthStateChanged(bool authenticated) {
       Logger::debug(LogCategory::Twitch, QStringLiteral("User ID already known, refreshing streams"));
       refreshStreams();
       refreshRecommendedStreams();
+      refreshCategories();
     } else {
       Logger::debug(LogCategory::Twitch, QStringLiteral("User ID not known yet, will be loaded via getUserInfo"));
       // getUserInfo sera appelé par refreshStreams
       refreshStreams();
       refreshRecommendedStreams();
+      refreshCategories();
     }
   }
 }
@@ -131,6 +141,27 @@ void TwitchService::refreshRecommendedStreams() {
   m_apiClient->getRecommendedStreams(20);  // Récupérer 20 streams recommandés
 }
 
+void TwitchService::refreshCategories() {
+  Logger::debug(LogCategory::Twitch, QStringLiteral("refreshCategories() called"));
+  
+  if (!m_apiClient) {
+    Logger::error(LogCategory::Twitch, QStringLiteral("API client is null"));
+    emit errorOccurred(QStringLiteral("Client API non initialisé."));
+    return;
+  }
+
+  // Les catégories peuvent être chargées même sans authentification
+  // Un token peut être utile pour personnaliser, mais n'est pas requis
+  QString token = m_authManager ? m_authManager->accessToken() : QString();
+  if (!token.isEmpty()) {
+    Logger::debug(LogCategory::Twitch, QStringLiteral("Setting access token for categories, length: %1").arg(token.length()));
+    m_apiClient->setAccessToken(token);
+  }
+
+  Logger::debug(LogCategory::Twitch, QStringLiteral("Requesting top categories"));
+  m_apiClient->getTopCategories(20);  // Récupérer 20 catégories populaires
+}
+
 void TwitchService::onAccessTokenChanged(const QString& token) {
   Logger::debug(LogCategory::Twitch, QStringLiteral("onAccessTokenChanged() called, token length: %1").arg(token.length()));
   if (m_apiClient) {
@@ -150,6 +181,10 @@ QVariantList TwitchService::streams() const {
 
 QVariantList TwitchService::recommendedStreams() const {
   return m_recommendedStreams;
+}
+
+QVariantList TwitchService::categories() const {
+  return m_categories;
 }
 
 QString TwitchService::selectedStreamUrl() const {
@@ -174,6 +209,8 @@ void TwitchService::logout() {
   emit streamsChanged();
   m_recommendedStreams.clear();
   emit recommendedStreamsChanged();
+  m_categories.clear();
+  emit categoriesChanged();
   m_selectedStreamUrl.clear();
   emit selectedStreamChanged();
   m_userId.clear();

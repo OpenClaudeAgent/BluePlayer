@@ -120,6 +120,72 @@ void TwitchApiClient::handleRecommendedStreamsReply() {
   emit recommendedStreamsReady(streams);
 }
 
+void TwitchApiClient::getTopCategories(int limit) {
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("getTopCategories() called with limit: %1").arg(limit));
+  
+  // Vérifier que le Client-ID est configuré
+  if (m_clientId.isEmpty()) {
+    core::Logger::error(core::LogCategory::Twitch, QStringLiteral("Client ID is empty! Cannot request top categories."));
+    const auto error = ErrorHandler::twitchApiError(QStringLiteral("getTopCategories"), QStringLiteral("Client ID manquant"));
+    emit errorOccurred(error.toString());
+    return;
+  }
+  
+  // Utiliser l'endpoint /games/top pour obtenir les catégories/jeux populaires
+  QUrl url(QStringLiteral("https://api.twitch.tv/helix/games/top"));
+  QUrlQuery query;
+  query.addQueryItem(QStringLiteral("first"), QString::number(limit));
+  url.setQuery(query);
+
+  core::Logger::debug(core::LogCategory::Network, QStringLiteral("Requesting top categories from: %1").arg(url.toString()));
+  QNetworkReply* reply = getJson(url);
+  connect(reply, &QNetworkReply::finished, this, &TwitchApiClient::handleCategoriesReply);
+}
+
+void TwitchApiClient::handleCategoriesReply() {
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("handleCategoriesReply() called"));
+  QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
+  if (handleNetworkError(reply, QStringLiteral("récupération des catégories"))) {
+    reply->deleteLater();
+    return;
+  }
+
+  const QJsonDocument document = parseJsonResponse(reply, QStringLiteral("Top categories"));
+  reply->deleteLater();
+  if (document.isNull()) {
+    core::Logger::warning(core::LogCategory::Twitch, QStringLiteral("Failed to parse categories response"));
+    return;
+  }
+
+  const QJsonObject root = document.object();
+  const QJsonArray entries = root.value(QStringLiteral("data")).toArray();
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("Found %1 categories").arg(entries.size()));
+  
+  QVariantList categories;
+  categories.reserve(entries.size());
+  
+  for (const QJsonValue& entryValue : entries) {
+    const QJsonObject entry = entryValue.toObject();
+    QVariantMap category;
+    
+    // Récupérer les informations de la catégorie
+    category.insert(QStringLiteral("id"), entry.value(QStringLiteral("id")).toString());
+    category.insert(QStringLiteral("name"), entry.value(QStringLiteral("name")).toString());
+    category.insert(QStringLiteral("boxArtUrl"), entry.value(QStringLiteral("box_art_url")).toString());
+    
+    // Le box_art_url contient des placeholders {width} et {height}, les remplacer
+    QString boxArtUrl = entry.value(QStringLiteral("box_art_url")).toString();
+    boxArtUrl.replace(QStringLiteral("{width}"), QString::number(285));  // Taille standard pour les catégories
+    boxArtUrl.replace(QStringLiteral("{height}"), QString::number(380));
+    category.insert(QStringLiteral("boxArtUrl"), boxArtUrl);
+    
+    categories.append(category);
+  }
+  
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("Parsed %1 categories, emitting signal").arg(categories.size()));
+  emit categoriesReady(categories);
+}
+
 void TwitchApiClient::getUserInfo() {
   core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("getUserInfo() called"));
   

@@ -20,9 +20,12 @@ Item {
   // HomeViewModel pour gérer la logique métier
   HomeViewModel {
     id: viewModel
+    onSectionsDataChanged: {
+      homeRoot.sectionsData = viewModel.sectionsData
+    }
   }
 
-  // Utiliser sectionsData du ViewModel au lieu de la propriété locale
+  // Utiliser sectionsData du ViewModel, mis à jour via le signal
   property var sectionsData: viewModel.sectionsData
 
   // Gestion du focus : perdre le focus quand on clique ailleurs
@@ -56,63 +59,57 @@ Item {
     })()
     enabled: typeof twitchService !== "undefined" && twitchService !== null
     function onStreamsChanged() {
-      console.log("[HomeView] onStreamsChanged() signal received")
       var service = getTwitchService()
       if (service && service.streams) {
         viewModel.updateFollowedStreams(service.streams)
       }
     }
     function onRecommendedStreamsChanged() {
-      console.log("[HomeView] onRecommendedStreamsChanged() signal received")
       var service = getTwitchService()
-      if (service) {
-        console.log("[HomeView] recommendedStreams length:", service.recommendedStreams ? service.recommendedStreams.length : "null")
-        if (service.recommendedStreams && service.recommendedStreams.length > 0) {
-          console.log("[HomeView] Updating ViewModel with", service.recommendedStreams.length, "recommended streams")
-          viewModel.updateRecommendedStreams(service.recommendedStreams)
-        } else {
-          console.log("[HomeView] No recommended streams available yet")
-        }
+      if (service && service.recommendedStreams && service.recommendedStreams.length > 0) {
+        viewModel.updateRecommendedStreams(service.recommendedStreams)
+      }
+    }
+    function onCategoriesChanged() {
+      var service = getTwitchService()
+      if (service && service.categories && service.categories.length > 0) {
+        viewModel.updateCategories(service.categories)
       }
     }
     function onErrorOccurred(message) {
       console.log("[HomeView] ERROR Twitch:", message)
     }
     function onAuthenticatedChanged(authenticated) {
-      console.log("[HomeView] onAuthenticatedChanged() signal received, authenticated:", authenticated)
-      // Charger les streams recommandés quand l'utilisateur s'authentifie
+      // Charger les streams recommandés et catégories quand l'utilisateur s'authentifie
       if (authenticated) {
         var service = getTwitchService()
         if (service) {
           service.refreshRecommendedStreams()
+          service.refreshCategories()
         }
       }
     }
   }
 
   Component.onCompleted: {
-    console.log("[HomeView] Component.onCompleted()")
     var service = getTwitchService()
-    console.log("[HomeView] twitchService:", service ? "EXISTS" : "NULL")
     if (service) {
-      console.log("[HomeView] twitchService.authenticated:", service.authenticated)
-      console.log("[HomeView] twitchService.streams:", service.streams ? service.streams.length + " streams" : "null")
-      console.log("[HomeView] twitchService.recommendedStreams:", service.recommendedStreams ? service.recommendedStreams.length + " streams" : "null")
       if (service.streams) {
         viewModel.updateFollowedStreams(service.streams)
       }
       if (service.recommendedStreams && service.recommendedStreams.length > 0) {
-        console.log("[HomeView] Found", service.recommendedStreams.length, "recommended streams, updating ViewModel")
         viewModel.updateRecommendedStreams(service.recommendedStreams)
       } else {
         // Charger les streams recommandés même sans authentification
-        console.log("[HomeView] No recommended streams found, refreshing...")
         service.refreshRecommendedStreams()
       }
+      if (service.categories && service.categories.length > 0) {
+        viewModel.updateCategories(service.categories)
+      } else {
+        // Charger les catégories même sans authentification
+        service.refreshCategories()
+      }
     }
-    console.log("[HomeView] ViewModel followedStreams length:", viewModel.followedStreams.length)
-    console.log("[HomeView] ViewModel recommendedStreams length:", viewModel.recommendedStreams.length)
-    console.log("[HomeView] ViewModel placeholderCards length:", viewModel.placeholderCards.length)
   }
 
   ColumnLayout {

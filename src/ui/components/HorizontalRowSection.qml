@@ -59,15 +59,51 @@ Item {
       // Modèle avec lazy loading: ne charge que les éléments visibles
       model: root.cardsModel
       
-          delegate: StreamCard {
-            width: root.cardWidth
-            height: root.rowHeight
-            streamerName: modelData.name || ""
-            streamTitle: modelData.detail || ""
-            viewerCount: modelData.viewers || ""
-            previewImage: modelData.previewImage || ""
-            isPlaceholder: modelData.isPlaceholder || false
+      
+      delegate: Loader {
+        id: cardLoader
+        width: root.cardWidth
+        height: root.rowHeight
+        property var cardData: modelData
+        property bool isCategory: cardData ? (cardData.boxArtUrl !== undefined || cardData.id !== undefined) : false
+        sourceComponent: isCategory ? categoryCardComponent : streamCardComponent
+        
+        // Passer cardData à l'item chargé
+        onItemChanged: {
+          if (item && item.hasOwnProperty('card')) {
+            item.card = Qt.binding(function() { return cardData })
           }
+        }
+      }
+      
+      Component {
+        id: streamCardComponent
+        StreamCard {
+          id: streamCard
+          width: root.cardWidth
+          height: root.rowHeight
+          property var card: null  // Sera assigné par le Loader parent via onItemChanged
+          streamerName: card ? (card.name || "") : ""
+          streamTitle: card ? (card.detail || "") : ""
+          viewerCount: card ? (card.viewers || "") : ""
+          previewImage: card ? (card.previewImage || "") : ""
+          isPlaceholder: card ? (card.isPlaceholder || false) : true
+        }
+      }
+      
+      Component {
+        id: categoryCardComponent
+        CategoryCard {
+          id: categoryCard
+          width: root.cardWidth
+          height: root.rowHeight
+          property var card: null  // Sera assigné par le Loader parent via onItemChanged
+          categoryName: card ? (card.name || "") : ""
+          categoryId: card ? (card.id || "") : ""
+          boxArtUrl: card ? (card.boxArtUrl || "") : ""
+          isPlaceholder: card ? (card.isPlaceholder || false) : true
+        }
+      }
     }
   }
 }

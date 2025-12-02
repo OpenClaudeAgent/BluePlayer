@@ -21,6 +21,7 @@ class TwitchService : public QObject {
   Q_PROPERTY(bool authenticated READ isAuthenticated NOTIFY authenticatedChanged)
   Q_PROPERTY(QVariantList streams READ streams NOTIFY streamsChanged)
   Q_PROPERTY(QVariantList recommendedStreams READ recommendedStreams NOTIFY recommendedStreamsChanged)
+  Q_PROPERTY(QVariantList categories READ categories NOTIFY categoriesChanged)
   Q_PROPERTY(QString selectedStreamUrl READ selectedStreamUrl NOTIFY selectedStreamChanged)
   Q_PROPERTY(QString userId READ userId NOTIFY userIdChanged)
 
@@ -48,6 +49,12 @@ public:
    * @return La liste des streams recommandés (QVariantList pour QML)
    */
   [[nodiscard]] QVariantList recommendedStreams() const;
+
+  /**
+   * @brief Obtient la liste des catégories populaires
+   * @return La liste des catégories (QVariantList pour QML)
+   */
+  [[nodiscard]] QVariantList categories() const;
 
   /**
    * @brief Obtient l'URL du stream sélectionné
@@ -82,6 +89,11 @@ public:
   Q_INVOKABLE void refreshRecommendedStreams();
 
   /**
+   * @brief Rafraîchit la liste des catégories populaires
+   */
+  Q_INVOKABLE void refreshCategories();
+
+  /**
    * @brief Sélectionne et prépare un stream pour la lecture
    * @param index L'index du stream dans la liste
    */
@@ -91,6 +103,7 @@ signals:
   void authenticatedChanged(bool authenticated);
   void streamsChanged();
   void recommendedStreamsChanged();
+  void categoriesChanged();
   void selectedStreamChanged();
   void userIdChanged();
   void errorOccurred(const QString& message);
@@ -103,6 +116,7 @@ private slots:
   void onAccessTokenChanged(const QString& token);
   void onStreamsReady(const QVariantList& streams);
   void onRecommendedStreamsReady(const QVariantList& streams);
+  void onCategoriesReady(const QVariantList& categories);
   void onUserInfoReady(const QString& userId);
 
 private:
@@ -110,6 +124,7 @@ private:
   TwitchApiClient* m_apiClient = nullptr;
   QVariantList m_streams;
   QVariantList m_recommendedStreams;
+  QVariantList m_categories;
   QString m_selectedStreamUrl;
   QString m_userId;
 };

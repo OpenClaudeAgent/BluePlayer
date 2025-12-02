@@ -58,15 +58,23 @@ public:
    */
   Q_INVOKABLE void getRecommendedStreams(int limit = 20);
 
+  /**
+   * @brief Récupère les catégories/jeux populaires sur Twitch
+   * @param limit Nombre maximum de catégories à récupérer (défaut: 20)
+   */
+  Q_INVOKABLE void getTopCategories(int limit = 20);
+
 signals:
   void streamsReady(const QVariantList& streams);
   void recommendedStreamsReady(const QVariantList& streams);
+  void categoriesReady(const QVariantList& categories);
   void userInfoReady(const QString& userId);
   void errorOccurred(const QString& message);  // Gardé pour compatibilité QML
 
 private slots:
   void handleReply();
   void handleRecommendedStreamsReply();
+  void handleCategoriesReply();
   void handleUserInfoReply();
   void handleFollowedStreamsReply();
 
