@@ -232,7 +232,8 @@ Item {
         
         // MouseArea pour perdre le focus sans bloquer le scroll
         MouseArea {
-          anchors.fill: parent
+          Layout.fillWidth: true
+          Layout.fillHeight: true
           z: -1
           hoverEnabled: false
           propagateComposedEvents: true
