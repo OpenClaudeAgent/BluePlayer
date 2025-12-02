@@ -37,10 +37,10 @@ TwitchService::TwitchService(QObject* parent)
   connect(m_apiClient, &TwitchApiClient::followedClipsReady, this, &TwitchService::onFollowedClipsReady, Qt::UniqueConnection);
   connect(m_apiClient, &TwitchApiClient::videosReady, this, &TwitchService::onVideosReady, Qt::UniqueConnection);
   connect(m_apiClient, &TwitchApiClient::followedChannelsReady, this, &TwitchService::onFollowedChannelsReady, Qt::UniqueConnection);
-  connect(m_apiClient, &TwitchApiClient::trendingStreamsReady, this, &TwitchService::onTrendingStreamsReady, Qt::UniqueConnection);
   connect(m_apiClient, &TwitchApiClient::newStreamersReady, this, &TwitchService::onNewStreamersReady, Qt::UniqueConnection);
   connect(m_apiClient, &TwitchApiClient::categoryStreamsReady, this, &TwitchService::onCategoryStreamsReady, Qt::UniqueConnection);
   connect(m_apiClient, &TwitchApiClient::userInfoReady, this, &TwitchService::onUserInfoReady, Qt::UniqueConnection);
+  connect(m_apiClient, &TwitchApiClient::userInfoReadyWithName, this, &TwitchService::onUserInfoReadyWithName, Qt::UniqueConnection);
   connect(m_apiClient, &TwitchApiClient::errorOccurred, this, &TwitchService::errorOccurred, Qt::UniqueConnection);
   
   Logger::debug(LogCategory::Twitch, QStringLiteral("Initial authenticated state: %1").arg(m_authManager->isAuthenticated()));
@@ -122,11 +122,6 @@ void TwitchService::onFollowedChannelsReady(const QVariantList& channels) {
   }
 }
 
-void TwitchService::onTrendingStreamsReady(const QVariantList& streams) {
-  Logger::debug(LogCategory::Twitch, QStringLiteral("onTrendingStreamsReady() called with %1 streams").arg(streams.size()));
-  m_trendingStreams = streams;
-  emit trendingStreamsChanged();
-}
 
 void TwitchService::onNewStreamersReady(const QVariantList& streamers) {
   Logger::debug(LogCategory::Twitch, QStringLiteral("onNewStreamersReady() called with %1 streamers").arg(streamers.size()));
@@ -155,6 +150,19 @@ void TwitchService::onUserInfoReady(const QString& userId) {
     m_userId = userId;
     emit userIdChanged();
     Logger::debug(LogCategory::Twitch, QStringLiteral("[DEBUG] User ID changed, emitted userIdChanged()"));
+  }
+}
+
+void TwitchService::onUserInfoReadyWithName(const QString& userId, const QString& userName) {
+  Logger::debug(LogCategory::Twitch, QStringLiteral("[DEBUG] onUserInfoReadyWithName() called with userId: %1, userName: %2").arg(userId, userName));
+  if (m_userId != userId) {
+    m_userId = userId;
+    emit userIdChanged();
+  }
+  if (m_userName != userName) {
+    m_userName = userName;
+    emit userNameChanged();
+    Logger::debug(LogCategory::Twitch, QStringLiteral("[DEBUG] User name changed, emitted userNameChanged()"));
   }
   // Maintenant qu'on a l'ID utilisateur, on peut récupérer les streams suivis et autres données
   if (m_apiClient) {
@@ -390,23 +398,6 @@ void TwitchService::refreshFollowedChannels() {
   Logger::debug(LogCategory::Twitch, QStringLiteral("[DEBUG] getFollowedChannels() call completed"));
 }
 
-void TwitchService::refreshTrendingStreams() {
-  Logger::debug(LogCategory::Twitch, QStringLiteral("refreshTrendingStreams() called"));
-  
-  if (!m_apiClient) {
-    Logger::error(LogCategory::Twitch, QStringLiteral("API client is null"));
-    emit errorOccurred(QStringLiteral("Client API non initialisé."));
-    return;
-  }
-
-  QString token = m_authManager ? m_authManager->accessToken() : QString();
-  if (!token.isEmpty()) {
-    m_apiClient->setAccessToken(token);
-  }
-
-  Logger::debug(LogCategory::Twitch, QStringLiteral("Requesting trending streams"));
-  m_apiClient->getTrendingStreams(20);
-}
 
 void TwitchService::refreshNewStreamers() {
   Logger::debug(LogCategory::Twitch, QStringLiteral("refreshNewStreamers() called"));
@@ -503,9 +494,6 @@ QVariantList TwitchService::followedChannels() const {
   return m_followedChannels;
 }
 
-QVariantList TwitchService::trendingStreams() const {
-  return m_trendingStreams;
-}
 
 QVariantList TwitchService::newStreamers() const {
   return m_newStreamers;
@@ -523,6 +511,10 @@ QString TwitchService::userId() const {
   return m_userId;
 }
 
+QString TwitchService::userName() const {
+  return m_userName;
+}
+
 void TwitchService::login() {
   if (m_authManager) {
     m_authManager->login();
@@ -533,6 +525,10 @@ void TwitchService::logout() {
   if (m_authManager) {
     m_authManager->logout();
   }
+  m_userId.clear();
+  m_userName.clear();
+  emit userIdChanged();
+  emit userNameChanged();
   m_streams.clear();
   emit streamsChanged();
   m_recommendedStreams.clear();
@@ -547,8 +543,6 @@ void TwitchService::logout() {
   emit videosChanged();
   m_followedChannels.clear();
   emit followedChannelsChanged();
-  m_trendingStreams.clear();
-  emit trendingStreamsChanged();
   m_newStreamers.clear();
   emit newStreamersChanged();
   m_categoryStreams.clear();

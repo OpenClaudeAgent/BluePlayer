@@ -18,7 +18,7 @@ Item {
     ColumnLayout {
       id: contentContainer
       anchors.fill: parent
-      anchors.margins: 8
+      anchors.margins: 16
     }
   }
 }

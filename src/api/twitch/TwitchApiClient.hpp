@@ -88,13 +88,12 @@ public:
    * @brief Récupère les chaînes suivies par un utilisateur
    * @param userId L'ID de l'utilisateur
    */
-  Q_INVOKABLE void getFollowedChannels(const QString& userId);
+  Q_INVOKABLE void getFollowedChannels(const QString& userId, int limit = 100);
 
   /**
    * @brief Récupère les streams tendances (triés par viewers décroissant)
    * @param limit Nombre maximum de streams à récupérer (défaut: 20)
    */
-  Q_INVOKABLE void getTrendingStreams(int limit = 20);
 
   /**
    * @brief Récupère les nouveaux streamers suivis récemment
@@ -118,10 +117,10 @@ signals:
   void followedClipsReady(const QVariantList& clips);
   void videosReady(const QVariantList& videos);
   void followedChannelsReady(const QVariantList& channels);
-  void trendingStreamsReady(const QVariantList& streams);
   void newStreamersReady(const QVariantList& streamers);
   void categoryStreamsReady(const QVariantList& streams);
   void userInfoReady(const QString& userId);
+  void userInfoReadyWithName(const QString& userId, const QString& userName);
   void errorOccurred(const QString& message);  // Gardé pour compatibilité QML
 
 private slots:
@@ -132,8 +131,6 @@ private slots:
   void handleFollowedClipsReply();
   void handleVideosReply();
   void handleFollowedChannelsReply();
-  void handleTrendingStreamsReply();
-  void handleNewStreamersReply();
   void handleCategoryStreamsReply();
   void handleUserInfoReply();
   void handleFollowedStreamsReply();
@@ -149,6 +146,8 @@ private:
   
   QString m_clientId;
   QVariantList m_pendingChannels;  // Stocke temporairement les chaînes en attendant les avatars
+  QVariantList m_pendingChannelsForNewStreamers;  // Stocke les entries JSON originales converties en QVariantList pour récupérer followed_at
+  void emitNewStreamersFromChannels(const QVariantList& channels, const QVariantList& entries);
 };
 
 }  // namespace blueplayer::api::twitch

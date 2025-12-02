@@ -24,7 +24,6 @@ class HomeViewModel : public QObject {
   Q_PROPERTY(QVariantList followedClips READ followedClips NOTIFY followedClipsChanged)
   Q_PROPERTY(QVariantList videos READ videos NOTIFY videosChanged)
   Q_PROPERTY(QVariantList followedChannels READ followedChannels NOTIFY followedChannelsChanged)
-  Q_PROPERTY(QVariantList trendingStreams READ trendingStreams NOTIFY trendingStreamsChanged)
   Q_PROPERTY(QVariantList newStreamers READ newStreamers NOTIFY newStreamersChanged)
   Q_PROPERTY(QVariantList categoryStreams READ categoryStreams NOTIFY categoryStreamsChanged)
   Q_PROPERTY(QVariantList placeholderCards READ placeholderCards CONSTANT)
@@ -79,7 +78,6 @@ public:
    * @brief Obtient la liste des streams tendances transformés
    * @return La liste des streams tendances
    */
-  [[nodiscard]] QVariantList trendingStreams() const { return m_trendingStreams; }
 
   /**
    * @brief Obtient la liste des nouveaux streamers transformés
@@ -158,7 +156,6 @@ public:
    * @brief Met à jour les streams tendances depuis le service Twitch
    * @param twitchStreams Les streams bruts depuis l'API Twitch
    */
-  Q_INVOKABLE void updateTrendingStreams(const QVariantList& twitchStreams);
 
   /**
    * @brief Met à jour les nouveaux streamers depuis le service Twitch
@@ -180,7 +177,6 @@ signals:
   void followedClipsChanged();
   void videosChanged();
   void followedChannelsChanged();
-  void trendingStreamsChanged();
   void newStreamersChanged();
   void categoryStreamsChanged();
   void sectionsDataChanged();
@@ -193,7 +189,6 @@ private:
   QVariantList m_followedClips;
   QVariantList m_videos;
   QVariantList m_followedChannels;
-  QVariantList m_trendingStreams;
   QVariantList m_newStreamers;
   QVariantList m_categoryStreams;
   QVariantList m_placeholderCards;

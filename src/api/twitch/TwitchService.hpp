@@ -26,11 +26,11 @@ class TwitchService : public QObject {
   Q_PROPERTY(QVariantList followedClips READ followedClips NOTIFY followedClipsChanged)
   Q_PROPERTY(QVariantList videos READ videos NOTIFY videosChanged)
   Q_PROPERTY(QVariantList followedChannels READ followedChannels NOTIFY followedChannelsChanged)
-  Q_PROPERTY(QVariantList trendingStreams READ trendingStreams NOTIFY trendingStreamsChanged)
   Q_PROPERTY(QVariantList newStreamers READ newStreamers NOTIFY newStreamersChanged)
   Q_PROPERTY(QVariantList categoryStreams READ categoryStreams NOTIFY categoryStreamsChanged)
   Q_PROPERTY(QString selectedStreamUrl READ selectedStreamUrl NOTIFY selectedStreamChanged)
   Q_PROPERTY(QString userId READ userId NOTIFY userIdChanged)
+  Q_PROPERTY(QString userName READ userName NOTIFY userNameChanged)
 
 public:
   /**
@@ -91,7 +91,6 @@ public:
    * @brief Obtient la liste des streams tendances
    * @return La liste des streams tendances (QVariantList pour QML)
    */
-  [[nodiscard]] QVariantList trendingStreams() const;
 
   /**
    * @brief Obtient la liste des nouveaux streamers suivis
@@ -116,6 +115,12 @@ public:
    * @return L'ID utilisateur
    */
   [[nodiscard]] QString userId() const;
+
+  /**
+   * @brief Obtient le nom d'utilisateur Twitch
+   * @return Le nom d'utilisateur
+   */
+  [[nodiscard]] QString userName() const;
 
   /**
    * @brief Lance le processus d'authentification OAuth
@@ -165,7 +170,6 @@ public:
   /**
    * @brief Rafraîchit la liste des streams tendances
    */
-  Q_INVOKABLE void refreshTrendingStreams();
 
   /**
    * @brief Rafraîchit la liste des nouveaux streamers suivis
@@ -193,11 +197,11 @@ signals:
   void followedClipsChanged();
   void videosChanged();
   void followedChannelsChanged();
-  void trendingStreamsChanged();
   void newStreamersChanged();
   void categoryStreamsChanged();
   void selectedStreamChanged();
   void userIdChanged();
+  void userNameChanged();
   void errorOccurred(const QString& message);
 
 private:
@@ -213,10 +217,10 @@ private slots:
   void onFollowedClipsReady(const QVariantList& clips);
   void onVideosReady(const QVariantList& videos);
   void onFollowedChannelsReady(const QVariantList& channels);
-  void onTrendingStreamsReady(const QVariantList& streams);
   void onNewStreamersReady(const QVariantList& streamers);
   void onCategoryStreamsReady(const QVariantList& streams);
   void onUserInfoReady(const QString& userId);
+  void onUserInfoReadyWithName(const QString& userId, const QString& userName);
 
 private:
   TwitchAuthManager* m_authManager = nullptr;
@@ -228,11 +232,11 @@ private:
   QVariantList m_followedClips;
   QVariantList m_videos;
   QVariantList m_followedChannels;
-  QVariantList m_trendingStreams;
   QVariantList m_newStreamers;
   QVariantList m_categoryStreams;
   QString m_selectedStreamUrl;
   QString m_userId;
+  QString m_userName;
 };
 
 }  // namespace blueplayer::api::twitch

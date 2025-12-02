@@ -349,7 +349,8 @@ void TwitchApiClient::handleUserInfoReply() {
   const QJsonObject user = data.first().toObject();
   const QString userId = user.value(QStringLiteral("id")).toString();
   const QString userName = user.value(QStringLiteral("login")).toString();
-  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("User ID: %1, Login: %2").arg(userId, userName));
+  const QString displayName = user.value(QStringLiteral("display_name")).toString();
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("User ID: %1, Login: %2, Display Name: %3").arg(userId, userName, displayName));
   if (userId.isEmpty()) {
     core::Logger::error(core::LogCategory::Twitch, QStringLiteral("Empty userId in response"));
     const auto error = ErrorHandler::twitchApiError(QStringLiteral("getUserInfo"), QStringLiteral("ID utilisateur manquant dans la réponse"));
@@ -359,6 +360,7 @@ void TwitchApiClient::handleUserInfoReply() {
 
   core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("Emitting userInfoReady with userId: %1").arg(userId));
   emit userInfoReady(userId);
+  emit userInfoReadyWithName(userId, !displayName.isEmpty() ? displayName : userName);
 }
 
 void TwitchApiClient::handleFollowedStreamsReply() {
@@ -603,8 +605,19 @@ void TwitchApiClient::handleFollowedChannelsReply() {
   const QVariantList channels = parseChannelsArray(entries);
   core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("Parsed %1 followed channels, fetching user avatars").arg(channels.size()));
   
+  // Vérifier si cette requête est aussi pour newStreamers
+  bool forNewStreamers = reply->property("forNewStreamers").toBool();
+  
   // Stocker temporairement les chaînes et récupérer les avatars via /users
   m_pendingChannels = channels;
+  if (forNewStreamers) {
+    // Pour newStreamers, convertir les entries JSON en QVariantList pour stockage
+    m_pendingChannelsForNewStreamers.clear();
+    m_pendingChannelsForNewStreamers.reserve(entries.size());
+    for (const QJsonValue& entryValue : entries) {
+      m_pendingChannelsForNewStreamers.append(entryValue.toVariant());
+    }
+  }
   
   // Extraire les broadcaster_ids pour récupérer les avatars
   QStringList broadcasterIds;
@@ -621,82 +634,51 @@ void TwitchApiClient::handleFollowedChannelsReply() {
   } else {
     // Si pas de broadcaster_ids, émettre directement
     emit followedChannelsReady(channels);
+    if (forNewStreamers && !m_pendingChannelsForNewStreamers.isEmpty()) {
+      emitNewStreamersFromChannels(channels, m_pendingChannelsForNewStreamers);
+      m_pendingChannelsForNewStreamers.clear();
+    } else if (forNewStreamers) {
+      // Convertir entries en QVariantList pour l'appel
+      QVariantList entriesList;
+      entriesList.reserve(entries.size());
+      for (const QJsonValue& entryValue : entries) {
+        entriesList.append(entryValue.toVariant());
+      }
+      emitNewStreamersFromChannels(channels, entriesList);
+    }
   }
 }
 
-void TwitchApiClient::handleTrendingStreamsReply() {
-  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("handleTrendingStreamsReply() called"));
-  QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
-  if (handleNetworkError(reply, QStringLiteral("récupération des streams tendances"))) {
-    reply->deleteLater();
-    return;
-  }
-
-  const QJsonDocument document = parseJsonResponse(reply, QStringLiteral("Trending streams"));
-  reply->deleteLater();
-  if (document.isNull()) {
-    core::Logger::warning(core::LogCategory::Twitch, QStringLiteral("Failed to parse trending streams response"));
-    emit trendingStreamsReady(QVariantList());
-    return;
-  }
-
-  const QJsonObject root = document.object();
-  const QJsonArray entries = root.value(QStringLiteral("data")).toArray();
-  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("Found %1 trending streams").arg(entries.size()));
-  
-  if (entries.isEmpty()) {
-    core::Logger::warning(core::LogCategory::Twitch, QStringLiteral("No trending streams found in API response"));
-    emit trendingStreamsReady(QVariantList());
-    return;
-  }
-  
-  const QVariantList streams = parseStreamsArray(entries);
-  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("Parsed %1 trending streams, emitting signal").arg(streams.size()));
-  emit trendingStreamsReady(streams);
-}
-
-void TwitchApiClient::handleNewStreamersReply() {
-  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("handleNewStreamersReply() called"));
-  QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
-  if (handleNetworkError(reply, QStringLiteral("récupération des nouveaux streamers"))) {
-    reply->deleteLater();
-    return;
-  }
-
-  const QJsonDocument document = parseJsonResponse(reply, QStringLiteral("New streamers"));
-  reply->deleteLater();
-  if (document.isNull()) {
-    core::Logger::warning(core::LogCategory::Twitch, QStringLiteral("Failed to parse new streamers response"));
-    emit newStreamersReady(QVariantList());
-    return;
-  }
-
-  const QJsonObject root = document.object();
-  const QJsonArray entries = root.value(QStringLiteral("data")).toArray();
-  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("Found %1 new streamers").arg(entries.size()));
-  
-  if (entries.isEmpty()) {
-    core::Logger::warning(core::LogCategory::Twitch, QStringLiteral("No new streamers found in API response"));
-    emit newStreamersReady(QVariantList());
-    return;
-  }
-  
-  // Transformer les follows en format streamer
+void TwitchApiClient::emitNewStreamersFromChannels(const QVariantList& channels, const QVariantList& entries) {
+  // Convertir les channels en format streamer et ajouter followed_at
   QVariantList streamers;
-  streamers.reserve(entries.size());
+  streamers.reserve(channels.size());
   
-  for (const QJsonValue& entryValue : entries) {
-    const QJsonObject entry = entryValue.toObject();
-    QVariantMap streamer;
+  for (int i = 0; i < channels.size() && i < entries.size(); ++i) {
+    QVariantMap channel = channels.at(i).toMap();
+    QVariantMap streamer = channel; // Copier toutes les propriétés
     
-    streamer.insert(QStringLiteral("user_id"), entry.value(QStringLiteral("to_id")).toString());
-    streamer.insert(QStringLiteral("user_name"), entry.value(QStringLiteral("to_name")).toString());
+    // Ajouter les champs supplémentaires pour compatibilité
+    const QString broadcasterId = channel.value(QStringLiteral("broadcaster_id")).toString();
+    const QString broadcasterName = channel.value(QStringLiteral("broadcaster_name")).toString();
+    streamer.insert(QStringLiteral("user_id"), broadcasterId);
+    streamer.insert(QStringLiteral("user_name"), broadcasterName);
+    
+    // Récupérer followed_at depuis l'entrée originale (convertie en QVariantMap)
+    const QVariantMap entry = entries.at(i).toMap();
     streamer.insert(QStringLiteral("followed_at"), entry.value(QStringLiteral("followed_at")).toString());
     
     streamers.append(streamer);
   }
   
-  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("Parsed %1 new streamers, emitting signal").arg(streamers.size()));
+  // Trier par followed_at (les plus récents en premier) - format ISO 8601
+  std::sort(streamers.begin(), streamers.end(), [](const QVariant& a, const QVariant& b) {
+    const QString followedAtA = a.toMap().value(QStringLiteral("followed_at")).toString();
+    const QString followedAtB = b.toMap().value(QStringLiteral("followed_at")).toString();
+    return followedAtA > followedAtB; // Tri décroissant (plus récent en premier)
+  });
+  
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("Parsed and sorted %1 new streamers, emitting signal").arg(streamers.size()));
   emit newStreamersReady(streamers);
 }
 
@@ -807,6 +789,10 @@ void TwitchApiClient::handleUsersInfoReply() {
   if (document.isNull()) {
     core::Logger::warning(core::LogCategory::Twitch, QStringLiteral("Failed to parse users info response, emitting channels without avatars"));
     emit followedChannelsReady(m_pendingChannels);
+    if (!m_pendingChannelsForNewStreamers.isEmpty()) {
+      emitNewStreamersFromChannels(m_pendingChannels, m_pendingChannelsForNewStreamers);
+      m_pendingChannelsForNewStreamers.clear();
+    }
     m_pendingChannels.clear();
     return;
   }
@@ -838,11 +824,18 @@ void TwitchApiClient::handleUsersInfoReply() {
   
   core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("Updated %1 channels with avatars, emitting signal").arg(m_pendingChannels.size()));
   emit followedChannelsReady(m_pendingChannels);
+  
+  // Si on avait aussi une requête pour newStreamers, émettre ce signal aussi
+  if (!m_pendingChannelsForNewStreamers.isEmpty()) {
+    emitNewStreamersFromChannels(m_pendingChannels, m_pendingChannelsForNewStreamers);
+    m_pendingChannelsForNewStreamers.clear();
+  }
+  
   m_pendingChannels.clear();
 }
 
-void TwitchApiClient::getFollowedChannels(const QString& userId) {
-  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("getFollowedChannels() called for userId: %1").arg(userId));
+void TwitchApiClient::getFollowedChannels(const QString& userId, int limit) {
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("getFollowedChannels() called for userId: %1, limit: %2").arg(userId).arg(limit));
   
   if (m_clientId.isEmpty()) {
     core::Logger::error(core::LogCategory::Twitch, QStringLiteral("Client ID is empty! Cannot request followed channels."));
@@ -854,6 +847,7 @@ void TwitchApiClient::getFollowedChannels(const QString& userId) {
   if (userId.isEmpty()) {
     core::Logger::warning(core::LogCategory::Twitch, QStringLiteral("No userId provided, emitting empty list"));
     emit followedChannelsReady(QVariantList());
+    emit newStreamersReady(QVariantList());
     return;
   }
   
@@ -861,42 +855,24 @@ void TwitchApiClient::getFollowedChannels(const QString& userId) {
   QUrl url(QStringLiteral("https://api.twitch.tv/helix/channels/followed"));
   QUrlQuery query;
   query.addQueryItem(QStringLiteral("user_id"), userId);
+  if (limit > 0 && limit <= 100) {
+    query.addQueryItem(QStringLiteral("first"), QString::number(limit));
+  }
   url.setQuery(query);
 
   core::Logger::debug(core::LogCategory::Network, QStringLiteral("Requesting followed channels from: %1").arg(url.toString()));
   QNetworkReply* reply = getJson(url);
+  // Stocker le limit dans une propriété du reply pour que le handler sache s'il doit aussi émettre newStreamersReady
+  reply->setProperty("forNewStreamers", limit > 0 && limit <= 20); // Si limit est petit, c'est probablement pour newStreamers
   connect(reply, &QNetworkReply::finished, this, &TwitchApiClient::handleFollowedChannelsReply);
 }
 
-void TwitchApiClient::getTrendingStreams(int limit) {
-  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("getTrendingStreams() called with limit: %1").arg(limit));
-  
-  if (m_clientId.isEmpty()) {
-    core::Logger::error(core::LogCategory::Twitch, QStringLiteral("Client ID is empty! Cannot request trending streams."));
-    const auto error = ErrorHandler::twitchApiError(QStringLiteral("getTrendingStreams"), QStringLiteral("Client ID manquant"));
-    emit errorOccurred(error.toString());
-    return;
-  }
-  
-  // Utiliser l'endpoint /streams trié par viewers décroissant (par défaut)
-  QUrl url(QStringLiteral("https://api.twitch.tv/helix/streams"));
-  QUrlQuery query;
-  query.addQueryItem(QStringLiteral("first"), QString::number(limit));
-  url.setQuery(query);
-
-  core::Logger::debug(core::LogCategory::Network, QStringLiteral("Requesting trending streams from: %1").arg(url.toString()));
-  QNetworkReply* reply = getJson(url);
-  connect(reply, &QNetworkReply::finished, this, &TwitchApiClient::handleTrendingStreamsReply);
-}
-
 void TwitchApiClient::getNewFollowedStreamers(const QString& userId, int limit) {
-  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("getNewFollowedStreamers() called for userId: %1, limit: %2").arg(userId).arg(limit));
-  
-  // NOTE: L'endpoint /helix/users/follows est déprécié (erreur 410 "This API is not available")
-  // Pour l'instant, on retourne une liste vide
-  // TODO: Utiliser /helix/channels/followed à la place qui retourne les chaînes suivies
-  core::Logger::warning(core::LogCategory::Twitch, QStringLiteral("getNewFollowedStreamers: endpoint /helix/users/follows is deprecated (410), returning empty list"));
-  emit newStreamersReady(QVariantList());
+  // Réutiliser getFollowedChannels qui utilise le même endpoint
+  // On va stocker le limit dans une variable membre temporaire pour le handler
+  // Note: Pour simplifier, on appelle directement getFollowedChannels et on adaptera le handler
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("getNewFollowedStreamers() called for userId: %1, limit: %2 - delegating to getFollowedChannels").arg(userId).arg(limit));
+  getFollowedChannels(userId, limit);
 }
 
 void TwitchApiClient::getStreamsByCategory(const QString& gameId, int limit) {

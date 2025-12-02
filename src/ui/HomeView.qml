@@ -120,12 +120,6 @@ Item {
         console.log("[DEBUG HomeView] No followed channels to update")
       }
     }
-    function onTrendingStreamsChanged() {
-      var service = getTwitchService()
-      if (service && service.trendingStreams && service.trendingStreams.length > 0) {
-        viewModel.updateTrendingStreams(service.trendingStreams)
-      }
-    }
     function onNewStreamersChanged() {
       var service = getTwitchService()
       if (service && service.newStreamers && service.newStreamers.length > 0) {
@@ -187,7 +181,6 @@ Item {
       // Charger les sections publiques même sans authentification
       console.log("[DEBUG HomeView] Loading public sections")
       service.refreshPopularClips()
-      service.refreshTrendingStreams()
       
       // Charger les sections nécessitant authentification si l'utilisateur est authentifié
       if (service.authenticated) {
