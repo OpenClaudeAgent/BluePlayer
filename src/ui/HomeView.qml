@@ -58,6 +58,16 @@ Item {
     }
   ]
 
+  // Gestion du focus : perdre le focus quand on clique ailleurs
+  Keys.onPressed: function(event) {
+    if (event.key === Qt.Key_Escape && searchField.activeFocus) {
+      searchField.focus = false
+      event.accepted = true
+    }
+  }
+  
+  focus: true
+
   ColumnLayout {
     anchors.fill: parent
     spacing: 0
@@ -66,25 +76,34 @@ Item {
     Rectangle {
       id: searchBarContainer
       Layout.fillWidth: true
-      Layout.preferredHeight: 80
+      Layout.preferredHeight: 88
       color: "transparent"
       z: 10
 
       Rectangle {
         id: searchBarBackground
-        width: Math.min(800, parent.width - AppleTheme.spacingLarge * 2)
-        height: 56
+        width: Math.min(400, (parent.width - AppleTheme.spacingLarge * 2) / 2)
+        height: 52
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenter: parent.verticalCenter
-        radius: 28
-        color: AppleTheme.surfaceSoft
-        border.color: "#2d3644"
-        border.width: AppleTheme.borderWidth
+        radius: 26
+        color: searchField.activeFocus ? "#1a2330" : AppleTheme.surfaceSoft
+        border.color: searchField.activeFocus ? "#5a6578" : AppleTheme.divider
+        border.width: searchField.activeFocus ? 1.5 : AppleTheme.borderWidth
 
-        // Effet de blur subtil (simulé avec gradient)
-        gradient: Gradient {
-          GradientStop { position: 0; color: "#1f2735" }
-          GradientStop { position: 1; color: AppleTheme.surfaceSoft }
+        // Effet de glow au focus (gris subtil)
+        Rectangle {
+          anchors.fill: parent
+          anchors.margins: -3
+          radius: parent.radius + 3
+          color: "transparent"
+          border.color: searchField.activeFocus ? Qt.rgba(0.35, 0.39, 0.47, 0.15) : "transparent"
+          border.width: 3
+          z: -1
+          opacity: searchField.activeFocus ? 1 : 0
+          Behavior on opacity {
+            NumberAnimation { duration: 250; easing.type: Easing.OutCubic }
+          }
         }
 
         // Ombre subtile
@@ -93,37 +112,73 @@ Item {
           anchors.margins: -1
           radius: parent.radius + 1
           color: "transparent"
-          border.color: "#00000015"
+          border.color: "#00000025"
           border.width: 1
-          z: -1
+          z: -2
+        }
+
+        Behavior on color {
+          ColorAnimation { duration: 200; easing.type: Easing.OutCubic }
+        }
+        Behavior on border.color {
+          ColorAnimation { duration: 200; easing.type: Easing.OutCubic }
         }
 
         RowLayout {
           anchors.fill: parent
-          anchors.margins: 8
-          spacing: AppleTheme.spacingMedium
+          anchors.leftMargin: 22
+          anchors.rightMargin: 22
+          anchors.topMargin: 14
+          anchors.bottomMargin: 14
+          spacing: 18
 
-          // Icône de recherche
+          // Icône de loupe
           Text {
             text: "🔍"
-            font.pixelSize: 20
-            Layout.leftMargin: AppleTheme.spacingMedium
+            font.pixelSize: 17
+            color: searchField.activeFocus ? "#5a6578" : AppleTheme.secondaryText
+            Layout.alignment: Qt.AlignVCenter
+            Behavior on color {
+              ColorAnimation { duration: 200; easing.type: Easing.OutCubic }
+            }
           }
 
-          TextField {
-            id: searchField
+          // Item wrapper pour mieux contrôler l'espacement vertical
+          Item {
             Layout.fillWidth: true
-            Layout.preferredHeight: parent.height
-            verticalAlignment: Text.AlignVCenter
-            placeholderText: qsTr("Rechercher un streamer, un tag, un jeu...")
-            placeholderTextColor: AppleTheme.secondaryText
-            font.family: AppleTheme.fontFamily
-            font.pixelSize: 16
-            color: AppleTheme.primaryText
-            cursorVisible: true
-            background: Rectangle { color: "transparent" }
-            onAccepted: {
-              console.log("Recherche :", text)
+            Layout.fillHeight: true
+            
+            TextField {
+              id: searchField
+              anchors.left: parent.left
+              anchors.right: parent.right
+              anchors.verticalCenter: parent.verticalCenter
+              height: 24
+              verticalAlignment: Text.AlignVCenter
+              placeholderText: qsTr("Rechercher...")
+              placeholderTextColor: searchField.activeFocus ? Qt.rgba(0.49, 0.54, 0.64, 0.6) : AppleTheme.mutedText
+              font.family: AppleTheme.fontFamily
+              font.pixelSize: 15
+              color: AppleTheme.primaryText
+              cursorVisible: activeFocus
+              background: Rectangle { 
+                color: "transparent"
+                anchors.fill: parent
+              }
+              selectByMouse: true
+              leftPadding: 0
+              rightPadding: 0
+              topPadding: text.length > 0 ? 6 : 0
+              bottomPadding: 0
+              Behavior on topPadding {
+                NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
+              }
+              onAccepted: {
+                console.log("Recherche :", text)
+              }
+              Keys.onEscapePressed: {
+                focus = false
+              }
             }
           }
         }
@@ -144,13 +199,27 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.margins: AppleTheme.spacingLarge
+        
+        // MouseArea pour perdre le focus sans bloquer le scroll
+        MouseArea {
+          anchors.fill: parent
+          z: -1
+          hoverEnabled: false
+          propagateComposedEvents: true
+          onClicked: function(mouse) {
+            if (searchField.activeFocus) {
+              searchField.focus = false
+            }
+            mouse.accepted = false
+          }
+        }
 
         // Répéter pour chaque section
         Repeater {
           model: homeRoot.sectionsData
           delegate: HorizontalRowSection {
             Layout.fillWidth: true
-            Layout.topMargin: Repeater.index === 0 ? AppleTheme.spacingMedium : 0
+            Layout.topMargin: Repeater.index === 0 ? AppleTheme.spacingLarge * 2 : 0
             sectionTitle: modelData.title
             sectionSubtitle: modelData.subtitle
             cardsModel: modelData.cards
