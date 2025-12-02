@@ -18,6 +18,7 @@
 #include "core/Application.hpp"
 #include "api/twitch/TwitchService.hpp"
 #include "media/FFmpegMediaService.hpp"
+#include "ui/HomeViewModel.hpp"
 
 #if defined(Q_OS_MAC)
 @interface PreferencesMenuHandler : NSObject
@@ -89,6 +90,7 @@ int main(int argc, char* argv[]) {
   app.setApplicationDisplayName(QStringLiteral(u"BluePlayer"));
   qmlRegisterType<blueplayer::media::FFmpegMediaService>("BluePlayer.Media", 1, 0, "FFmpegMediaService");
   qmlRegisterType<blueplayer::api::twitch::TwitchService>("BluePlayer.Twitch", 1, 0, "TwitchService");
+  qmlRegisterType<blueplayer::ui::HomeViewModel>("BluePlayer.UI", 1, 0, "HomeViewModel");
   Application coreApp;
   coreApp.initialize();
 
