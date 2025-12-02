@@ -5,10 +5,37 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Définir les chemins pour Vulkan via Homebrew
-set(Vulkan_INCLUDE_DIR "/opt/homebrew/include")
-set(Vulkan_LIBRARY "/opt/homebrew/lib/libvulkan.dylib") # Ou libvulkan.a si statique
-set(Vulkan_FOUND TRUE)
+# Définir les chemins pour Vulkan (utilise les variables d'environnement ou chemins système)
+if(NOT DEFINED Vulkan_INCLUDE_DIR)
+  # Essayer de trouver Vulkan via pkg-config ou chemins standards
+  find_path(Vulkan_INCLUDE_DIR 
+    NAMES vulkan/vulkan.h
+    PATHS 
+      ${CMAKE_SYSTEM_PREFIX_PATH}/include
+      /usr/include
+      /usr/local/include
+      /opt/homebrew/include
+      ENV VULKAN_SDK
+    PATH_SUFFIXES Vulkan
+  )
+endif()
+
+if(NOT DEFINED Vulkan_LIBRARY)
+  find_library(Vulkan_LIBRARY
+    NAMES vulkan
+    PATHS
+      ${CMAKE_SYSTEM_PREFIX_PATH}/lib
+      /usr/lib
+      /usr/local/lib
+      /opt/homebrew/lib
+      ENV VULKAN_SDK
+    PATH_SUFFIXES lib
+  )
+endif()
+
+if(Vulkan_INCLUDE_DIR AND Vulkan_LIBRARY)
+  set(Vulkan_FOUND TRUE)
+endif()
 
 # Activer AUTOMOC, AUTORCC, AUTOUIC pour une meilleure gestion des fichiers Qt
 set(CMAKE_AUTOUIC ON)
@@ -31,10 +58,51 @@ include(cmake/CompilerWarnings.cmake OPTIONAL)
 
 find_package(Qt6 6.5 COMPONENTS Core Quick Gui Multimedia Widgets REQUIRED)
 
-# Désactiver pkg_search_module et FindFFmpeg.cmake pour FFmpeg
-# et lier les bibliothèques manuellement.
-set(FFmpeg_LIBRARIES avcodec avformat avutil swscale swresample)
-set(FFmpeg_INCLUDE_DIRS /opt/homebrew/include) # Chemin des en-têtes Homebrew
+# Configuration FFmpeg - utilise les variables d'environnement ou chemins standards
+if(DEFINED ENV{FFmpeg_DIR})
+  set(FFmpeg_DIR $ENV{FFmpeg_DIR})
+endif()
+
+# Essayer de trouver FFmpeg via le module personnalisé
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+find_package(FFmpeg QUIET)
+
+if(NOT FFmpeg_FOUND)
+  # Fallback: chercher manuellement dans les chemins standards
+  find_path(FFmpeg_INCLUDE_DIRS
+    NAMES libavcodec/avcodec.h libavformat/avformat.h
+    PATHS
+      ${CMAKE_SYSTEM_PREFIX_PATH}/include
+      /usr/include
+      /usr/local/include
+      /opt/homebrew/include
+      ENV FFMPEG_INCLUDE_DIR
+  )
+  
+  if(FFmpeg_INCLUDE_DIRS)
+    find_library(FFmpeg_avcodec_LIBRARY avcodec
+      PATHS
+        ${CMAKE_SYSTEM_PREFIX_PATH}/lib
+        /usr/lib
+        /usr/local/lib
+        /opt/homebrew/lib
+        ENV FFMPEG_LIB_DIR
+    )
+    find_library(FFmpeg_avformat_LIBRARY avformat PATHS ${CMAKE_SYSTEM_PREFIX_PATH}/lib /usr/lib /usr/local/lib /opt/homebrew/lib ENV FFMPEG_LIB_DIR)
+    find_library(FFmpeg_avutil_LIBRARY avutil PATHS ${CMAKE_SYSTEM_PREFIX_PATH}/lib /usr/lib /usr/local/lib /opt/homebrew/lib ENV FFMPEG_LIB_DIR)
+    find_library(FFmpeg_swscale_LIBRARY swscale PATHS ${CMAKE_SYSTEM_PREFIX_PATH}/lib /usr/lib /usr/local/lib /opt/homebrew/lib ENV FFMPEG_LIB_DIR)
+    find_library(FFmpeg_swresample_LIBRARY swresample PATHS ${CMAKE_SYSTEM_PREFIX_PATH}/lib /usr/lib /usr/local/lib /opt/homebrew/lib ENV FFMPEG_LIB_DIR)
+    
+    if(FFmpeg_avcodec_LIBRARY AND FFmpeg_avformat_LIBRARY AND FFmpeg_avutil_LIBRARY)
+      set(FFmpeg_LIBRARIES ${FFmpeg_avcodec_LIBRARY} ${FFmpeg_avformat_LIBRARY} ${FFmpeg_avutil_LIBRARY} ${FFmpeg_swscale_LIBRARY} ${FFmpeg_swresample_LIBRARY})
+      set(FFmpeg_FOUND TRUE)
+    endif()
+  endif()
+endif()
+
+if(NOT FFmpeg_FOUND)
+  message(WARNING "FFmpeg not found. Please set FFmpeg_DIR or install FFmpeg.")
+endif()
 
 add_subdirectory(src)
 
