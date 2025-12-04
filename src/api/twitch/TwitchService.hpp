@@ -188,6 +188,18 @@ public:
    */
   Q_INVOKABLE void playStream(int index);
 
+  /**
+   * @brief Obtient l'URL HLS pour un stream Twitch
+   * @param streamerLogin Le login du streamer
+   */
+  Q_INVOKABLE void getStreamHlsUrl(const QString& streamerLogin);
+  
+  /**
+   * @brief Obtient l'URL HLS actuelle (après appel à getStreamHlsUrl)
+   * @return L'URL HLS ou QString vide si non disponible
+   */
+  Q_INVOKABLE QString currentHlsUrl() const;
+
 signals:
   void authenticatedChanged(bool authenticated);
   void streamsChanged();
@@ -202,10 +214,13 @@ signals:
   void selectedStreamChanged();
   void userIdChanged();
   void userNameChanged();
+  void hlsUrlReady(const QString& url);
   void errorOccurred(const QString& message);
 
 private:
   void selectUrl(int index);
+  void fetchAndSelectBestQuality(const QString& masterPlaylistUrl);
+  QString selectBestQualityFromPlaylist(const QString& playlistContent);
 
 private slots:
   void onAuthStateChanged(bool authenticated);
@@ -221,6 +236,8 @@ private slots:
   void onCategoryStreamsReady(const QVariantList& streams);
   void onUserInfoReady(const QString& userId);
   void onUserInfoReadyWithName(const QString& userId, const QString& userName);
+  void onPlaybackAccessTokenReady(const QString& token, const QString& sig);
+  void onTokenInvalidated();
 
 private:
   TwitchAuthManager* m_authManager = nullptr;
@@ -237,6 +254,8 @@ private:
   QString m_selectedStreamUrl;
   QString m_userId;
   QString m_userName;
+  QString m_currentHlsUrl;
+  QString m_pendingStreamerLogin;
 };
 
 }  // namespace blueplayer::api::twitch

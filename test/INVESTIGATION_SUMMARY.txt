@@ -1,0 +1,37 @@
+================================================================================
+TWITCH GRAPHQL CLIENT-ID ERROR - INVESTIGATION COMPLETE
+================================================================================
+
+ERROR CAPTURED:
+  "The \"Client-ID\" header is invalid." (HTTP 400 Bad Request)
+
+ROOT CAUSE CONFIRMED:
+  Qt normalizes HTTP header names to lowercase during transmission
+  Twitch GraphQL API rejects lowercase "client-id" header
+  Helix API accepts lowercase headers (works fine)
+
+EVIDENCE:
+  ✓ Code sets "Client-ID" with exact case
+  ✓ Qt sends "client-id" in lowercase (confirmed in logs)
+  ✓ Helix API works with lowercase headers
+  ✓ GraphQL API fails with same headers
+  ✓ Token and Client-ID verified to match
+
+FILES CREATED:
+  - test/twitch_graphql_test.sh (curl test script)
+  - test/final_investigation_report.md (complete report)
+  - test/investigation_summary.md (summary)
+  - test/investigation_findings.md (detailed findings)
+  - test/test_results.md (test results)
+  - test/run_investigation.sh (investigation script)
+
+NEXT STEPS:
+  1. Run curl test: TWITCH_ACCESS_TOKEN='token' ./test/twitch_graphql_test.sh kamet0
+  2. If lowercase fails: Implement libcurl for GraphQL requests
+  3. If lowercase works: Investigate other causes (scopes, etc.)
+
+RECOMMENDED SOLUTION:
+  Use libcurl for GraphQL requests only (preserves header case)
+  Keep Qt networking for Helix API (works fine)
+
+================================================================================

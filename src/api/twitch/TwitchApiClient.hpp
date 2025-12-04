@@ -1,8 +1,10 @@
 #pragma once
 
 #include "core/network/ApiClientBase.hpp"
+#include "core/network/CurlHttpClient.hpp"
 #include <QObject>
 #include <QVariantList>
+#include <memory>
 
 QT_BEGIN_NAMESPACE
 class QNetworkReply;
@@ -109,6 +111,12 @@ public:
    */
   Q_INVOKABLE void getStreamsByCategory(const QString& gameId, int limit = 20);
 
+  /**
+   * @brief Obtient le PlaybackAccessToken pour un stream via GraphQL
+   * @param streamerLogin Le login du streamer
+   */
+  void getPlaybackAccessToken(const QString& streamerLogin);
+
 signals:
   void streamsReady(const QVariantList& streams);
   void recommendedStreamsReady(const QVariantList& streams);
@@ -121,7 +129,9 @@ signals:
   void categoryStreamsReady(const QVariantList& streams);
   void userInfoReady(const QString& userId);
   void userInfoReadyWithName(const QString& userId, const QString& userName);
+  void playbackAccessTokenReady(const QString& token, const QString& sig);
   void errorOccurred(const QString& message);  // Gardé pour compatibilité QML
+  void tokenInvalidated();  // Émis quand le token est invalide (Client-ID mismatch)
 
 private slots:
   void handleReply();
@@ -135,6 +145,8 @@ private slots:
   void handleUserInfoReply();
   void handleFollowedStreamsReply();
   void handleUsersInfoReply();
+  void handlePlaybackAccessTokenReply();
+  void handlePlaybackAccessTokenResponse(const QJsonDocument& document, const QString& streamerLogin);
 
 private:
   QString expandThumbnail(const QString& templateUrl) const;
@@ -145,6 +157,9 @@ private:
   void getUsersInfo(const QStringList& userIds);
   
   QString m_clientId;
+  
+  // CurlHttpClient for GraphQL requests (preserves header case)
+  std::unique_ptr<blueplayer::core::network::CurlHttpClient> m_curlClient;
   QVariantList m_pendingChannels;  // Stocke temporairement les chaînes en attendant les avatars
   QVariantList m_pendingChannelsForNewStreamers;  // Stocke les entries JSON originales converties en QVariantList pour récupérer followed_at
   void emitNewStreamersFromChannels(const QVariantList& channels, const QVariantList& entries);

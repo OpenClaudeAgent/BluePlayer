@@ -9,6 +9,9 @@ Item {
   property string viewerCount: ""
   property bool isPlaceholder: false
   property string previewImage: ""
+  property string streamerLogin: ""
+  
+  signal clicked(string streamerLogin, string streamerName, string streamTitle)
 
   implicitWidth: 180
   implicitHeight: 220
@@ -172,9 +175,9 @@ Item {
     hoverEnabled: true
     cursorShape: Qt.PointingHandCursor
     onClicked: {
-      if (!cardRoot.isPlaceholder) {
-        console.log("Clicked on stream:", cardRoot.streamerName)
-        // TODO: Navigate to stream
+      if (!cardRoot.isPlaceholder && cardRoot.streamerLogin) {
+        console.log("Clicked on stream:", cardRoot.streamerName, "login:", cardRoot.streamerLogin)
+        cardRoot.clicked(cardRoot.streamerLogin, cardRoot.streamerName, cardRoot.streamTitle)
       }
     }
   }

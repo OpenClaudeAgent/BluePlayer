@@ -4,6 +4,7 @@
 #include "core/Logger.hpp"
 #include "core/InputValidator.hpp"
 #include "core/ErrorHandler.hpp"
+#include "core/network/CurlHttpClient.hpp"
 
 using blueplayer::core::InputValidator;
 using blueplayer::core::ErrorHandler;
@@ -18,9 +19,34 @@ namespace blueplayer::api::twitch {
 
 TwitchApiClient::TwitchApiClient(const QString& clientId, QObject* parent)
     : ApiClientBase(parent),
-      m_clientId(clientId) {
-  // Configurer le header Client-Id par défaut
-  setDefaultHeader(QStringLiteral("Client-Id"), clientId);
+      m_clientId(clientId),
+      m_curlClient(std::make_unique<blueplayer::core::network::CurlHttpClient>(this)) {
+  // Configurer le header Client-ID par défaut (avec tiret, comme attendu par l'API Twitch)
+  // NOTE: Investigation shows Qt normalizes headers to lowercase, so this will be sent as "client-id"
+  // This works fine for Helix API but may cause issues with GraphQL API
+  // GraphQL requests use CurlHttpClient which preserves exact header case
+  setDefaultHeader(QStringLiteral("Client-ID"), clientId);
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("[DEBUG] Set default Client-ID header: %1").arg(clientId.isEmpty() ? "EMPTY" : clientId.left(10) + "..."));
+  
+  // Connect CurlHttpClient errors
+  connect(m_curlClient.get(), &blueplayer::core::network::CurlHttpClient::errorOccurred,
+          this, [this](const QString& error) {
+            emit errorOccurred(error);
+          });
+  
+  // Connect HTTP errors to detect Client-ID mismatch
+  connect(m_curlClient.get(), &blueplayer::core::network::CurlHttpClient::httpError,
+          this, [this](int statusCode, const QString& errorMessage) {
+            // Detect 400 Bad Request with "Client-ID header is invalid" message
+            if (statusCode == 400 && errorMessage.contains(QStringLiteral("Client-ID"), Qt::CaseInsensitive)) {
+              core::Logger::warning(core::LogCategory::Twitch, QStringLiteral("[WARNING] Client-ID header invalid - token may have been generated with different Client-ID"));
+              core::Logger::warning(core::LogCategory::Twitch, QStringLiteral("[WARNING] This indicates the token was generated with a different Client-ID"));
+              // Emit a specific error message to inform the user
+              emit errorOccurred(QStringLiteral("Le token d'authentification ne correspond pas au Client-ID actuel. Veuillez vous reconnecter."));
+              // Emit a signal to invalidate the token (will be handled by TwitchService)
+              emit tokenInvalidated();
+            }
+          });
   
   // Connecter les erreurs de ApiClientBase vers le signal QString pour compatibilité QML
   connect(this, &ApiClientBase::errorOccurred, this, [this](const blueplayer::core::Error& error) {
@@ -286,6 +312,15 @@ void TwitchApiClient::handleCategoriesReply() {
 
 void TwitchApiClient::getUserInfo() {
   core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("getUserInfo() called"));
+  
+  // Verify bearer token is set
+  QString token = ApiClientBase::bearerToken();
+  if (token.isEmpty()) {
+    core::Logger::error(core::LogCategory::Twitch, QStringLiteral("[ERROR] getUserInfo() called but bearer token is empty!"));
+    emit errorOccurred(QStringLiteral("Token d'authentification manquant"));
+    return;
+  }
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("[DEBUG] Bearer token available for getUserInfo, length: %1").arg(token.length()));
   
   QUrl url(QStringLiteral("https://api.twitch.tv/helix/users"));
   core::Logger::debug(core::LogCategory::Network, QStringLiteral("Requesting user info from: %1").arg(url.toString()));
@@ -909,6 +944,154 @@ QString TwitchApiClient::expandThumbnail(const QString& templateUrl) const {
   sanitized.replace(QStringLiteral("{width}"), QString::number(core::constants::twitch::kThumbnailWidth));
   sanitized.replace(QStringLiteral("{height}"), QString::number(core::constants::twitch::kThumbnailHeight));
   return sanitized;
+}
+
+void TwitchApiClient::getPlaybackAccessToken(const QString& streamerLogin) {
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("[DEBUG] getPlaybackAccessToken() called for: '%1'").arg(streamerLogin));
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("[DEBUG] Client-ID: %1").arg(m_clientId.isEmpty() ? "EMPTY" : m_clientId));
+  
+  // Vérifier que le Client-ID est défini
+  if (m_clientId.isEmpty()) {
+    core::Logger::error(core::LogCategory::Twitch, QStringLiteral("[ERROR] Client-ID is empty! Cannot make GraphQL request."));
+    emit errorOccurred(QStringLiteral("Client-ID manquant"));
+    return;
+  }
+  
+  // IMPORTANT: D'après la doc Twitch, le Client-ID dans le header doit correspondre
+  // au Client-ID utilisé pour générer le token OAuth. Vérifier que c'est le cas.
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("[DEBUG] Using Client-ID: %1 (full value for verification)").arg(m_clientId));
+  
+  // Requête GraphQL pour obtenir le PlaybackAccessToken pour un stream live
+  QJsonObject queryObject;
+  queryObject[QStringLiteral("query")] = QStringLiteral(
+    "query PlaybackAccessToken($login: String!) {"
+    "  streamPlaybackAccessToken(channelName: $login, params: {platform: \"web\", playerBackend: \"mediaplayer\", playerType: \"site\"}) {"
+    "    value"
+    "    signature"
+    "  }"
+    "}"
+  );
+  
+  QJsonObject variables;
+  variables[QStringLiteral("login")] = streamerLogin;
+  queryObject[QStringLiteral("variables")] = variables;
+  
+  QJsonDocument doc(queryObject);
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("[DEBUG] GraphQL query: %1").arg(QString::fromUtf8(doc.toJson(QJsonDocument::Compact))));
+  
+  QUrl url(QStringLiteral("https://gql.twitch.tv/gql"));
+  QHash<QString, QString> headers;
+  headers[QStringLiteral("Content-Type")] = QStringLiteral("application/json");
+  
+  // TEST: Try setting Client-ID explicitly in custom headers instead of relying on default header
+  // This is to test if the issue is related to header application order or duplication
+  // Note: According to investigation, Qt normalizes headers to lowercase, so this may not help
+  // but it's worth testing different approaches
+  headers[QStringLiteral("Client-ID")] = m_clientId;
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("[DEBUG] TEST: Setting Client-ID in custom headers (in addition to default header)"));
+  
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("[DEBUG] GraphQL request to: %1").arg(url.toString()));
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("[DEBUG] GraphQL request headers:"));
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("[DEBUG]   Client-ID: %1 (length: %2)").arg(m_clientId).arg(m_clientId.length()));
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("[DEBUG]   Authorization: Bearer token (set via setBearerToken)"));
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("[DEBUG]   Content-Type: application/json"));
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("[DEBUG] GraphQL query: %1").arg(QString::fromUtf8(doc.toJson(QJsonDocument::Compact)).left(200)));
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("[DEBUG] Using CurlHttpClient for GraphQL request to preserve exact header case"));
+  
+  // Use CurlHttpClient instead of Qt's QNetworkRequest to preserve exact header case
+  // Qt normalizes headers to lowercase, but Twitch GraphQL API requires exact case "Client-ID"
+  QHash<QString, QString> curlHeaders;
+  
+  // IMPORTANT: The Twitch GraphQL API (gql.twitch.tv) is NOT officially documented/supported
+  // and requires a specific Client-ID - the Twitch web client's Client-ID
+  // Using your own registered Client-ID will result in "Client-ID header is invalid" error
+  // This is a well-known workaround used by third-party Twitch clients
+  static const QString kTwitchWebClientId = QStringLiteral("kimne78kx3ncx6brgo4mv6wki5h1ko");
+  
+  curlHeaders[QStringLiteral("Client-ID")] = kTwitchWebClientId;
+  
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("[DEBUG] Client-ID for GraphQL: using Twitch web client ID (required for GQL API)"));
+  
+  // NOTE: Le token OAuth de l'utilisateur ne peut pas être utilisé avec le Client-ID web
+  // car il a été généré avec un Client-ID différent. La requête GraphQL fonctionne
+  // sans authentification, mais les publicités pré-roll seront diffusées.
+  // C'est une limitation de l'API Twitch - les pubs sont injectées côté serveur.
+  
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("[DEBUG] Making GraphQL request with libcurl (preserves header case)"));
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("[DEBUG] Headers being sent: Client-ID='%1' (Twitch web client, no OAuth)").arg(kTwitchWebClientId));
+  
+  // Perform request with libcurl (preserves exact header case)
+  QJsonDocument responseDoc = m_curlClient->postJson(url, doc, curlHeaders);
+  
+  if (responseDoc.isNull()) {
+    core::Logger::error(core::LogCategory::Twitch, QStringLiteral("[ERROR] CurlHttpClient returned null response"));
+    emit errorOccurred(QStringLiteral("Erreur lors de la requête GraphQL"));
+    return;
+  }
+  
+  // Handle response (similar to handlePlaybackAccessTokenReply)
+  handlePlaybackAccessTokenResponse(responseDoc, streamerLogin);
+}
+
+void TwitchApiClient::handlePlaybackAccessTokenReply() {
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("[DEBUG] handlePlaybackAccessTokenReply() called"));
+  QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
+  const QString streamerLogin = reply->property("streamerLogin").toString();
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("[DEBUG] streamerLogin from property: '%1'").arg(streamerLogin));
+  
+  if (handleNetworkError(reply, QStringLiteral("récupération du PlaybackAccessToken"))) {
+    core::Logger::error(core::LogCategory::Twitch, QStringLiteral("[ERROR] Network error in handlePlaybackAccessTokenReply"));
+    reply->deleteLater();
+    return;
+  }
+  
+  const QJsonDocument document = parseJsonResponse(reply, QStringLiteral("PlaybackAccessToken"));
+  reply->deleteLater();
+  
+  handlePlaybackAccessTokenResponse(document, streamerLogin);
+}
+
+void TwitchApiClient::handlePlaybackAccessTokenResponse(const QJsonDocument& document, const QString& streamerLogin) {
+  if (document.isNull() || !document.isObject()) {
+    core::Logger::error(core::LogCategory::Twitch, QStringLiteral("[ERROR] Invalid JSON response for PlaybackAccessToken"));
+    emit errorOccurred(QStringLiteral("Réponse invalide de l'API Twitch"));
+    return;
+  }
+  
+  const QJsonObject root = document.object();
+  const QJsonObject data = root.value(QStringLiteral("data")).toObject();
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("[DEBUG] JSON data keys: %1").arg(data.keys().join(", ")));
+  
+  // Essayer d'abord streamPlaybackAccessToken (pour les streams live)
+  QJsonObject tokenObj = data.value(QStringLiteral("streamPlaybackAccessToken")).toObject();
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("[DEBUG] streamPlaybackAccessToken isEmpty: %1").arg(tokenObj.isEmpty()));
+  if (tokenObj.isEmpty()) {
+    // Sinon essayer videoPlaybackAccessToken (pour les VODs)
+    tokenObj = data.value(QStringLiteral("videoPlaybackAccessToken")).toObject();
+    core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("[DEBUG] videoPlaybackAccessToken isEmpty: %1").arg(tokenObj.isEmpty()));
+  }
+  
+  if (tokenObj.isEmpty()) {
+    core::Logger::error(core::LogCategory::Twitch, QStringLiteral("[ERROR] No playback access token found in response"));
+    core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("[DEBUG] Full JSON response: %1").arg(QString::fromUtf8(document.toJson(QJsonDocument::Compact))));
+    emit errorOccurred(QStringLiteral("Token de lecture non trouvé"));
+    return;
+  }
+  
+  const QString token = tokenObj.value(QStringLiteral("value")).toString();
+  const QString sig = tokenObj.value(QStringLiteral("signature")).toString();
+  
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("[DEBUG] Token length: %1").arg(token.length()));
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("[DEBUG] Signature length: %1").arg(sig.length()));
+  
+  if (token.isEmpty() || sig.isEmpty()) {
+    core::Logger::error(core::LogCategory::Twitch, QStringLiteral("[ERROR] Empty token or signature"));
+    emit errorOccurred(QStringLiteral("Token ou signature vide"));
+    return;
+  }
+  
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("[DEBUG] PlaybackAccessToken obtained successfully, emitting signal"));
+  emit playbackAccessTokenReady(token, sig);
 }
 
 }  // namespace blueplayer::api::twitch

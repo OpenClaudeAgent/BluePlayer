@@ -11,6 +11,12 @@ using blueplayer::core::InputValidator;
 
 #include <QVariantMap>
 #include <QTimer>
+#include <QRandomGenerator>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+#include <QNetworkRequest>
+#include <QRegularExpression>
+#include <QUrl>
 
 namespace blueplayer::api::twitch {
 
@@ -41,7 +47,9 @@ TwitchService::TwitchService(QObject* parent)
   connect(m_apiClient, &TwitchApiClient::categoryStreamsReady, this, &TwitchService::onCategoryStreamsReady, Qt::UniqueConnection);
   connect(m_apiClient, &TwitchApiClient::userInfoReady, this, &TwitchService::onUserInfoReady, Qt::UniqueConnection);
   connect(m_apiClient, &TwitchApiClient::userInfoReadyWithName, this, &TwitchService::onUserInfoReadyWithName, Qt::UniqueConnection);
+  connect(m_apiClient, &TwitchApiClient::playbackAccessTokenReady, this, &TwitchService::onPlaybackAccessTokenReady, Qt::UniqueConnection);
   connect(m_apiClient, &TwitchApiClient::errorOccurred, this, &TwitchService::errorOccurred, Qt::UniqueConnection);
+  connect(m_apiClient, &TwitchApiClient::tokenInvalidated, this, &TwitchService::onTokenInvalidated, Qt::UniqueConnection);
   
   Logger::debug(LogCategory::Twitch, QStringLiteral("Initial authenticated state: %1").arg(m_authManager->isAuthenticated()));
   
@@ -586,7 +594,16 @@ void TwitchService::refreshStreams() {
     m_apiClient->listFollowedStreams(m_userId);
   } else {
     // Sinon, on récupère d'abord l'ID utilisateur
-    Logger::debug(LogCategory::Twitch, QStringLiteral("User ID unknown, requesting user info first"));
+    // Vérifier que le token est défini avant d'appeler getUserInfo()
+    QString token = m_authManager ? m_authManager->accessToken() : QString();
+    if (token.isEmpty()) {
+      Logger::error(LogCategory::Twitch, QStringLiteral("[ERROR] Cannot get user info: token is empty"));
+      emit errorOccurred(QStringLiteral("Token d'authentification manquant pour récupérer les informations utilisateur"));
+      return;
+    }
+    // S'assurer que le token est défini dans l'API client
+    m_apiClient->setAccessToken(token);
+    Logger::debug(LogCategory::Twitch, QStringLiteral("User ID unknown, requesting user info first (token length: %1)").arg(token.length()));
     m_apiClient->getUserInfo();
   }
 }
@@ -615,6 +632,250 @@ void TwitchService::selectUrl(int index) {
 
   m_selectedStreamUrl = url;
   emit selectedStreamChanged();
+}
+
+void TwitchService::getStreamHlsUrl(const QString& streamerLogin) {
+  Logger::debug(LogCategory::Twitch, QStringLiteral("[DEBUG] getStreamHlsUrl() called for: '%1'").arg(streamerLogin));
+  Logger::debug(LogCategory::Twitch, QStringLiteral("[DEBUG] streamerLogin.isEmpty(): %1").arg(streamerLogin.isEmpty()));
+  Logger::debug(LogCategory::Twitch, QStringLiteral("[DEBUG] m_apiClient: %1").arg(m_apiClient ? "exists" : "null"));
+  
+  if (streamerLogin.isEmpty()) {
+    Logger::error(LogCategory::Twitch, QStringLiteral("[ERROR] Empty streamer login"));
+    emit errorOccurred(QStringLiteral("Login du streamer vide"));
+    return;
+  }
+  
+  // IMPORTANT: Vérifier que le token est valide et correspond au Client-ID
+  // D'après la doc Twitch, le Client-ID dans le header doit correspondre au Client-ID du token
+  if (m_authManager && m_authManager->isAuthenticated()) {
+    QString token = m_authManager->accessToken();
+    if (token.isEmpty()) {
+      Logger::error(LogCategory::Twitch, QStringLiteral("[ERROR] Token is empty but user is marked as authenticated"));
+      emit errorOccurred(QStringLiteral("Token d'accès manquant. Veuillez vous reconnecter."));
+      return;
+    }
+    Logger::debug(LogCategory::Twitch, QStringLiteral("[DEBUG] Token available, length: %1").arg(token.length()));
+    
+    // Vérifier que le Client-ID utilisé correspond à celui du token
+    QString currentClientId = QString::fromUtf8(qgetenv("TWITCH_CLIENT_ID"));
+    Logger::debug(LogCategory::Twitch, QStringLiteral("[DEBUG] Current Client-ID: %1").arg(currentClientId.isEmpty() ? "EMPTY" : currentClientId));
+    Logger::debug(LogCategory::Twitch, QStringLiteral("[DEBUG] NOTE: If you get 'Client-ID header is invalid', the token may have been generated with a different Client-ID"));
+    Logger::debug(LogCategory::Twitch, QStringLiteral("[DEBUG] SOLUTION: Log out and log back in to regenerate the token with the current Client-ID"));
+  } else {
+    Logger::error(LogCategory::Twitch, QStringLiteral("[ERROR] User is not authenticated"));
+    emit errorOccurred(QStringLiteral("Utilisateur non authentifié"));
+    return;
+  }
+  
+  // Stocker le login en attente
+  m_pendingStreamerLogin = streamerLogin;
+  m_currentHlsUrl.clear();
+  Logger::debug(LogCategory::Twitch, QStringLiteral("[DEBUG] Stored pendingStreamerLogin: '%1'").arg(m_pendingStreamerLogin));
+  
+  // Obtenir le PlaybackAccessToken via GraphQL
+  if (m_apiClient) {
+    Logger::debug(LogCategory::Twitch, QStringLiteral("[DEBUG] Calling m_apiClient->getPlaybackAccessToken('%1')").arg(streamerLogin));
+    m_apiClient->getPlaybackAccessToken(streamerLogin);
+  } else {
+    Logger::error(LogCategory::Twitch, QStringLiteral("[ERROR] API client is null"));
+    emit errorOccurred(QStringLiteral("Client API non initialisé"));
+  }
+}
+
+QString TwitchService::currentHlsUrl() const {
+  return m_currentHlsUrl;
+}
+
+void TwitchService::onPlaybackAccessTokenReady(const QString& token, const QString& sig) {
+  Logger::debug(LogCategory::Twitch, QStringLiteral("[DEBUG] onPlaybackAccessTokenReady() called"));
+  Logger::debug(LogCategory::Twitch, QStringLiteral("[DEBUG] token length: %1").arg(token.length()));
+  Logger::debug(LogCategory::Twitch, QStringLiteral("[DEBUG] sig length: %1").arg(sig.length()));
+  Logger::debug(LogCategory::Twitch, QStringLiteral("[DEBUG] m_pendingStreamerLogin: '%1'").arg(m_pendingStreamerLogin));
+  
+  if (m_pendingStreamerLogin.isEmpty()) {
+    Logger::error(LogCategory::Twitch, QStringLiteral("[ERROR] No pending streamer login"));
+    return;
+  }
+  
+  // Construire l'URL du master playlist HLS
+  QString masterPlaylistUrl = QStringLiteral(
+    "https://usher.ttvnw.net/api/channel/hls/%1.m3u8"
+    "?token=%2"
+    "&sig=%3"
+    "&allow_source=true"
+    "&allow_audio_only=false"
+    "&allow_spectre=false"
+    "&fast_bread=true"
+    "&p=%4"
+    "&player_backend=mediaplayer"
+    "&playlist_include_framerate=true"
+    "&reassignments_supported=true"
+    "&supported_codecs=avc1"
+    "&cdm=wv"
+    "&player_version=1.22.0"
+  ).arg(m_pendingStreamerLogin, token, sig, QString::number(QRandomGenerator::global()->bounded(1000000, 9999999)));
+  
+  Logger::debug(LogCategory::Twitch, QStringLiteral("[DEBUG] Master playlist URL: %1").arg(masterPlaylistUrl.left(150) + "..."));
+  
+  // Récupérer le master playlist et sélectionner la meilleure qualité
+  fetchAndSelectBestQuality(masterPlaylistUrl);
+}
+
+void TwitchService::fetchAndSelectBestQuality(const QString& masterPlaylistUrl) {
+  Logger::debug(LogCategory::Twitch, QStringLiteral("[DEBUG] Fetching master playlist to select best quality..."));
+  
+  QNetworkAccessManager* manager = new QNetworkAccessManager(this);
+  QUrl url(masterPlaylistUrl);
+  QNetworkRequest request;
+  request.setUrl(url);
+  request.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("Mozilla/5.0"));
+  
+  QNetworkReply* reply = manager->get(request);
+  connect(reply, &QNetworkReply::finished, this, [this, reply, manager, masterPlaylistUrl]() {
+    reply->deleteLater();
+    manager->deleteLater();
+    
+    if (reply->error() != QNetworkReply::NoError) {
+      Logger::error(LogCategory::Twitch, QStringLiteral("[ERROR] Failed to fetch master playlist: %1").arg(reply->errorString()));
+      // Fallback: utiliser le master playlist directement
+      m_currentHlsUrl = masterPlaylistUrl;
+      emit hlsUrlReady(masterPlaylistUrl);
+      m_pendingStreamerLogin.clear();
+      return;
+    }
+    
+    QString playlistContent = QString::fromUtf8(reply->readAll());
+    Logger::debug(LogCategory::Twitch, QStringLiteral("[DEBUG] Master playlist received, size: %1 bytes").arg(playlistContent.size()));
+    
+    // Sélectionner la meilleure qualité
+    QString bestQualityUrl = selectBestQualityFromPlaylist(playlistContent);
+    
+    if (bestQualityUrl.isEmpty()) {
+      Logger::warning(LogCategory::Twitch, QStringLiteral("[WARNING] Could not find quality variant, using master playlist"));
+      m_currentHlsUrl = masterPlaylistUrl;
+    } else {
+      Logger::debug(LogCategory::Twitch, QStringLiteral("[DEBUG] Selected quality URL: %1").arg(bestQualityUrl.left(100) + "..."));
+      m_currentHlsUrl = bestQualityUrl;
+    }
+    
+    emit hlsUrlReady(m_currentHlsUrl);
+    m_pendingStreamerLogin.clear();
+  });
+}
+
+QString TwitchService::selectBestQualityFromPlaylist(const QString& playlistContent) {
+  Logger::debug(LogCategory::Twitch, QStringLiteral("[DEBUG] Parsing master playlist for quality variants..."));
+  
+  // Le master playlist HLS a le format:
+  // #EXTM3U
+  // #EXT-X-TWITCH-INFO:...
+  // #EXT-X-MEDIA:TYPE=VIDEO,GROUP-ID="chunked",NAME="1080p60 (source)",AUTOSELECT=YES,DEFAULT=YES
+  // #EXT-X-STREAM-INF:BANDWIDTH=...,RESOLUTION=1920x1080,CODECS="...",VIDEO="chunked"
+  // https://video-edge-xxx.m3u8
+  
+  QStringList lines = playlistContent.split('\n');
+  
+  // Structure pour stocker les variantes trouvées
+  struct QualityVariant {
+    QString name;
+    QString url;
+    int bandwidth = 0;
+    int width = 0;
+    int height = 0;
+    int priority = 0;  // Plus élevé = meilleur
+  };
+  
+  QList<QualityVariant> variants;
+  QString currentStreamInfo;
+  
+  for (int i = 0; i < lines.size(); ++i) {
+    QString line = lines[i].trimmed();
+    
+    if (line.startsWith(QStringLiteral("#EXT-X-STREAM-INF:"))) {
+      currentStreamInfo = line;
+      
+      // Parser les infos du stream
+      QualityVariant variant;
+      
+      // Extraire BANDWIDTH
+      QRegularExpression bandwidthRe(QStringLiteral("BANDWIDTH=(\\d+)"));
+      QRegularExpressionMatch match = bandwidthRe.match(line);
+      if (match.hasMatch()) {
+        variant.bandwidth = match.captured(1).toInt();
+      }
+      
+      // Extraire RESOLUTION
+      QRegularExpression resolutionRe(QStringLiteral("RESOLUTION=(\\d+)x(\\d+)"));
+      match = resolutionRe.match(line);
+      if (match.hasMatch()) {
+        variant.width = match.captured(1).toInt();
+        variant.height = match.captured(2).toInt();
+      }
+      
+      // Extraire VIDEO (nom de la qualité)
+      QRegularExpression videoRe(QStringLiteral("VIDEO=\"([^\"]+)\""));
+      match = videoRe.match(line);
+      if (match.hasMatch()) {
+        variant.name = match.captured(1);
+      }
+      
+      // Calculer la priorité basée sur la qualité
+      // Priorité: chunked (source) > 1080p60 > 1080p > 720p60 > 720p > etc.
+      if (variant.name == QStringLiteral("chunked")) {
+        variant.priority = 1000;  // Source quality - highest priority
+      } else if (variant.height >= 1080) {
+        variant.priority = 900 + (variant.name.contains("60") ? 50 : 0);
+      } else if (variant.height >= 720) {
+        variant.priority = 700 + (variant.name.contains("60") ? 50 : 0);
+      } else if (variant.height >= 480) {
+        variant.priority = 500;
+      } else {
+        variant.priority = variant.height;
+      }
+      
+      // La ligne suivante devrait être l'URL
+      if (i + 1 < lines.size()) {
+        QString nextLine = lines[i + 1].trimmed();
+        if (!nextLine.isEmpty() && !nextLine.startsWith('#')) {
+          variant.url = nextLine;
+          variants.append(variant);
+          
+          Logger::debug(LogCategory::Twitch, QStringLiteral("[DEBUG] Found variant: %1 (%2x%3) bandwidth=%4 priority=%5")
+                       .arg(variant.name)
+                       .arg(variant.width)
+                       .arg(variant.height)
+                       .arg(variant.bandwidth)
+                       .arg(variant.priority));
+        }
+      }
+    }
+  }
+  
+  if (variants.isEmpty()) {
+    Logger::warning(LogCategory::Twitch, QStringLiteral("[WARNING] No quality variants found in playlist"));
+    return QString();
+  }
+  
+  // Trier par priorité décroissante
+  std::sort(variants.begin(), variants.end(), [](const QualityVariant& a, const QualityVariant& b) {
+    return a.priority > b.priority;
+  });
+  
+  // Sélectionner la meilleure qualité
+  const QualityVariant& best = variants.first();
+  Logger::debug(LogCategory::Twitch, QStringLiteral("[DEBUG] Selected best quality: %1 (%2x%3)")
+               .arg(best.name)
+               .arg(best.width)
+               .arg(best.height));
+  
+  return best.url;
+}
+
+void TwitchService::onTokenInvalidated() {
+  Logger::warning(LogCategory::Twitch, QStringLiteral("[WARNING] Token invalidated due to Client-ID mismatch - forcing logout"));
+  if (m_authManager) {
+    m_authManager->logout();
+  }
 }
 
 }  // namespace blueplayer::api::twitch

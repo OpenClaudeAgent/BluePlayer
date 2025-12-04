@@ -88,6 +88,7 @@ QVariantList HomeViewModel::transformTwitchStreams(const QVariantList& twitchStr
     QVariantMap transformedStream;
     
     const QString userName = stream.value(QStringLiteral("user_name")).toString();
+    const QString userLogin = stream.value(QStringLiteral("user_login")).toString();
     const QString title = stream.value(QStringLiteral("title")).toString();
     const int viewerCount = stream.value(QStringLiteral("viewer_count")).toInt();
     const QString thumbnailUrl = stream.value(QStringLiteral("thumbnail_url")).toString();
@@ -100,6 +101,8 @@ QVariantList HomeViewModel::transformTwitchStreams(const QVariantList& twitchStr
     transformedStream[QStringLiteral("viewers")] = viewerText;
     transformedStream[QStringLiteral("previewImage")] = thumbnailUrl;
     transformedStream[QStringLiteral("streamUrl")] = streamUrl;
+    transformedStream[QStringLiteral("streamerLogin")] = userLogin.isEmpty() ? userName.toLower() : userLogin;
+    transformedStream[QStringLiteral("userLogin")] = userLogin.isEmpty() ? userName.toLower() : userLogin;
     transformedStream[QStringLiteral("isPlaceholder")] = false;
     
     transformed.append(transformedStream);

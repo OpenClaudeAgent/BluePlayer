@@ -20,6 +20,10 @@ void ApiClientBase::setBearerToken(const QString& token) {
   m_httpClient->setBearerToken(token);
 }
 
+QString ApiClientBase::bearerToken() const {
+  return m_httpClient->bearerToken();
+}
+
 void ApiClientBase::setDefaultHeader(const QString& name, const QString& value) {
   m_httpClient->setDefaultHeader(name, value);
 }

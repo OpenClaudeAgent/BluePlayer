@@ -105,6 +105,12 @@ protected:
    * @return Le HttpClient
    */
   [[nodiscard]] HttpClient* httpClient() const { return m_httpClient; }
+  
+  /**
+   * @brief Obtient le bearer token actuel
+   * @return Le bearer token, ou QString() si non défini
+   */
+  [[nodiscard]] QString bearerToken() const;
 
 private slots:
   /**

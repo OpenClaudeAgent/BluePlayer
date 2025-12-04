@@ -52,31 +52,35 @@ void FFmpegMediaService::play(const QUrl& source) {
     return;
   }
 
-  if (!source.isLocalFile()) {
-    const auto error = ErrorHandler::mediaError(ErrorCode::MediaFormatNotSupported, QStringLiteral("play"), QStringLiteral("Les sources distantes ne sont pas (encore) prises en charge"));
-    emit errorOccurred(error.toString());
-    return;
-  }
-
-  const QString localPath = source.toLocalFile();
+  QString sourcePath;
   
-  // Validation robuste du chemin de fichier
-  if (localPath.isEmpty() || !InputValidator::isValidFilePath(localPath)) {
-    Logger::error(LogCategory::Media, QStringLiteral("Invalid file path: %1").arg(localPath));
-    const auto error = ErrorHandler::mediaError(ErrorCode::MediaFileNotFound, QStringLiteral("play"), QStringLiteral("Chemin de fichier invalide ou fichier inexistant"));
-    emit errorOccurred(error.toString());
-    return;
+  if (source.isLocalFile()) {
+    // Fichier local
+    sourcePath = source.toLocalFile();
+    
+    // Validation robuste du chemin de fichier
+    if (sourcePath.isEmpty() || !InputValidator::isValidFilePath(sourcePath)) {
+      Logger::error(LogCategory::Media, QStringLiteral("Invalid file path: %1").arg(sourcePath));
+      const auto error = ErrorHandler::mediaError(ErrorCode::MediaFileNotFound, QStringLiteral("play"), QStringLiteral("Chemin de fichier invalide ou fichier inexistant"));
+      emit errorOccurred(error.toString());
+      return;
+    }
+
+    // Sanitiser le chemin pour éviter les injections
+    QString sanitizedPath = InputValidator::sanitizeString(sourcePath);
+    if (sanitizedPath != sourcePath) {
+      Logger::warning(LogCategory::Media, QStringLiteral("Path sanitized: %1 -> %2").arg(sourcePath).arg(sanitizedPath));
+    }
+    sourcePath = sanitizedPath;
+  } else {
+    // URL distante (HLS, HTTP, etc.)
+    sourcePath = source.toString();
+    Logger::debug(LogCategory::Media, QStringLiteral("Playing remote URL: %1").arg(sourcePath));
   }
 
-  // Sanitiser le chemin pour éviter les injections
-  QString sanitizedPath = InputValidator::sanitizeString(localPath);
-  if (sanitizedPath != localPath) {
-    Logger::warning(LogCategory::Media, QStringLiteral("Path sanitized: %1 -> %2").arg(localPath).arg(sanitizedPath));
-  }
-
-  if (!m_source->open(sanitizedPath)) {
-    Logger::error(LogCategory::Media, QStringLiteral("Failed to open file: %1").arg(sanitizedPath));
-    const auto error = ErrorHandler::mediaError(ErrorCode::MediaDecodeError, QStringLiteral("play"), QStringLiteral("Impossible d'ouvrir le fichier"));
+  if (!m_source->open(sourcePath)) {
+    Logger::error(LogCategory::Media, QStringLiteral("Failed to open source: %1").arg(sourcePath));
+    const auto error = ErrorHandler::mediaError(ErrorCode::MediaDecodeError, QStringLiteral("play"), QStringLiteral("Impossible d'ouvrir la source"));
     emit errorOccurred(error.toString());
     return;
   }

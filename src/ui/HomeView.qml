@@ -16,6 +16,9 @@ Item {
   function getTwitchService() {
     return typeof twitchService !== "undefined" ? twitchService : null
   }
+  
+  // Signal pour ouvrir le player de stream
+  signal openStreamPlayer(string streamerLogin, string streamerName, string streamTitle)
 
   // HomeViewModel pour gérer la logique métier
   HomeViewModel {
@@ -374,6 +377,12 @@ Item {
               } else {
                 console.log("[DEBUG HomeView] Cannot refresh category streams - service:", service ? "exists" : "null", "categoryId:", categoryId)
               }
+            }
+            
+            onStreamClicked: function(streamerLogin, streamerName, streamTitle) {
+              console.log("[DEBUG HomeView] Stream clicked:", streamerName, "login:", streamerLogin)
+              // Émettre un signal pour ouvrir le player
+              homeRoot.openStreamPlayer(streamerLogin, streamerName, streamTitle)
             }
           }
         }

@@ -9,6 +9,7 @@
 #include <Qt>
 
 #include <atomic>
+#include <chrono>
 #include <thread>
 #include <vector>
 
@@ -89,8 +90,12 @@ void FFmpegMediaSource::decodeLoop(QString path) {
   AVPacket* packet = av_packet_alloc();
   AVFrame* decodedFrame = av_frame_alloc();
   AVFrame* convertedFrame = av_frame_alloc();
+  AVDictionary* options = nullptr;
 
   auto cleanup = [&]() {
+    if (options) {
+      av_dict_free(&options);
+    }
     if (packet) {
       av_packet_free(&packet);
     }
@@ -120,10 +125,32 @@ void FFmpegMediaSource::decodeLoop(QString path) {
     cleanup();
   };
 
-  if (avformat_open_input(&formatContext, path.toUtf8().constData(), nullptr, nullptr) != 0) {
+  // Options spécifiques pour les flux HLS live (Twitch)
+  bool isHlsStream = path.contains(QStringLiteral(".m3u8")) || path.contains(QStringLiteral("usher.ttvnw.net"));
+  if (isHlsStream) {
+    // Démarrer près du live edge (-3 segments avant la fin)
+    av_dict_set(&options, "live_start_index", "-3", 0);
+    // Permettre tous les types d'extensions
+    av_dict_set(&options, "allowed_extensions", "ALL", 0);
+    // Réutiliser les connexions HTTP
+    av_dict_set(&options, "http_persistent", "1", 0);
+    // Timeout de connexion raisonnable (5 secondes)
+    av_dict_set(&options, "timeout", "5000000", 0);
+    // IMPORTANT: Ne pas ouvrir plusieurs connexions en parallèle
+    av_dict_set(&options, "http_multiple", "0", 0);
+    // Sélectionner la meilleure qualité par bande passante (au lieu de toutes)
+    // max_reload limite les reloads de playlist
+    av_dict_set(&options, "max_reload", "3", 0);
+  }
+
+  if (avformat_open_input(&formatContext, path.toUtf8().constData(), nullptr, &options) != 0) {
     failEarly();
     return;
   }
+
+  // Options pour la recherche de stream info (limiter le temps de probe)
+  formatContext->probesize = 1024 * 1024;  // 1MB max
+  formatContext->max_analyze_duration = 3 * AV_TIME_BASE;  // 3 secondes max
 
   if (avformat_find_stream_info(formatContext, nullptr) < 0) {
     failEarly();
@@ -166,55 +193,92 @@ void FFmpegMediaSource::decodeLoop(QString path) {
     return;
   }
 
-  const int targetWidth = codecContext->width;
-  const int targetHeight = codecContext->height;
+  int currentWidth = codecContext->width;
+  int currentHeight = codecContext->height;
+  AVPixelFormat currentPixFmt = codecContext->pix_fmt;
   const AVPixelFormat targetFormat = AV_PIX_FMT_RGB32;
 
-  swsContext = sws_getContext(codecContext->width,
-                              codecContext->height,
-                              codecContext->pix_fmt,
-                              targetWidth,
-                              targetHeight,
-                              targetFormat,
-                              SWS_BILINEAR,
-                              nullptr,
-                              nullptr,
-                              nullptr);
+  // Créer le contexte swscale initial
+  auto createSwsContext = [&](int width, int height, AVPixelFormat pixFmt) -> bool {
+    if (swsContext) {
+      sws_freeContext(swsContext);
+      swsContext = nullptr;
+    }
+    
+    if (width <= 0 || height <= 0) {
+      return false;
+    }
+    
+    swsContext = sws_getContext(width,
+                                height,
+                                pixFmt,
+                                width,
+                                height,
+                                targetFormat,
+                                SWS_FAST_BILINEAR,
+                                nullptr,
+                                nullptr,
+                                nullptr);
+    return swsContext != nullptr;
+  };
 
-  if (!swsContext) {
+  if (!createSwsContext(currentWidth, currentHeight, currentPixFmt)) {
     failEarly();
     return;
   }
 
-  const int bufferSize = av_image_get_buffer_size(targetFormat, targetWidth, targetHeight, 1);
+  int bufferSize = av_image_get_buffer_size(targetFormat, currentWidth, currentHeight, 1);
   std::vector<uint8_t> buffer(static_cast<size_t>(bufferSize));
+  
+  // Initialiser le buffer de sortie
   av_image_fill_arrays(convertedFrame->data,
                        convertedFrame->linesize,
                        buffer.data(),
                        targetFormat,
-                       targetWidth,
-                       targetHeight,
+                       currentWidth,
+                       currentHeight,
                        1);
+
+  // Calculer le délai entre frames basé sur le framerate du stream
+  AVRational frameRate = formatContext->streams[videoStreamIndex]->avg_frame_rate;
+  double fps = (frameRate.num > 0 && frameRate.den > 0) ? 
+               static_cast<double>(frameRate.num) / frameRate.den : 30.0;
+  // Limiter à un range raisonnable
+  if (fps < 1.0) fps = 30.0;
+  if (fps > 120.0) fps = 60.0;
+  
+  const auto frameDelay = std::chrono::microseconds(static_cast<int64_t>(1000000.0 / fps));
+  auto lastFrameTime = std::chrono::steady_clock::now();
 
   while (!m_stopRequested) {
     if (av_read_frame(formatContext, packet) < 0) {
+      // Pour les streams HLS live, on ne sort pas de la boucle sur erreur de lecture
+      // On attend un peu et on réessaie
+      if (isHlsStream) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        continue;
+      }
+      
+      // Pour les fichiers locaux, on flush le décodeur et on sort
       avcodec_send_packet(codecContext, nullptr);
       while (avcodec_receive_frame(codecContext, decodedFrame) == 0) {
-        sws_scale(swsContext,
-                  decodedFrame->data,
-                  decodedFrame->linesize,
-                  0,
-                  codecContext->height,
-                  convertedFrame->data,
-                  convertedFrame->linesize);
+        if (swsContext && currentWidth > 0 && currentHeight > 0) {
+          sws_scale(swsContext,
+                    decodedFrame->data,
+                    decodedFrame->linesize,
+                    0,
+                    currentHeight,
+                    convertedFrame->data,
+                    convertedFrame->linesize);
 
-        QImage frameImage(convertedFrame->data[0],
-                          targetWidth,
-                          targetHeight,
-                          convertedFrame->linesize[0],
-                          QImage::Format_RGB32);
+          QImage frameImage(convertedFrame->data[0],
+                            currentWidth,
+                            currentHeight,
+                            convertedFrame->linesize[0],
+                            QImage::Format_RGB32);
 
-        deliverFrame(QVideoFrame(frameImage.copy()));
+          deliverFrame(QVideoFrame(frameImage.copy()));
+        }
       }
       break;
     }
@@ -230,26 +294,66 @@ void FFmpegMediaSource::decodeLoop(QString path) {
     }
 
     while (avcodec_receive_frame(codecContext, decodedFrame) == 0) {
+      // Vérifier si la résolution ou le format a changé
+      if (decodedFrame->width != currentWidth || 
+          decodedFrame->height != currentHeight ||
+          static_cast<AVPixelFormat>(decodedFrame->format) != currentPixFmt) {
+        
+        currentWidth = decodedFrame->width;
+        currentHeight = decodedFrame->height;
+        currentPixFmt = static_cast<AVPixelFormat>(decodedFrame->format);
+        
+        if (currentWidth <= 0 || currentHeight <= 0) {
+          continue;  // Frame invalide, skip
+        }
+        
+        // Recréer le contexte swscale
+        if (!createSwsContext(currentWidth, currentHeight, currentPixFmt)) {
+          continue;  // Impossible de créer le contexte, skip cette frame
+        }
+        
+        // Réallouer le buffer
+        bufferSize = av_image_get_buffer_size(targetFormat, currentWidth, currentHeight, 1);
+        buffer.resize(static_cast<size_t>(bufferSize));
+      }
+      
+      // Skip si dimensions invalides
+      if (currentWidth <= 0 || currentHeight <= 0 || !swsContext) {
+        continue;
+      }
+
+      // Contrôle du framerate - attendre si nécessaire
+      auto now = std::chrono::steady_clock::now();
+      auto elapsed = now - lastFrameTime;
+      if (elapsed < frameDelay) {
+        std::this_thread::sleep_for(frameDelay - elapsed);
+      }
+      lastFrameTime = std::chrono::steady_clock::now();
+
+      // Configurer le buffer de sortie
+      av_image_fill_arrays(convertedFrame->data,
+                           convertedFrame->linesize,
+                           buffer.data(),
+                           targetFormat,
+                           currentWidth,
+                           currentHeight,
+                           1);
+
       sws_scale(swsContext,
                 decodedFrame->data,
                 decodedFrame->linesize,
                 0,
-                codecContext->height,
+                currentHeight,
                 convertedFrame->data,
                 convertedFrame->linesize);
 
-      // Créer QImage sans copie en utilisant les données directement
-      // Note: QImage prend possession des données seulement si on utilise QImage::fromData
-      // Ici on utilise un wrapper qui ne copie pas
       QImage frameImage(convertedFrame->data[0],
-                        targetWidth,
-                        targetHeight,
+                        currentWidth,
+                        currentHeight,
                         convertedFrame->linesize[0],
                         QImage::Format_RGB32);
 
-      // Créer QVideoFrame avec référence partagée au lieu de copie
-      // QVideoFrame fait une copie shallow si possible
-      QVideoFrame videoFrame(frameImage);
+      QVideoFrame videoFrame(frameImage.copy());
       deliverFrame(videoFrame);
     }
 

@@ -112,6 +112,12 @@ public:
    * @return Le QNetworkAccessManager
    */
   [[nodiscard]] QNetworkAccessManager* networkManager() const { return m_networkManager; }
+  
+  /**
+   * @brief Obtient le bearer token actuel
+   * @return Le bearer token, ou QString() si non défini
+   */
+  [[nodiscard]] QString bearerToken() const { return m_bearerToken; }
 
 signals:
   /**

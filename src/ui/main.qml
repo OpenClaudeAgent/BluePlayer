@@ -16,6 +16,9 @@ ApplicationWindow {
   title: qsTr("BluePlayer")
   property string currentView: "home"
   property string statusText: qsTr("Sélectionnez un stream ou une vidéo locale pour commencer.")
+  property string playerStreamerLogin: ""
+  property string playerStreamerName: ""
+  property string playerStreamTitle: ""
 
   // Accès au service Twitch (disponible globalement via setContextProperty)
   // Ne pas créer de propriété locale pour éviter de masquer la variable globale
@@ -97,12 +100,54 @@ ApplicationWindow {
             console.log("[main.qml] Loading LoginView.qml")
             return "LoginView.qml"
           }
+          // Afficher PlayerView si un stream est sélectionné
+          if (currentView === "player") {
+            console.log("[main.qml] Loading PlayerView.qml")
+            return "PlayerView.qml"
+          }
           // Sinon, afficher la vue normale selon currentView
           console.log("[main.qml] Loading view:", currentView)
           return currentView === "home" ? "HomeView.qml" : "PreferencesView.qml"
         }
         Behavior on opacity {
           NumberAnimation { duration: 220 }
+        }
+        
+        // Passer les propriétés au composant chargé
+        onItemChanged: {
+          console.log("[main.qml] onItemChanged - currentView:", currentView)
+          if (item) {
+            if (currentView === "player") {
+              console.log("[main.qml] Setting PlayerView properties:")
+              console.log("[main.qml]   playerStreamerLogin:", root.playerStreamerLogin)
+              console.log("[main.qml]   playerStreamerName:", root.playerStreamerName)
+              console.log("[main.qml]   playerStreamTitle:", root.playerStreamTitle)
+              var service = root.getTwitchService()
+              console.log("[main.qml]   twitchService:", service ? "exists" : "null")
+              item.twitchService = service
+              // Définir les propriétés dans l'ordre pour déclencher les handlers
+              item.streamerLogin = root.playerStreamerLogin
+              item.streamerName = root.playerStreamerName
+              item.streamTitle = root.playerStreamTitle
+              console.log("[main.qml] Properties set, item.streamerLogin:", item.streamerLogin)
+              item.backRequested.connect(function() {
+                console.log("[main.qml] Back requested, returning to home")
+                root.currentView = "home"
+              })
+            } else if (item.hasOwnProperty("openStreamPlayer")) {
+              console.log("[main.qml] Connecting openStreamPlayer signal")
+              item.openStreamPlayer.connect(function(login, name, title) {
+                console.log("[main.qml] openStreamPlayer signal received:")
+                console.log("[main.qml]   login:", login)
+                console.log("[main.qml]   name:", name)
+                console.log("[main.qml]   title:", title)
+                root.playerStreamerLogin = login
+                root.playerStreamerName = name
+                root.playerStreamTitle = title
+                root.currentView = "player"
+              })
+            }
+          }
         }
       }
     }

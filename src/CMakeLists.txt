@@ -21,6 +21,8 @@ set(BLUEPLAYER_CORE_SOURCES
   core/network/HttpClient.hpp
   core/network/ApiClientBase.cpp
   core/network/ApiClientBase.hpp
+  core/network/CurlHttpClient.cpp
+  core/network/CurlHttpClient.hpp
   api/twitch/TwitchApiClient.cpp
   api/twitch/TwitchApiClient.hpp
   api/twitch/TwitchAuthManager.cpp
@@ -45,11 +47,15 @@ set(BLUEPLAYER_MEDIA_SOURCES
 # blueplayer_core utilise blueplayer_media (Application utilise FFmpegMediaService via forward declarations)
 add_library(blueplayer_core STATIC ${BLUEPLAYER_CORE_SOURCES})
 target_include_directories(blueplayer_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+# Find libcurl
+find_package(CURL REQUIRED)
+
 target_link_libraries(blueplayer_core
   PUBLIC
     Qt6::Core
     Qt6::Quick
     Qt6::Network
+    CURL::libcurl
     # Qt6::Multimedia retiré car Application utilise maintenant des forward declarations
 )
 # Appliquer les flags de couverture si activés
@@ -104,6 +110,7 @@ qt_add_qml_module(BluePlayer
     ui/HomeView.qml
     ui/LoginView.qml
     ui/PreferencesView.qml
+    ui/PlayerView.qml
     ui/VideoPlayerApple.qml
     ui/themes/AppleTheme.js
     ui/components/AppleCard.qml
