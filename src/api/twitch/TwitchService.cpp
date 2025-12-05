@@ -4,6 +4,7 @@
 #include "api/twitch/TwitchAuthManager.hpp"
 #include "core/Logger.hpp"
 #include "core/InputValidator.hpp"
+#include "media/HlsAdFilter.hpp"
 
 using blueplayer::core::Logger;
 using blueplayer::core::LogCategory;
@@ -23,7 +24,8 @@ namespace blueplayer::api::twitch {
 TwitchService::TwitchService(QObject* parent)
     : QObject(parent),
       m_authManager(new TwitchAuthManager(this)),
-      m_apiClient(new TwitchApiClient(QString::fromUtf8(qgetenv("TWITCH_CLIENT_ID")), this)) {
+      m_apiClient(new TwitchApiClient(QString::fromUtf8(qgetenv("TWITCH_CLIENT_ID")), this)),
+      m_adFilter(new blueplayer::media::HlsAdFilter(this)) {
   Logger::debug(LogCategory::Twitch, QStringLiteral("Constructor called"));
   QString clientId = QString::fromUtf8(qgetenv("TWITCH_CLIENT_ID"));
   Logger::debug(LogCategory::Twitch, QStringLiteral("Client ID: %1").arg(clientId.isEmpty() ? QStringLiteral("EMPTY") : clientId.left(10) + "..."));
@@ -50,6 +52,14 @@ TwitchService::TwitchService(QObject* parent)
   connect(m_apiClient, &TwitchApiClient::playbackAccessTokenReady, this, &TwitchService::onPlaybackAccessTokenReady, Qt::UniqueConnection);
   connect(m_apiClient, &TwitchApiClient::errorOccurred, this, &TwitchService::errorOccurred, Qt::UniqueConnection);
   connect(m_apiClient, &TwitchApiClient::tokenInvalidated, this, &TwitchService::onTokenInvalidated, Qt::UniqueConnection);
+  
+  // Ad filter connections (VAFT strategy)
+  connect(m_adFilter, &blueplayer::media::HlsAdFilter::cleanStreamReady, this, &TwitchService::onAdFilterCleanStream, Qt::UniqueConnection);
+  connect(m_adFilter, &blueplayer::media::HlsAdFilter::adsDetected, this, &TwitchService::onAdFilterAdsDetected, Qt::UniqueConnection);
+  connect(m_adFilter, &blueplayer::media::HlsAdFilter::adsFinished, this, &TwitchService::onAdFilterAdsFinished, Qt::UniqueConnection);
+  connect(m_adFilter, &blueplayer::media::HlsAdFilter::debugLog, this, &TwitchService::onAdFilterDebugLog, Qt::UniqueConnection);
+  connect(m_adFilter, &blueplayer::media::HlsAdFilter::requestNewToken, this, &TwitchService::onAdFilterRequestNewToken, Qt::UniqueConnection);
+  connect(m_adFilter, &blueplayer::media::HlsAdFilter::maxRetriesReached, this, &TwitchService::onAdFilterMaxRetries, Qt::UniqueConnection);
   
   Logger::debug(LogCategory::Twitch, QStringLiteral("Initial authenticated state: %1").arg(m_authManager->isAuthenticated()));
   
@@ -717,8 +727,9 @@ void TwitchService::onPlaybackAccessTokenReady(const QString& token, const QStri
   
   Logger::debug(LogCategory::Twitch, QStringLiteral("[DEBUG] Master playlist URL: %1").arg(masterPlaylistUrl.left(150) + "..."));
   
-  // Récupérer le master playlist et sélectionner la meilleure qualité
-  fetchAndSelectBestQuality(masterPlaylistUrl);
+  // Utiliser le filtre anti-pub pour vérifier et sélectionner le meilleur stream
+  // Préférer la qualité source (chunked) ou 1080p
+  m_adFilter->startFiltering(masterPlaylistUrl, QStringLiteral("chunked"));
 }
 
 void TwitchService::fetchAndSelectBestQuality(const QString& masterPlaylistUrl) {
@@ -876,6 +887,53 @@ void TwitchService::onTokenInvalidated() {
   if (m_authManager) {
     m_authManager->logout();
   }
+}
+
+void TwitchService::onAdFilterCleanStream(const QString& url) {
+  Logger::debug(LogCategory::Twitch, QStringLiteral("[VAFT] ✅ Clean stream URL ready - starting playback"));
+  Logger::debug(LogCategory::Twitch, QStringLiteral("[VAFT] URL: %1").arg(url.left(80) + "..."));
+  m_currentHlsUrl = url;
+  emit hlsUrlReady(url);
+  // Ne pas effacer m_pendingStreamerLogin immédiatement pour permettre le monitoring
+  // Il sera effacé quand l'utilisateur quittera le player
+}
+
+void TwitchService::onAdFilterAdsDetected(int count) {
+  Logger::warning(LogCategory::Twitch, QStringLiteral("[WARNING] Ads detected: %1 segments").arg(count));
+  emit adsDetected(count);
+}
+
+void TwitchService::onAdFilterAdsFinished() {
+  Logger::debug(LogCategory::Twitch, QStringLiteral("[DEBUG] Ads finished"));
+  emit adsFinished();
+}
+
+void TwitchService::onAdFilterDebugLog(const QString& message) {
+  Logger::debug(LogCategory::Twitch, message);
+  emit adFilterLog(message);
+}
+
+void TwitchService::onAdFilterRequestNewToken() {
+  // Stratégie VAFT: Demander un NOUVEAU playback access token
+  // Parfois on obtient un token sans pre-roll ads
+  Logger::debug(LogCategory::Twitch, QStringLiteral("[VAFT] Requesting NEW playback access token for: %1").arg(m_pendingStreamerLogin));
+  
+  if (m_pendingStreamerLogin.isEmpty()) {
+    Logger::error(LogCategory::Twitch, QStringLiteral("[VAFT] Cannot request new token - no pending streamer login"));
+    return;
+  }
+  
+  // Demander un nouveau token via l'API GraphQL
+  // Le signal playbackAccessTokenReady sera émis et relancera le processus
+  m_apiClient->getPlaybackAccessToken(m_pendingStreamerLogin);
+}
+
+void TwitchService::onAdFilterMaxRetries(const QString& url) {
+  // Max retries atteint - jouer le stream avec les pubs
+  Logger::warning(LogCategory::Twitch, QStringLiteral("[VAFT] Max retries reached - playing stream with ads"));
+  m_currentHlsUrl = url;
+  emit hlsUrlReady(url);
+  // Ne pas effacer m_pendingStreamerLogin pour permettre le monitoring continu
 }
 
 }  // namespace blueplayer::api::twitch

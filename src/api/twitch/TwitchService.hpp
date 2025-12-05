@@ -4,6 +4,10 @@
 #include <QString>
 #include <QVariantList>
 
+namespace blueplayer::media {
+class HlsAdFilter;
+}
+
 namespace blueplayer::api::twitch {
 
 class TwitchAuthManager;
@@ -216,6 +220,9 @@ signals:
   void userNameChanged();
   void hlsUrlReady(const QString& url);
   void errorOccurred(const QString& message);
+  void adsDetected(int segmentCount);
+  void adsFinished();
+  void adFilterLog(const QString& message);
 
 private:
   void selectUrl(int index);
@@ -238,10 +245,17 @@ private slots:
   void onUserInfoReadyWithName(const QString& userId, const QString& userName);
   void onPlaybackAccessTokenReady(const QString& token, const QString& sig);
   void onTokenInvalidated();
+  void onAdFilterCleanStream(const QString& url);
+  void onAdFilterAdsDetected(int count);
+  void onAdFilterAdsFinished();
+  void onAdFilterDebugLog(const QString& message);
+  void onAdFilterRequestNewToken();
+  void onAdFilterMaxRetries(const QString& url);
 
 private:
   TwitchAuthManager* m_authManager = nullptr;
   TwitchApiClient* m_apiClient = nullptr;
+  blueplayer::media::HlsAdFilter* m_adFilter = nullptr;
   QVariantList m_streams;
   QVariantList m_recommendedStreams;
   QVariantList m_categories;

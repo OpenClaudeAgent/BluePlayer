@@ -40,6 +40,8 @@ set(BLUEPLAYER_MEDIA_SOURCES
   media/FFmpegMediaService.hpp
   media/FFmpegMediaSource.cpp
   media/FFmpegMediaSource.hpp
+  media/HlsAdFilter.cpp
+  media/HlsAdFilter.hpp
 )
 
 # blueplayer_core et blueplayer_media ont une dépendance circulaire résolue via forward declarations
