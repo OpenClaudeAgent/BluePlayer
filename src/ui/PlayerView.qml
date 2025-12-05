@@ -19,6 +19,9 @@ Item {
   property bool buffering: false
   property real volume: 1.0
   property bool muted: false
+  property real duration: 0.0
+  property real position: 0.0
+  property real liveOffset: 0.0
   property string statusText: qsTr("Chargement du flux...")
   property string hlsUrl: ""
   property bool adsActive: false
@@ -77,6 +80,18 @@ Item {
   function toggleMute() {
     if (mediaService) {
       mediaService.toggleMute()
+    }
+  }
+
+  function seekTo(seconds) {
+    if (mediaService && seconds >= 0) {
+      mediaService.seek(seconds)
+    }
+  }
+
+  function goLive() {
+    if (duration > 0) {
+      seekTo(duration)
     }
   }
   
@@ -249,6 +264,9 @@ Item {
           buffering: playerRoot.buffering
           volume: playerRoot.volume
           muted: playerRoot.muted
+          duration: playerRoot.duration
+          position: playerRoot.position
+          liveOffset: playerRoot.liveOffset
           controlsVisible: playerRoot.controlsVisible
           
           onPlayPauseClicked: togglePlayPause()
@@ -258,6 +276,8 @@ Item {
           }
           onVolumeRequested: function(newVolume) { setVolume(newVolume) }
           onMuteClicked: toggleMute()
+          onSeekRequested: function(seconds) { seekTo(seconds) }
+          onLiveRequested: goLive()
         }
         
         // Zone de detection de souris pour afficher/masquer les controles
@@ -345,6 +365,15 @@ Item {
     }
     function onMutedChanged(isMuted) {
       muted = isMuted
+    }
+    function onDurationChanged(dur) {
+      duration = dur
+    }
+    function onPositionChanged(pos) {
+      position = pos
+    }
+    function onLiveOffsetChanged(offset) {
+      liveOffset = offset
     }
     function onErrorOccurred(message) {
       updateStatus(qsTr("Erreur: %1").arg(message))

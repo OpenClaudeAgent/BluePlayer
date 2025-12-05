@@ -18,12 +18,18 @@ Rectangle {
   property real volume: 1.0
   property bool muted: false
   property bool showVolumeSlider: false
+  property real duration: 0.0
+  property real position: 0.0
+  property real liveOffset: 0.0
+  property bool stickToLive: true
   
   // Signals
   signal playPauseClicked()
   signal stopClicked()
   signal volumeRequested(real newVolume)
   signal muteClicked()
+  signal seekRequested(real seconds)
+  signal liveRequested()
   
   height: 80
   
@@ -138,8 +144,130 @@ Rectangle {
     }
     
     // Spacer
-    Item {
+    Item { Layout.fillWidth: true }
+
+    // Seek area
+    ColumnLayout {
       Layout.fillWidth: true
+      spacing: 6
+
+      // Slider + Live button row
+      RowLayout {
+        Layout.fillWidth: true
+        spacing: 12
+
+        // Live indicator/button
+        Rectangle {
+          visible: duration > 0 && liveOffset > 3
+          Layout.preferredWidth: 64
+          Layout.preferredHeight: 28
+          radius: 14
+          color: "#E53935"
+          border.color: "#FFCDD2"
+          border.width: 1
+
+          Text {
+            anchors.centerIn: parent
+            text: qsTr("LIVE")
+            font.pixelSize: 12
+            font.bold: true
+            color: "#FFFFFF"
+          }
+
+          MouseArea {
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+              controlBar.stickToLive = true
+              controlBar.liveRequested()
+            }
+          }
+        }
+
+        // Seek slider
+        Slider {
+          id: seekSlider
+          Layout.fillWidth: true
+          enabled: (duration > 0) || (position > 0)
+          from: 0
+          to: duration > 0 ? duration : Math.max(position, 1)
+          // Coller à droite tant qu'on n'a pas volontairement reculé, ou si on est quasi live
+          readonly property bool atLiveEdge: liveOffset <= 3
+          value: (stickToLive || atLiveEdge)
+                   ? to
+                   : (duration > 0
+                        ? Math.max(0, duration - liveOffset)
+                        : (position > 0 ? position : 0))
+          property bool userDragging: false
+
+          onPressedChanged: {
+            if (pressed) {
+              userDragging = true
+              controlBar.stickToLive = false  // l'utilisateur prend la main
+            } else if (userDragging) {
+              userDragging = false
+              controlBar.seekRequested(value)
+            }
+          }
+          onValueChanged: {
+            if (userDragging) {
+              // Live preview could be added; for now do nothing
+            }
+          }
+
+          background: Rectangle {
+            x: seekSlider.leftPadding
+            y: seekSlider.topPadding + seekSlider.availableHeight / 2 - height / 2
+            width: seekSlider.availableWidth
+            height: 4
+            radius: 2
+            color: "#33FFFFFF"
+
+            Rectangle {
+              width: (seekSlider.visualPosition * parent.width)
+              height: parent.height
+              radius: 2
+              color: "#FFFFFF"
+            }
+          }
+
+          handle: Rectangle {
+            x: seekSlider.leftPadding + seekSlider.visualPosition * (seekSlider.availableWidth - width)
+            y: seekSlider.topPadding + seekSlider.availableHeight / 2 - height / 2
+            width: 14
+            height: 14
+            radius: 7
+            color: "#FFFFFF"
+            scale: seekSlider.pressed ? 1.2 : 1.0
+            Behavior on scale { NumberAnimation { duration: 100 } }
+          }
+        }
+      }
+
+      // Time labels
+      RowLayout {
+        Layout.fillWidth: true
+        spacing: 8
+
+        Text {
+          text: controlBar._formatTime(position)
+          color: "#FFFFFF"
+          font.pixelSize: 12
+        }
+        Item { Layout.fillWidth: true }
+        Text {
+          text: liveOffset > 3 ? qsTr("−%1").arg(controlBar._formatTime(liveOffset)) : qsTr("LIVE")
+          color: liveOffset > 3 ? "#FFEB3B" : "#FF5252"
+          font.pixelSize: 12
+          font.bold: liveOffset <= 3
+        }
+        Text {
+          text: "/ " + (duration > 0 ? controlBar._formatTime(duration) : "--:--")
+          color: "#DDFFFFFF"
+          font.pixelSize: 12
+        }
+      }
     }
     
     // Volume Control Group
@@ -332,5 +460,15 @@ Rectangle {
     onExited: hideVolumeTimer.restart()
     onPressed: function(mouse) { mouse.accepted = false }
     onReleased: function(mouse) { mouse.accepted = false }
+  }
+
+  function _formatTime(sec) {
+    if (sec <= 0 || sec !== sec) return "00:00";
+    var total = Math.floor(sec);
+    var m = Math.floor(total / 60);
+    var s = total % 60;
+    var mm = m < 10 ? "0" + m : m;
+    var ss = s < 10 ? "0" + s : s;
+    return mm + ":" + ss;
   }
 }

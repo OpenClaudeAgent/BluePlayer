@@ -31,6 +31,7 @@ class MpvMediaSource : public QObject {
   Q_PROPERTY(bool muted READ isMuted WRITE setMuted NOTIFY mutedChanged)
   Q_PROPERTY(double duration READ duration NOTIFY durationChanged)
   Q_PROPERTY(double position READ position NOTIFY positionChanged)
+  Q_PROPERTY(bool recording READ isRecording NOTIFY recordingChanged)
 
 public:
   explicit MpvMediaSource(QObject* parent = nullptr);
@@ -51,6 +52,8 @@ public:
   // Recording (for future local copy feature)
   Q_INVOKABLE void startRecording(const QString& outputPath);
   Q_INVOKABLE void stopRecording();
+  bool isRecording() const { return m_isRecording.load(); }
+  QString recordingPath() const { return m_recordingPath; }
   
   // State
   bool isPlaying() const { return m_playing.load(); }
@@ -73,6 +76,8 @@ signals:
   void durationChanged(double duration);
   void positionChanged(double position);
   void bufferingChanged(bool buffering);
+  void recordingChanged(bool recording);
+  void recordingPathChanged(const QString& path);
   void errorOccurred(const QString& message);
 
 private:
@@ -93,13 +98,14 @@ private:
   std::atomic<float> m_volume{1.0f};
   std::atomic<double> m_duration{0.0};
   std::atomic<double> m_position{0.0};
+  std::atomic<bool> m_isRecording{false};
+  QString m_recordingPath;
   
   std::unique_ptr<std::thread> m_eventThread;
   std::atomic<bool> m_stopRequested{false};
   
   int m_videoWidth = 1920;
   int m_videoHeight = 1080;
-  bool m_isRecording = false;
 };
 
 }  // namespace blueplayer::media

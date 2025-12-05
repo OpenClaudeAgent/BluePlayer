@@ -210,11 +210,22 @@ void MpvMediaSource::setMuted(bool muted) {
 }
 
 void MpvMediaSource::startRecording(const QString& outputPath) {
-  if (!m_mpv || m_isRecording) return;
+  if (!m_mpv) return;
+
+  // Si on change de chemin alors que l'enregistrement est actif, on arrête d'abord.
+  if (m_isRecording && outputPath == m_recordingPath) {
+    return;
+  }
+  if (m_isRecording && outputPath != m_recordingPath) {
+    stopRecording();
+  }
   
   qDebug() << "[MPV] Starting recording to:" << outputPath;
   mpv_set_option_string(m_mpv, "stream-record", outputPath.toUtf8().constData());
+  m_recordingPath = outputPath;
   m_isRecording = true;
+  emit recordingPathChanged(m_recordingPath);
+  emit recordingChanged(true);
 }
 
 void MpvMediaSource::stopRecording() {
@@ -223,6 +234,9 @@ void MpvMediaSource::stopRecording() {
   qDebug() << "[MPV] Stopping recording";
   mpv_set_option_string(m_mpv, "stream-record", "");
   m_isRecording = false;
+  m_recordingPath.clear();
+  emit recordingPathChanged(QString());
+  emit recordingChanged(false);
 }
 
 void MpvMediaSource::handleMpvEvents() {

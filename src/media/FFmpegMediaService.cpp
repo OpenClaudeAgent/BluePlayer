@@ -10,6 +10,10 @@
 #include <QVideoSink>
 #include <QDebug>
 #include <QString>
+#include <QStandardPaths>
+#include <QDir>
+#include <QDateTime>
+#include <algorithm>
 
 using blueplayer::core::Logger;
 using blueplayer::core::LogCategory;
@@ -33,8 +37,12 @@ FFmpegMediaService::FFmpegMediaService(QObject* parent)
   connect(m_mpvSource.get(), &MpvMediaSource::mutedChanged, this, &FFmpegMediaService::mutedChanged);
   connect(m_mpvSource.get(), &MpvMediaSource::durationChanged, this, &FFmpegMediaService::durationChanged);
   connect(m_mpvSource.get(), &MpvMediaSource::positionChanged, this, &FFmpegMediaService::positionChanged);
+  connect(m_mpvSource.get(), &MpvMediaSource::positionChanged, this, [this](double) { updateLiveOffset(); });
+  connect(m_mpvSource.get(), &MpvMediaSource::durationChanged, this, [this](double) { updateLiveOffset(); });
   connect(m_mpvSource.get(), &MpvMediaSource::bufferingChanged, this, &FFmpegMediaService::bufferingChanged);
   connect(m_mpvSource.get(), &MpvMediaSource::errorOccurred, this, &FFmpegMediaService::errorOccurred);
+  connect(m_mpvSource.get(), &MpvMediaSource::recordingChanged, this, &FFmpegMediaService::recordingChanged);
+  connect(m_mpvSource.get(), &MpvMediaSource::recordingPathChanged, this, &FFmpegMediaService::recordingPathChanged);
   
   // Connect FFmpeg fallback signals (if needed)
   connect(m_ffmpegSource.get(), &FFmpegMediaSource::playingChanged, this, [this](bool playing) {
@@ -116,6 +124,9 @@ void FFmpegMediaService::play(const QUrl& source) {
   if (isStream && m_useMpv && m_mpvSource) {
     Logger::debug(LogCategory::Media, QStringLiteral("[MPV] Playing stream via libmpv"));
     m_mpvSource->setVideoSink(m_videoSink);
+    // Démarre l'enregistrement local (TS brut) avant de charger l'URL
+    QString recordPath = buildRecordingPath(sourcePath);
+    m_mpvSource->startRecording(recordPath);
     m_mpvSource->play(sourcePath);
   } else if (m_ffmpegSource) {
     // Fallback FFmpeg pour fichiers locaux
@@ -136,11 +147,14 @@ void FFmpegMediaService::playFile(const QString& filePath) {
 
 void FFmpegMediaService::stop() {
   if (m_useMpv && m_mpvSource) {
+    m_mpvSource->stopRecording();
     m_mpvSource->stop();
   }
   if (m_ffmpegSource) {
     m_ffmpegSource->stop();
   }
+  m_liveOffset = 0.0;
+  emit liveOffsetChanged(m_liveOffset);
 }
 
 void FFmpegMediaService::pause() {
@@ -244,6 +258,47 @@ void FFmpegMediaService::stopRecording() {
   if (m_useMpv && m_mpvSource) {
     m_mpvSource->stopRecording();
   }
+}
+
+bool FFmpegMediaService::isRecording() const {
+  if (m_useMpv && m_mpvSource) {
+    return m_mpvSource->isRecording();
+  }
+  return false;
+}
+
+QString FFmpegMediaService::recordingPath() const {
+  if (m_useMpv && m_mpvSource) {
+    return m_mpvSource->recordingPath();
+  }
+  return {};
+}
+
+void FFmpegMediaService::updateLiveOffset() {
+  if (!m_useMpv || !m_mpvSource) return;
+  double dur = m_mpvSource->duration();
+  double pos = m_mpvSource->position();
+  if (dur <= 0 || pos < 0) {
+    m_liveOffset = 0.0;
+  } else {
+    m_liveOffset = std::max(0.0, dur - pos);
+  }
+  emit liveOffsetChanged(m_liveOffset);
+}
+
+QString FFmpegMediaService::buildRecordingPath(const QString& sourcePath) const {
+  Q_UNUSED(sourcePath);
+  QString baseDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+  if (baseDir.isEmpty()) {
+    baseDir = QDir::homePath() + "/.blueplayer";
+  }
+  QDir dir(baseDir + "/recordings");
+  if (!dir.exists()) {
+    dir.mkpath(".");
+  }
+  const QString timestamp = QDateTime::currentDateTimeUtc().toString("yyyyMMdd_hhmmss");
+  QString filePath = dir.filePath(QStringLiteral("stream_%1.ts").arg(timestamp));
+  return filePath;
 }
 
 }  // namespace blueplayer::media

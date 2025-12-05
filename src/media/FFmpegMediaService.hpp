@@ -30,6 +30,9 @@ class FFmpegMediaService : public QObject {
   Q_PROPERTY(bool muted READ isMuted WRITE setMuted NOTIFY mutedChanged)
   Q_PROPERTY(double duration READ duration NOTIFY durationChanged)
   Q_PROPERTY(double position READ position NOTIFY positionChanged)
+  Q_PROPERTY(double liveOffset READ liveOffset NOTIFY liveOffsetChanged)
+  Q_PROPERTY(bool recording READ isRecording NOTIFY recordingChanged)
+  Q_PROPERTY(QString recordingPath READ recordingPath NOTIFY recordingPathChanged)
 
 public:
   /**
@@ -137,6 +140,13 @@ public:
    * @brief Arrête l'enregistrement
    */
   Q_INVOKABLE void stopRecording();
+  bool isRecording() const;
+  QString recordingPath() const;
+
+  /**
+   * @brief Offset par rapport au live (s)
+   */
+  double liveOffset() const { return m_liveOffset; }
 
 signals:
   void videoSinkChanged();
@@ -146,14 +156,21 @@ signals:
   void mutedChanged(bool muted);
   void durationChanged(double duration);
   void positionChanged(double position);
+  void liveOffsetChanged(double offset);
+  void recordingChanged(bool recording);
+  void recordingPathChanged(const QString& path);
   void bufferingChanged(bool buffering);
   void errorOccurred(QString message);
 
 private:
+  void updateLiveOffset();
+  QString buildRecordingPath(const QString& sourcePath) const;
+
   std::unique_ptr<MpvMediaSource> m_mpvSource;
   std::unique_ptr<FFmpegMediaSource> m_ffmpegSource;  // Fallback
   QVideoSink* m_videoSink = nullptr;
   bool m_useMpv = true;  // Utiliser libmpv par défaut
+  double m_liveOffset = 0.0;
 };
 
 }  // namespace blueplayer::media
