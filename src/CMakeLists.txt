@@ -42,6 +42,8 @@ set(BLUEPLAYER_MEDIA_SOURCES
   media/FFmpegMediaSource.hpp
   media/HlsAdFilter.cpp
   media/HlsAdFilter.hpp
+  media/MpvMediaSource.cpp
+  media/MpvMediaSource.hpp
 )
 
 # blueplayer_core et blueplayer_media ont une dépendance circulaire résolue via forward declarations
@@ -71,6 +73,7 @@ add_library(blueplayer_media STATIC ${BLUEPLAYER_MEDIA_SOURCES})
 target_include_directories(blueplayer_media PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${FFmpeg_INCLUDE_DIRS}
+  /opt/homebrew/include  # For libmpv
 )
 target_link_libraries(blueplayer_media
   PUBLIC
@@ -81,6 +84,7 @@ target_link_libraries(blueplayer_media
     avutil
     swscale
     swresample
+    mpv  # libmpv for video playback
   PRIVATE
     blueplayer_core  # Nécessaire pour Logger, LogCategory, InputValidator
 )

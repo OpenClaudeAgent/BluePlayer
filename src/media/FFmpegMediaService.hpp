@@ -13,13 +13,14 @@ QT_END_NAMESPACE
 namespace blueplayer::media {
 
 class FFmpegMediaSource;
+class MpvMediaSource;
 
 /**
- * @brief Service de lecture média utilisant FFmpeg
+ * @brief Service de lecture média utilisant libmpv (avec fallback FFmpeg)
  * 
- * Fournit une interface Qt pour lire des fichiers vidéo avec FFmpeg.
- * Gère l'ouverture, la lecture et l'arrêt des fichiers média.
- * Supporte la pause/reprise et le contrôle du volume audio.
+ * Fournit une interface Qt pour lire des streams HLS et fichiers vidéo.
+ * Utilise libmpv pour une lecture robuste avec buffering et sync A/V automatiques.
+ * Supporte la pause/reprise, le contrôle du volume et le recording.
  */
 class FFmpegMediaService : public QObject {
   Q_OBJECT
@@ -27,6 +28,8 @@ class FFmpegMediaService : public QObject {
   Q_PROPERTY(bool paused READ isPaused NOTIFY pausedChanged)
   Q_PROPERTY(float volume READ volume WRITE setVolume NOTIFY volumeChanged)
   Q_PROPERTY(bool muted READ isMuted WRITE setMuted NOTIFY mutedChanged)
+  Q_PROPERTY(double duration READ duration NOTIFY durationChanged)
+  Q_PROPERTY(double position READ position NOTIFY positionChanged)
 
 public:
   /**
@@ -110,17 +113,47 @@ public:
    */
   Q_INVOKABLE void toggleMute();
 
+  /**
+   * @brief Obtient la durée totale (pour VOD)
+   */
+  double duration() const;
+
+  /**
+   * @brief Obtient la position actuelle
+   */
+  double position() const;
+
+  /**
+   * @brief Seek à une position
+   */
+  Q_INVOKABLE void seek(double seconds);
+
+  /**
+   * @brief Démarre l'enregistrement du stream
+   */
+  Q_INVOKABLE void startRecording(const QString& outputPath);
+
+  /**
+   * @brief Arrête l'enregistrement
+   */
+  Q_INVOKABLE void stopRecording();
+
 signals:
   void videoSinkChanged();
   void playingChanged(bool playing);
   void pausedChanged(bool paused);
   void volumeChanged(float volume);
   void mutedChanged(bool muted);
+  void durationChanged(double duration);
+  void positionChanged(double position);
+  void bufferingChanged(bool buffering);
   void errorOccurred(QString message);
 
 private:
-  std::unique_ptr<FFmpegMediaSource> m_source;
+  std::unique_ptr<MpvMediaSource> m_mpvSource;
+  std::unique_ptr<FFmpegMediaSource> m_ffmpegSource;  // Fallback
   QVideoSink* m_videoSink = nullptr;
+  bool m_useMpv = true;  // Utiliser libmpv par défaut
 };
 
 }  // namespace blueplayer::media

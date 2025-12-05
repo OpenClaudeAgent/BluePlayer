@@ -1,6 +1,7 @@
 #include "media/FFmpegMediaService.hpp"
 
 #include "media/FFmpegMediaSource.hpp"
+#include "media/MpvMediaSource.hpp"
 #include "core/InputValidator.hpp"
 #include "core/Logger.hpp"
 #include "core/ErrorHandler.hpp"
@@ -19,12 +20,31 @@ using blueplayer::core::ErrorCode;
 namespace blueplayer::media {
 
 FFmpegMediaService::FFmpegMediaService(QObject* parent)
-    : QObject(parent), m_source(std::make_unique<FFmpegMediaSource>(this)) {
-  connect(m_source.get(), &FFmpegMediaSource::playingChanged, this, &FFmpegMediaService::playingChanged);
-  connect(m_source.get(), &FFmpegMediaSource::videoSinkChanged, this, &FFmpegMediaService::videoSinkChanged);
-  connect(m_source.get(), &FFmpegMediaSource::pausedChanged, this, &FFmpegMediaService::pausedChanged);
-  connect(m_source.get(), &FFmpegMediaSource::volumeChanged, this, &FFmpegMediaService::volumeChanged);
-  connect(m_source.get(), &FFmpegMediaSource::mutedChanged, this, &FFmpegMediaService::mutedChanged);
+    : QObject(parent), 
+      m_mpvSource(std::make_unique<MpvMediaSource>(this)),
+      m_ffmpegSource(std::make_unique<FFmpegMediaSource>(this)),
+      m_useMpv(true) {
+  
+  // Connect MPV signals
+  connect(m_mpvSource.get(), &MpvMediaSource::playingChanged, this, &FFmpegMediaService::playingChanged);
+  connect(m_mpvSource.get(), &MpvMediaSource::videoSinkChanged, this, &FFmpegMediaService::videoSinkChanged);
+  connect(m_mpvSource.get(), &MpvMediaSource::pausedChanged, this, &FFmpegMediaService::pausedChanged);
+  connect(m_mpvSource.get(), &MpvMediaSource::volumeChanged, this, &FFmpegMediaService::volumeChanged);
+  connect(m_mpvSource.get(), &MpvMediaSource::mutedChanged, this, &FFmpegMediaService::mutedChanged);
+  connect(m_mpvSource.get(), &MpvMediaSource::durationChanged, this, &FFmpegMediaService::durationChanged);
+  connect(m_mpvSource.get(), &MpvMediaSource::positionChanged, this, &FFmpegMediaService::positionChanged);
+  connect(m_mpvSource.get(), &MpvMediaSource::bufferingChanged, this, &FFmpegMediaService::bufferingChanged);
+  connect(m_mpvSource.get(), &MpvMediaSource::errorOccurred, this, &FFmpegMediaService::errorOccurred);
+  
+  // Connect FFmpeg fallback signals (if needed)
+  connect(m_ffmpegSource.get(), &FFmpegMediaSource::playingChanged, this, [this](bool playing) {
+    if (!m_useMpv) emit playingChanged(playing);
+  });
+  connect(m_ffmpegSource.get(), &FFmpegMediaSource::pausedChanged, this, [this](bool paused) {
+    if (!m_useMpv) emit pausedChanged(paused);
+  });
+  
+  Logger::debug(LogCategory::Media, QStringLiteral("FFmpegMediaService initialized with libmpv backend"));
 }
 
 FFmpegMediaService::~FFmpegMediaService() = default;
@@ -39,8 +59,11 @@ void FFmpegMediaService::setVideoSink(QVideoSink* sink) {
   }
 
   m_videoSink = sink;
-  if (m_source) {
-    m_source->setVideoSink(sink);
+  
+  if (m_useMpv && m_mpvSource) {
+    m_mpvSource->setVideoSink(sink);
+  } else if (m_ffmpegSource) {
+    m_ffmpegSource->setVideoSink(sink);
   }
 
   emit videoSinkChanged();
@@ -78,14 +101,7 @@ void FFmpegMediaService::play(const QUrl& source) {
   } else {
     // URL distante (HLS, HTTP, etc.)
     sourcePath = source.toString();
-    Logger::debug(LogCategory::Media, QStringLiteral("Playing remote URL: %1").arg(sourcePath));
-  }
-
-  if (!m_source->open(sourcePath)) {
-    Logger::error(LogCategory::Media, QStringLiteral("Failed to open source: %1").arg(sourcePath));
-    const auto error = ErrorHandler::mediaError(ErrorCode::MediaDecodeError, QStringLiteral("play"), QStringLiteral("Impossible d'ouvrir la source"));
-    emit errorOccurred(error.toString());
-    return;
+    Logger::debug(LogCategory::Media, QStringLiteral("Playing remote URL: %1").arg(sourcePath.left(80) + "..."));
   }
 
   if (m_videoSink == nullptr) {
@@ -94,7 +110,24 @@ void FFmpegMediaService::play(const QUrl& source) {
     return;
   }
 
-  m_source->play();
+  // Utiliser MPV pour les streams (HLS, HTTP) - bien meilleur buffering et A/V sync
+  bool isStream = sourcePath.contains(".m3u8") || sourcePath.contains("http://") || sourcePath.contains("https://");
+  
+  if (isStream && m_useMpv && m_mpvSource) {
+    Logger::debug(LogCategory::Media, QStringLiteral("[MPV] Playing stream via libmpv"));
+    m_mpvSource->setVideoSink(m_videoSink);
+    m_mpvSource->play(sourcePath);
+  } else if (m_ffmpegSource) {
+    // Fallback FFmpeg pour fichiers locaux
+    Logger::debug(LogCategory::Media, QStringLiteral("[FFmpeg] Playing local file"));
+    m_ffmpegSource->setVideoSink(m_videoSink);
+    if (m_ffmpegSource->open(sourcePath)) {
+      m_ffmpegSource->play();
+    } else {
+      const auto error = ErrorHandler::mediaError(ErrorCode::MediaDecodeError, QStringLiteral("play"), QStringLiteral("Impossible d'ouvrir la source"));
+      emit errorOccurred(error.toString());
+    }
+  }
 }
 
 void FFmpegMediaService::playFile(const QString& filePath) {
@@ -102,58 +135,115 @@ void FFmpegMediaService::playFile(const QString& filePath) {
 }
 
 void FFmpegMediaService::stop() {
-  if (m_source) {
-    m_source->stop();
+  if (m_useMpv && m_mpvSource) {
+    m_mpvSource->stop();
+  }
+  if (m_ffmpegSource) {
+    m_ffmpegSource->stop();
   }
 }
 
 void FFmpegMediaService::pause() {
-  if (m_source) {
-    m_source->pause();
+  if (m_useMpv && m_mpvSource) {
+    m_mpvSource->pause();
+  } else if (m_ffmpegSource) {
+    m_ffmpegSource->pause();
   }
 }
 
 void FFmpegMediaService::resume() {
-  if (m_source) {
-    m_source->resume();
+  if (m_useMpv && m_mpvSource) {
+    m_mpvSource->resume();
+  } else if (m_ffmpegSource) {
+    m_ffmpegSource->resume();
   }
 }
 
 void FFmpegMediaService::togglePause() {
-  if (m_source) {
-    m_source->togglePause();
+  if (m_useMpv && m_mpvSource) {
+    m_mpvSource->togglePause();
+  } else if (m_ffmpegSource) {
+    m_ffmpegSource->togglePause();
   }
 }
 
 bool FFmpegMediaService::isPaused() const {
-  return m_source ? m_source->isPaused() : false;
+  if (m_useMpv && m_mpvSource) {
+    return m_mpvSource->isPaused();
+  }
+  return m_ffmpegSource ? m_ffmpegSource->isPaused() : false;
 }
 
 float FFmpegMediaService::volume() const {
-  return m_source ? m_source->volume() : 1.0f;
+  if (m_useMpv && m_mpvSource) {
+    return m_mpvSource->volume();
+  }
+  return m_ffmpegSource ? m_ffmpegSource->volume() : 1.0f;
 }
 
 void FFmpegMediaService::setVolume(float vol) {
-  if (m_source) {
-    m_source->setVolume(vol);
+  if (m_useMpv && m_mpvSource) {
+    m_mpvSource->setVolume(vol);
+  }
+  if (m_ffmpegSource) {
+    m_ffmpegSource->setVolume(vol);
   }
 }
 
 bool FFmpegMediaService::isMuted() const {
-  return m_source ? m_source->isMuted() : false;
+  if (m_useMpv && m_mpvSource) {
+    return m_mpvSource->isMuted();
+  }
+  return m_ffmpegSource ? m_ffmpegSource->isMuted() : false;
 }
 
 void FFmpegMediaService::setMuted(bool muted) {
-  if (m_source) {
-    m_source->setMuted(muted);
+  if (m_useMpv && m_mpvSource) {
+    m_mpvSource->setMuted(muted);
+  }
+  if (m_ffmpegSource) {
+    m_ffmpegSource->setMuted(muted);
   }
 }
 
 void FFmpegMediaService::toggleMute() {
-  if (m_source) {
-    m_source->setMuted(!m_source->isMuted());
+  if (m_useMpv && m_mpvSource) {
+    m_mpvSource->setMuted(!m_mpvSource->isMuted());
+  } else if (m_ffmpegSource) {
+    m_ffmpegSource->setMuted(!m_ffmpegSource->isMuted());
+  }
+}
+
+double FFmpegMediaService::duration() const {
+  if (m_useMpv && m_mpvSource) {
+    return m_mpvSource->duration();
+  }
+  return 0.0;
+}
+
+double FFmpegMediaService::position() const {
+  if (m_useMpv && m_mpvSource) {
+    return m_mpvSource->position();
+  }
+  return 0.0;
+}
+
+void FFmpegMediaService::seek(double seconds) {
+  if (m_useMpv && m_mpvSource) {
+    m_mpvSource->seek(seconds);
+  }
+}
+
+void FFmpegMediaService::startRecording(const QString& outputPath) {
+  if (m_useMpv && m_mpvSource) {
+    m_mpvSource->startRecording(outputPath);
+  }
+}
+
+void FFmpegMediaService::stopRecording() {
+  if (m_useMpv && m_mpvSource) {
+    m_mpvSource->stopRecording();
   }
 }
 
 }  // namespace blueplayer::media
-

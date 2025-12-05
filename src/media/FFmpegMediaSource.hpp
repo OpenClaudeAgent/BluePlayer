@@ -99,8 +99,8 @@ private:
   std::mutex m_bufferMutex;
   std::condition_variable m_bufferCondition;
   std::condition_variable m_pauseCondition;
-  int m_bufferSize = 30;  // ~1 seconde à 30fps, ~0.5s à 60fps
-  static constexpr int MIN_BUFFER_BEFORE_PLAY = 10;  // Frames minimum avant lecture
+  int m_bufferSize = 60;  // ~2 secondes à 30fps, ~1s à 60fps (plus grand = moins de skips)
+  static constexpr int MIN_BUFFER_BEFORE_PLAY = 15;  // Frames minimum avant lecture
   
   // Audio output
   std::unique_ptr<QAudioSink> m_audioSink;

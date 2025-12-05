@@ -44,12 +44,15 @@ FFmpegMediaSource::~FFmpegMediaSource() {
 void FFmpegMediaSource::enqueueFrame(QVideoFrame&& frame) {
   std::unique_lock<std::mutex> lock(m_bufferMutex);
   
-  // Attendre si le buffer est plein (version stable)
-  m_bufferCondition.wait(lock, [this]() {
+  // Timeout court pour ne pas bloquer l'audio (5ms max)
+  bool hasSpace = m_bufferCondition.wait_for(lock, std::chrono::milliseconds(5), [this]() {
     return m_stopRequested || static_cast<int>(m_frameBuffer.size()) < m_bufferSize;
   });
   
   if (m_stopRequested) return;
+  
+  // Si pas de place après timeout, skip cette frame (l'audio continue)
+  if (!hasSpace) return;
   
   m_frameBuffer.push(std::move(frame));
   m_bufferCondition.notify_one();
@@ -278,12 +281,12 @@ void FFmpegMediaSource::setMuted(bool muted) {
 void FFmpegMediaSource::enqueueAudio(QByteArray&& audioData) {
   std::unique_lock<std::mutex> lock(m_audioMutex);
   
-  // Buffer très petit pour latence minimale (5 frames ~= 100ms)
-  constexpr size_t MAX_AUDIO_BUFFER = 5;
+  // Buffer audio: 10 frames (~200ms) - compromis latence/stabilité
+  constexpr size_t MAX_AUDIO_BUFFER = 10;
   
-  // Si buffer plein, drop les anciennes données immédiatement
+  // Si buffer plein, drop les anciennes données
   if (m_audioBuffer.size() >= MAX_AUDIO_BUFFER) {
-    m_audioBuffer.pop();  // Drop oldest - garder l'audio frais
+    m_audioBuffer.pop();
   }
   
   if (m_stopRequested) return;
@@ -324,27 +327,41 @@ void FFmpegMediaSource::initAudioOutput(int sampleRate, int channels) {
   format.setSampleFormat(QAudioFormat::Int16);
   
   QAudioDevice audioDevice = QMediaDevices::defaultAudioOutput();
+  
+  qDebug() << "[Audio] Requested format: rate=" << sampleRate << "channels=" << channels << "Int16";
+  
   if (!audioDevice.isFormatSupported(format)) {
-    qWarning() << "Audio format not supported, trying to adjust...";
-    format = audioDevice.preferredFormat();
+    qWarning() << "[Audio] Format not supported! Trying 48000Hz stereo...";
+    // Essayer un format standard
+    format.setSampleRate(48000);
+    format.setChannelCount(2);
+    format.setSampleFormat(QAudioFormat::Int16);
+    
+    if (!audioDevice.isFormatSupported(format)) {
+      qWarning() << "[Audio] 48000Hz stereo not supported, using device preferred";
+      format = audioDevice.preferredFormat();
+    }
   }
+  
+  // Log le format réellement utilisé
+  qDebug() << "[Audio] Using format: rate=" << format.sampleRate() 
+           << "channels=" << format.channelCount()
+           << "format=" << format.sampleFormat();
   
   m_audioSink = std::make_unique<QAudioSink>(audioDevice, format);
   
-  // Buffer audio device: 100ms est un bon compromis latence/stabilité
-  // buffer_size = sample_rate * channels * bytes_per_sample * seconds
-  int bytesPerSample = 2; // Int16
-  int bufferSize = sampleRate * channels * bytesPerSample / 10; // 100ms
+  // Buffer: 200ms pour plus de stabilité
+  int bytesPerSample = format.bytesPerSample();
+  int bufferSize = format.sampleRate() * format.channelCount() * bytesPerSample / 5; // 200ms
   m_audioSink->setBufferSize(bufferSize);
   
   m_audioSink->setVolume(m_muted ? 0.0f : m_volume.load());
   m_audioDevice = m_audioSink->start();
   
-  qDebug() << "[Audio] Initialized: buffer=" << m_audioSink->bufferSize() 
-           << "bytes (~50ms), rate=" << sampleRate << "Hz, channels=" << channels;
+  qDebug() << "[Audio] Started with buffer:" << m_audioSink->bufferSize() << "bytes";
   
-  m_audioSampleRate = sampleRate;
-  m_audioChannels = channels;
+  m_audioSampleRate = format.sampleRate();
+  m_audioChannels = format.channelCount();
   m_hasAudio = true;
 }
 
@@ -569,7 +586,9 @@ void FFmpegMediaSource::decodeLoop(QString path) {
               
               if (swr_init(swrContext) >= 0) {
                 hasAudioStream = true;
-                qDebug() << "[FFmpeg] Audio enabled:" << audioSampleRate << "Hz," << audioChannels << "channels";
+                qDebug() << "[FFmpeg] Audio codec sample rate:" << audioCodecContext->sample_rate;
+                qDebug() << "[FFmpeg] Audio output sample rate:" << audioSampleRate;
+                qDebug() << "[FFmpeg] Audio channels:" << audioChannels;
                 
                 // Initialize audio output on main thread
                 QMetaObject::invokeMethod(this, [this, audioSampleRate, audioChannels]() {
@@ -694,9 +713,8 @@ void FFmpegMediaSource::decodeLoop(QString path) {
         }
       }
     }
-    // Process audio packets - DISABLED: needs separate thread architecture for stable playback
-    // TODO: Implement proper audio/video sync with separate packet queues
-    else if (false && hasAudioStream && packet->stream_index == audioStreamIndex && audioCodecContext && swrContext) {
+    // Process audio packets
+    else if (hasAudioStream && packet->stream_index == audioStreamIndex && audioCodecContext && swrContext) {
       if (avcodec_send_packet(audioCodecContext, packet) >= 0) {
         while (avcodec_receive_frame(audioCodecContext, audioFrame) == 0) {
           if (m_stopRequested) break;
