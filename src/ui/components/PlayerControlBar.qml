@@ -194,25 +194,31 @@ Rectangle {
           to: duration > 0 ? duration : Math.max(position, 1)
           // Coller à droite tant qu'on n'a pas volontairement reculé, ou si on est quasi live
           readonly property bool atLiveEdge: liveOffset <= 3
-          value: (stickToLive || atLiveEdge)
+          property bool userDragging: false
+          property real seekTarget: 0
+
+          // Mettre à jour la valeur affichée seulement si l'utilisateur ne drag pas
+          value: userDragging ? value : ((stickToLive || atLiveEdge)
                    ? to
                    : (duration > 0
                         ? Math.max(0, duration - liveOffset)
-                        : (position > 0 ? position : 0))
-          property bool userDragging: false
+                        : (position > 0 ? position : 0)))
 
           onPressedChanged: {
             if (pressed) {
               userDragging = true
               controlBar.stickToLive = false  // l'utilisateur prend la main
+              console.log("[Seekbar] User started dragging, current value:", value, "to:", to)
             } else if (userDragging) {
+              seekTarget = value
               userDragging = false
-              controlBar.seekRequested(value)
+              console.log("[Seekbar] User released at value:", seekTarget, "duration:", duration, "position:", position)
+              controlBar.seekRequested(seekTarget)
             }
           }
-          onValueChanged: {
+          onMoved: {
             if (userDragging) {
-              // Live preview could be added; for now do nothing
+              console.log("[Seekbar] Slider moved to:", value)
             }
           }
 

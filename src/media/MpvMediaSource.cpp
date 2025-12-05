@@ -5,6 +5,7 @@
 #include <QVideoFrame>
 #include <QCoreApplication>
 #include <chrono>
+#include <cstdio>
 #include <cstring>
 
 #include <mpv/client.h>
@@ -35,9 +36,13 @@ void MpvMediaSource::initMpv() {
   
   // Buffering pour streams live
   mpv_set_option_string(m_mpv, "cache", "yes");
-  mpv_set_option_string(m_mpv, "cache-secs", "10");  // 10 secondes de buffer
-  mpv_set_option_string(m_mpv, "demuxer-max-bytes", "50MiB");
-  mpv_set_option_string(m_mpv, "demuxer-max-back-bytes", "25MiB");
+  mpv_set_option_string(m_mpv, "cache-secs", "120");  // buffer long pour DVR court
+  mpv_set_option_string(m_mpv, "demuxer-readahead-secs", "30");
+  mpv_set_option_string(m_mpv, "demuxer-seekable-cache", "yes");
+  mpv_set_option_string(m_mpv, "demuxer-max-bytes", "200MiB");
+  mpv_set_option_string(m_mpv, "demuxer-max-back-bytes", "150MiB");
+  mpv_set_option_string(m_mpv, "force-seekable", "yes");
+  mpv_set_option_string(m_mpv, "cache-pause", "yes");
   
   // HLS spécifique
   mpv_set_option_string(m_mpv, "hls-bitrate", "max");  // Meilleure qualité
@@ -182,9 +187,36 @@ void MpvMediaSource::togglePause() {
 void MpvMediaSource::seek(double seconds) {
   if (!m_mpv) return;
   
-  QString seekCmd = QString::number(seconds);
-  const char* cmd[] = {"seek", seekCmd.toUtf8().constData(), "absolute", nullptr};
-  mpv_command(m_mpv, cmd);
+  double currentPos = m_position.load();
+  qDebug() << "[MPV] Seek requested: target=" << seconds << "current=" << currentPos;
+  
+  // Méthode 1: Utiliser la propriété time-pos directement
+  int result = mpv_set_property(m_mpv, "time-pos", MPV_FORMAT_DOUBLE, &seconds);
+  
+  if (result < 0) {
+    qWarning() << "[MPV] time-pos seek failed:" << mpv_error_string(result);
+    
+    // Méthode 2: Utiliser playback-time
+    result = mpv_set_property(m_mpv, "playback-time", MPV_FORMAT_DOUBLE, &seconds);
+    if (result < 0) {
+      qWarning() << "[MPV] playback-time seek failed:" << mpv_error_string(result);
+      
+      // Méthode 3: Commande seek avec array statique
+      char seekVal[32];
+      snprintf(seekVal, sizeof(seekVal), "%.3f", seconds);
+      const char* cmd[] = {"seek", seekVal, "absolute", nullptr};
+      result = mpv_command(m_mpv, cmd);
+      if (result < 0) {
+        qWarning() << "[MPV] Command seek failed:" << mpv_error_string(result);
+      } else {
+        qDebug() << "[MPV] Command seek succeeded";
+      }
+    } else {
+      qDebug() << "[MPV] playback-time seek succeeded";
+    }
+  } else {
+    qDebug() << "[MPV] time-pos seek succeeded";
+  }
 }
 
 void MpvMediaSource::setVolume(float vol) {

@@ -84,6 +84,7 @@ Item {
   }
 
   function seekTo(seconds) {
+    console.log("[PlayerView] seekTo called with seconds:", seconds, "duration:", duration, "position:", position)
     if (mediaService && seconds >= 0) {
       mediaService.seek(seconds)
     }
