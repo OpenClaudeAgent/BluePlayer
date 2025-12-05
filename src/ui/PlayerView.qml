@@ -153,18 +153,18 @@ Item {
           fillMode: VideoOutput.PreserveAspectFit
         }
         
-        // Overlay de chargement
+        // Overlay de chargement (seulement avant le début de la lecture)
         Rectangle {
           anchors.fill: parent
           color: "#000000"
-          visible: !playing || statusText.indexOf("Chargement") >= 0 || statusText.indexOf("Connexion") >= 0 || statusText.indexOf("Attente") >= 0
+          visible: !playing && (statusText.indexOf("Chargement") >= 0 || statusText.indexOf("Connexion") >= 0 || statusText.indexOf("Récupération") >= 0)
           
           ColumnLayout {
             anchors.centerIn: parent
             spacing: 16
             
             Text {
-              text: adsActive ? "🚫" : "⏳"
+              text: "⏳"
               font.pixelSize: 48
               Layout.alignment: Qt.AlignHCenter
             }
@@ -173,43 +173,42 @@ Item {
               text: statusText
               font.family: AppleTheme.fontFamily
               font.pixelSize: 14
-              color: adsActive ? "#FF9500" : AppleTheme.primaryText
-              Layout.alignment: Qt.AlignHCenter
-            }
-            
-            // Info supplémentaire si pubs détectées
-            Text {
-              visible: adsActive
-              text: qsTr("Le filtre anti-pub recherche un flux propre...")
-              font.family: AppleTheme.fontFamily
-              font.pixelSize: 12
-              color: AppleTheme.secondaryText
+              color: AppleTheme.primaryText
               Layout.alignment: Qt.AlignHCenter
             }
           }
         }
         
-        // Indicateur de pub dans le coin (quand lecture en cours mais pubs actives)
+        // Badge pub discret dans le coin (visible pendant les pubs)
         Rectangle {
-          visible: playing && adsActive
+          visible: adsActive
           anchors.top: parent.top
-          anchors.right: parent.right
-          anchors.margins: 16
-          width: adBadgeText.width + 16
+          anchors.left: parent.left
+          anchors.margins: 12
+          width: adBadgeRow.width + 16
           height: 28
           radius: 6
-          color: "#CC000000"
+          color: "#DD000000"
           border.color: "#FF9500"
           border.width: 1
           
-          Text {
-            id: adBadgeText
+          Row {
+            id: adBadgeRow
             anchors.centerIn: parent
-            text: qsTr("🚫 PUB")
-            font.family: AppleTheme.fontFamily
-            font.pixelSize: 11
-            font.bold: true
-            color: "#FF9500"
+            spacing: 6
+            
+            Text {
+              text: "📺"
+              font.pixelSize: 12
+            }
+            
+            Text {
+              text: qsTr("Pub en cours...")
+              font.family: AppleTheme.fontFamily
+              font.pixelSize: 11
+              font.bold: true
+              color: "#FF9500"
+            }
           }
         }
       }
@@ -275,16 +274,16 @@ Item {
       updateStatus(qsTr("Erreur Twitch: %1").arg(message))
     }
     function onAdsDetected(count) {
-      console.log("[PlayerView] Ads detected:", count, "segments")
+      console.log("[PlayerView] Ads detected:", count, "markers")
       adsActive = true
       adSegments = count
-      updateStatus(qsTr("⚠️ %1 segments pub détectés - Attente...").arg(count))
+      // Ne pas changer le status - on continue la lecture normalement
     }
     function onAdsFinished() {
       console.log("[PlayerView] Ads finished")
       adsActive = false
       adSegments = 0
-      updateStatus(qsTr("✓ Pubs terminées"))
+      // Le status sera mis à jour automatiquement par la lecture
     }
     function onAdFilterLog(message) {
       console.log("[PlayerView AdFilter]", message)

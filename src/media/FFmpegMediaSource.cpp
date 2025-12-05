@@ -12,6 +12,8 @@
 #include <chrono>
 #include <thread>
 #include <vector>
+#include <mutex>
+#include <condition_variable>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -28,6 +30,64 @@ FFmpegMediaSource::FFmpegMediaSource(QObject* parent) : QObject(parent) {
 
 FFmpegMediaSource::~FFmpegMediaSource() {
   stop();
+}
+
+void FFmpegMediaSource::enqueueFrame(QVideoFrame&& frame) {
+  std::unique_lock<std::mutex> lock(m_bufferMutex);
+  
+  // Attendre si le buffer est plein
+  m_bufferCondition.wait(lock, [this]() {
+    return m_stopRequested || static_cast<int>(m_frameBuffer.size()) < m_bufferSize;
+  });
+  
+  if (m_stopRequested) return;
+  
+  m_frameBuffer.push(std::move(frame));
+  
+  // Signaler qu'on a des données
+  m_bufferCondition.notify_one();
+  
+  // Mettre à jour l'état de buffering
+  int currentSize = static_cast<int>(m_frameBuffer.size());
+  if (m_buffering && currentSize >= MIN_BUFFER_BEFORE_PLAY) {
+    m_buffering = false;
+    emit bufferingChanged(false);
+  }
+  
+  // Émettre la progression du buffer
+  int progress = (currentSize * 100) / m_bufferSize;
+  emit bufferProgress(progress);
+}
+
+bool FFmpegMediaSource::dequeueFrame(QVideoFrame& frame) {
+  std::unique_lock<std::mutex> lock(m_bufferMutex);
+  
+  // Attendre qu'il y ait des frames ou qu'on doive s'arrêter
+  m_bufferCondition.wait(lock, [this]() {
+    return m_stopRequested || !m_frameBuffer.empty();
+  });
+  
+  if (m_stopRequested && m_frameBuffer.empty()) {
+    return false;
+  }
+  
+  if (m_frameBuffer.empty()) {
+    return false;
+  }
+  
+  frame = std::move(m_frameBuffer.front());
+  m_frameBuffer.pop();
+  
+  // Signaler qu'il y a de la place
+  m_bufferCondition.notify_one();
+  
+  // Détecter sous-remplissage du buffer
+  if (!m_buffering && m_frameBuffer.empty()) {
+    m_buffering = true;
+    emit bufferingChanged(true);
+  }
+  
+  return true;
 }
 
 QVideoSink* FFmpegMediaSource::videoSink() const {
@@ -60,10 +120,27 @@ void FFmpegMediaSource::play() {
 
   m_stopRequested = false;
   m_running = true;
+  m_buffering = true;
+  
+  // Vider le buffer existant
+  {
+    std::lock_guard<std::mutex> lock(m_bufferMutex);
+    while (!m_frameBuffer.empty()) {
+      m_frameBuffer.pop();
+    }
+  }
+  
   emit playingChanged(true);
+  emit bufferingChanged(true);
 
+  // Thread de décodage - remplit le buffer
   m_decodeThread = std::make_unique<std::thread>([this]() {
     decodeLoop(m_currentFile);
+  });
+  
+  // Thread de rendu - consomme le buffer
+  m_renderThread = std::make_unique<std::thread>([this]() {
+    renderLoop();
     m_running = false;
     emit playingChanged(false);
   });
@@ -75,10 +152,28 @@ void FFmpegMediaSource::stop() {
   }
 
   m_stopRequested = true;
+  
+  // Réveiller les threads en attente
+  m_bufferCondition.notify_all();
+  
   if (m_decodeThread && m_decodeThread->joinable()) {
     m_decodeThread->join();
   }
   m_decodeThread.reset();
+  
+  if (m_renderThread && m_renderThread->joinable()) {
+    m_renderThread->join();
+  }
+  m_renderThread.reset();
+  
+  // Vider le buffer
+  {
+    std::lock_guard<std::mutex> lock(m_bufferMutex);
+    while (!m_frameBuffer.empty()) {
+      m_frameBuffer.pop();
+    }
+  }
+  
   m_running = false;
   emit playingChanged(false);
 }
@@ -126,21 +221,33 @@ void FFmpegMediaSource::decodeLoop(QString path) {
   };
 
   // Options spécifiques pour les flux HLS live (Twitch)
-  bool isHlsStream = path.contains(QStringLiteral(".m3u8")) || path.contains(QStringLiteral("usher.ttvnw.net"));
+  bool isHlsStream = path.contains(QStringLiteral(".m3u8")) || path.contains(QStringLiteral("ttvnw.net"));
   if (isHlsStream) {
-    // Démarrer près du live edge (-3 segments avant la fin)
+    // === BUFFERING RÉSEAU ===
+    // Buffer de lecture plus grand (2MB au lieu de 32KB par défaut)
+    av_dict_set(&options, "buffer_size", "2097152", 0);
+    // Permettre la reconnexion automatique
+    av_dict_set(&options, "reconnect", "1", 0);
+    av_dict_set(&options, "reconnect_streamed", "1", 0);
+    av_dict_set(&options, "reconnect_delay_max", "5", 0);
+    
+    // === HLS SPÉCIFIQUE ===
+    // Démarrer près du live edge (-3 segments)
     av_dict_set(&options, "live_start_index", "-3", 0);
     // Permettre tous les types d'extensions
     av_dict_set(&options, "allowed_extensions", "ALL", 0);
+    // Timeout de connexion (10 secondes)
+    av_dict_set(&options, "timeout", "10000000", 0);
     // Réutiliser les connexions HTTP
     av_dict_set(&options, "http_persistent", "1", 0);
-    // Timeout de connexion raisonnable (5 secondes)
-    av_dict_set(&options, "timeout", "5000000", 0);
-    // IMPORTANT: Ne pas ouvrir plusieurs connexions en parallèle
+    // Une seule connexion HTTP à la fois (évite surcharge)
     av_dict_set(&options, "http_multiple", "0", 0);
-    // Sélectionner la meilleure qualité par bande passante (au lieu de toutes)
-    // max_reload limite les reloads de playlist
-    av_dict_set(&options, "max_reload", "3", 0);
+    // Nombre max de reloads de playlist
+    av_dict_set(&options, "max_reload", "5", 0);
+    
+    // === PERFORMANCE ===
+    // Utiliser le threading pour le décodage
+    av_dict_set(&options, "threads", "auto", 0);
   }
 
   if (avformat_open_input(&formatContext, path.toUtf8().constData(), nullptr, &options) != 0) {
@@ -239,16 +346,8 @@ void FFmpegMediaSource::decodeLoop(QString path) {
                        currentHeight,
                        1);
 
-  // Calculer le délai entre frames basé sur le framerate du stream
-  AVRational frameRate = formatContext->streams[videoStreamIndex]->avg_frame_rate;
-  double fps = (frameRate.num > 0 && frameRate.den > 0) ? 
-               static_cast<double>(frameRate.num) / frameRate.den : 30.0;
-  // Limiter à un range raisonnable
-  if (fps < 1.0) fps = 30.0;
-  if (fps > 120.0) fps = 60.0;
-  
-  const auto frameDelay = std::chrono::microseconds(static_cast<int64_t>(1000000.0 / fps));
-  auto lastFrameTime = std::chrono::steady_clock::now();
+  // Le framerate sera géré par renderLoop, pas ici
+  // On décode aussi vite que possible pour remplir le buffer
 
   while (!m_stopRequested) {
     if (av_read_frame(formatContext, packet) < 0) {
@@ -294,6 +393,8 @@ void FFmpegMediaSource::decodeLoop(QString path) {
     }
 
     while (avcodec_receive_frame(codecContext, decodedFrame) == 0) {
+      if (m_stopRequested) break;
+      
       // Vérifier si la résolution ou le format a changé
       if (decodedFrame->width != currentWidth || 
           decodedFrame->height != currentHeight ||
@@ -322,14 +423,6 @@ void FFmpegMediaSource::decodeLoop(QString path) {
         continue;
       }
 
-      // Contrôle du framerate - attendre si nécessaire
-      auto now = std::chrono::steady_clock::now();
-      auto elapsed = now - lastFrameTime;
-      if (elapsed < frameDelay) {
-        std::this_thread::sleep_for(frameDelay - elapsed);
-      }
-      lastFrameTime = std::chrono::steady_clock::now();
-
       // Configurer le buffer de sortie
       av_image_fill_arrays(convertedFrame->data,
                            convertedFrame->linesize,
@@ -347,20 +440,70 @@ void FFmpegMediaSource::decodeLoop(QString path) {
                 convertedFrame->data,
                 convertedFrame->linesize);
 
+      // Créer la QImage et l'envoyer au buffer (avec copie pour éviter data race)
       QImage frameImage(convertedFrame->data[0],
                         currentWidth,
                         currentHeight,
                         convertedFrame->linesize[0],
                         QImage::Format_RGB32);
 
-      QVideoFrame videoFrame(frameImage.copy());
-      deliverFrame(videoFrame);
+      // Enqueue dans le buffer (bloque si buffer plein)
+      enqueueFrame(QVideoFrame(frameImage.copy()));
     }
 
     av_packet_unref(packet);
   }
 
   cleanup();
+  
+  // Signaler la fin du décodage pour que renderLoop puisse se terminer
+  m_bufferCondition.notify_all();
+}
+
+void FFmpegMediaSource::renderLoop() {
+  // Attendre un minimum de frames avant de commencer le rendu
+  {
+    std::unique_lock<std::mutex> lock(m_bufferMutex);
+    m_bufferCondition.wait_for(lock, std::chrono::seconds(5), [this]() {
+      return m_stopRequested || static_cast<int>(m_frameBuffer.size()) >= MIN_BUFFER_BEFORE_PLAY;
+    });
+  }
+  
+  if (m_stopRequested) return;
+  
+  m_buffering = false;
+  emit bufferingChanged(false);
+  
+  // Framerate cible: 60fps pour les streams Twitch (ou 30fps)
+  // On ajustera dynamiquement si nécessaire
+  double targetFps = 60.0;
+  auto frameDelay = std::chrono::microseconds(static_cast<int64_t>(1000000.0 / targetFps));
+  auto lastFrameTime = std::chrono::steady_clock::now();
+  
+  QVideoFrame frame;
+  
+  while (!m_stopRequested) {
+    // Récupérer une frame du buffer
+    if (!dequeueFrame(frame)) {
+      // Buffer vide et décodage terminé
+      if (m_stopRequested) break;
+      
+      // Buffer temporairement vide, attendre un peu
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      continue;
+    }
+    
+    // Contrôle du framerate
+    auto now = std::chrono::steady_clock::now();
+    auto elapsed = now - lastFrameTime;
+    if (elapsed < frameDelay) {
+      std::this_thread::sleep_for(frameDelay - elapsed);
+    }
+    lastFrameTime = std::chrono::steady_clock::now();
+    
+    // Envoyer la frame au VideoSink
+    deliverFrame(frame);
+  }
 }
 
 void FFmpegMediaSource::deliverFrame(const QVideoFrame& frame) {
