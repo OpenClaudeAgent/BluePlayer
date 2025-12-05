@@ -22,6 +22,7 @@ Item {
   property real duration: 0.0
   property real position: 0.0
   property real liveOffset: 0.0
+  property bool liveMode: true
   property string statusText: qsTr("Chargement du flux...")
   property string hlsUrl: ""
   property bool adsActive: false
@@ -87,12 +88,20 @@ Item {
     console.log("[PlayerView] seekTo called with seconds:", seconds, "duration:", duration, "position:", position)
     if (mediaService && seconds >= 0) {
       mediaService.seek(seconds)
+      liveMode = false
+      if (mediaService.setLiveMode) {
+        mediaService.setLiveMode(false)
+      }
     }
   }
 
   function goLive() {
     if (duration > 0) {
       seekTo(duration)
+      liveMode = true
+      if (mediaService.setLiveMode) {
+        mediaService.setLiveMode(true)
+      }
     }
   }
   
@@ -268,6 +277,7 @@ Item {
           duration: playerRoot.duration
           position: playerRoot.position
           liveOffset: playerRoot.liveOffset
+          liveMode: playerRoot.liveMode
           controlsVisible: playerRoot.controlsVisible
           
           onPlayPauseClicked: togglePlayPause()
@@ -279,6 +289,7 @@ Item {
           onMuteClicked: toggleMute()
           onSeekRequested: function(seconds) { seekTo(seconds) }
           onLiveRequested: goLive()
+          onLiveClicked: goLive()
         }
         
         // Zone de detection de souris pour afficher/masquer les controles
@@ -375,6 +386,14 @@ Item {
     }
     function onLiveOffsetChanged(offset) {
       liveOffset = offset
+      // Considérer live si offset < 3s
+      const newLive = offset <= 3
+      if (newLive !== liveMode) {
+        liveMode = newLive
+      }
+    }
+    function onLiveModeChanged(live) {
+      liveMode = live
     }
     function onErrorOccurred(message) {
       updateStatus(qsTr("Erreur: %1").arg(message))

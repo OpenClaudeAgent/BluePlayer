@@ -128,6 +128,7 @@ void FFmpegMediaService::play(const QUrl& source) {
     QString recordPath = buildRecordingPath(sourcePath);
     m_mpvSource->startRecording(recordPath);
     m_mpvSource->play(sourcePath);
+    setLiveMode(true);
   } else if (m_ffmpegSource) {
     // Fallback FFmpeg pour fichiers locaux
     Logger::debug(LogCategory::Media, QStringLiteral("[FFmpeg] Playing local file"));
@@ -154,7 +155,9 @@ void FFmpegMediaService::stop() {
     m_ffmpegSource->stop();
   }
   m_liveOffset = 0.0;
+  m_liveMode = true;
   emit liveOffsetChanged(m_liveOffset);
+  emit liveModeChanged(m_liveMode);
 }
 
 void FFmpegMediaService::pause() {
@@ -258,6 +261,12 @@ void FFmpegMediaService::stopRecording() {
   if (m_useMpv && m_mpvSource) {
     m_mpvSource->stopRecording();
   }
+}
+
+void FFmpegMediaService::setLiveMode(bool live) {
+  if (m_liveMode == live) return;
+  m_liveMode = live;
+  emit liveModeChanged(m_liveMode);
 }
 
 bool FFmpegMediaService::isRecording() const {

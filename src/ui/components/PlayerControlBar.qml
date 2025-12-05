@@ -22,6 +22,7 @@ Rectangle {
   property real position: 0.0
   property real liveOffset: 0.0
   property bool stickToLive: true
+  property bool liveMode: true
   
   // Signals
   signal playPauseClicked()
@@ -30,6 +31,7 @@ Rectangle {
   signal muteClicked()
   signal seekRequested(real seconds)
   signal liveRequested()
+  signal liveClicked()
   
   height: 80
   
@@ -146,6 +148,35 @@ Rectangle {
     // Spacer
     Item { Layout.fillWidth: true }
 
+    // Live/VOD toggle next to play/pause
+    Rectangle {
+      id: liveToggle
+      Layout.preferredWidth: 64
+      Layout.preferredHeight: 36
+      radius: 18
+      color: controlBar.liveMode ? "#E53935" : "#0066FF"
+      border.color: controlBar.liveMode ? "#FFCDD2" : "#99C2FF"
+      border.width: 1
+
+      Text {
+        anchors.centerIn: parent
+        text: controlBar.liveMode ? qsTr("LIVE") : qsTr("VOD")
+        font.pixelSize: 12
+        font.bold: true
+        color: "#FFFFFF"
+      }
+
+      MouseArea {
+        anchors.fill: parent
+        hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
+        onClicked: controlBar.liveClicked()
+      }
+    }
+
+    // Spacer
+    Item { Layout.fillWidth: true }
+
     // Seek area
     ColumnLayout {
       Layout.fillWidth: true
@@ -155,35 +186,6 @@ Rectangle {
       RowLayout {
         Layout.fillWidth: true
         spacing: 12
-
-        // Live indicator/button
-        Rectangle {
-          visible: duration > 0 && liveOffset > 3
-          Layout.preferredWidth: 64
-          Layout.preferredHeight: 28
-          radius: 14
-          color: "#E53935"
-          border.color: "#FFCDD2"
-          border.width: 1
-
-          Text {
-            anchors.centerIn: parent
-            text: qsTr("LIVE")
-            font.pixelSize: 12
-            font.bold: true
-            color: "#FFFFFF"
-          }
-
-          MouseArea {
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: {
-              controlBar.stickToLive = true
-              controlBar.liveRequested()
-            }
-          }
-        }
 
         // Seek slider
         Slider {
