@@ -22,6 +22,9 @@ FFmpegMediaService::FFmpegMediaService(QObject* parent)
     : QObject(parent), m_source(std::make_unique<FFmpegMediaSource>(this)) {
   connect(m_source.get(), &FFmpegMediaSource::playingChanged, this, &FFmpegMediaService::playingChanged);
   connect(m_source.get(), &FFmpegMediaSource::videoSinkChanged, this, &FFmpegMediaService::videoSinkChanged);
+  connect(m_source.get(), &FFmpegMediaSource::pausedChanged, this, &FFmpegMediaService::pausedChanged);
+  connect(m_source.get(), &FFmpegMediaSource::volumeChanged, this, &FFmpegMediaService::volumeChanged);
+  connect(m_source.get(), &FFmpegMediaSource::mutedChanged, this, &FFmpegMediaService::mutedChanged);
 }
 
 FFmpegMediaService::~FFmpegMediaService() = default;
@@ -101,6 +104,54 @@ void FFmpegMediaService::playFile(const QString& filePath) {
 void FFmpegMediaService::stop() {
   if (m_source) {
     m_source->stop();
+  }
+}
+
+void FFmpegMediaService::pause() {
+  if (m_source) {
+    m_source->pause();
+  }
+}
+
+void FFmpegMediaService::resume() {
+  if (m_source) {
+    m_source->resume();
+  }
+}
+
+void FFmpegMediaService::togglePause() {
+  if (m_source) {
+    m_source->togglePause();
+  }
+}
+
+bool FFmpegMediaService::isPaused() const {
+  return m_source ? m_source->isPaused() : false;
+}
+
+float FFmpegMediaService::volume() const {
+  return m_source ? m_source->volume() : 1.0f;
+}
+
+void FFmpegMediaService::setVolume(float vol) {
+  if (m_source) {
+    m_source->setVolume(vol);
+  }
+}
+
+bool FFmpegMediaService::isMuted() const {
+  return m_source ? m_source->isMuted() : false;
+}
+
+void FFmpegMediaService::setMuted(bool muted) {
+  if (m_source) {
+    m_source->setMuted(muted);
+  }
+}
+
+void FFmpegMediaService::toggleMute() {
+  if (m_source) {
+    m_source->setMuted(!m_source->isMuted());
   }
 }
 

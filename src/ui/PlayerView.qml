@@ -4,6 +4,7 @@ import QtQuick.Layouts 1.15
 import QtMultimedia 6.5
 
 import "themes/AppleTheme.js" as AppleTheme
+import "components"
 
 Item {
   id: playerRoot
@@ -14,10 +15,15 @@ Item {
   property string streamerName: ""
   property string streamTitle: ""
   property bool playing: false
+  property bool paused: false
+  property bool buffering: false
+  property real volume: 1.0
+  property bool muted: false
   property string statusText: qsTr("Chargement du flux...")
   property string hlsUrl: ""
   property bool adsActive: false
   property int adSegments: 0
+  property bool controlsVisible: true
   
   signal backRequested()
   
@@ -34,11 +40,11 @@ Item {
     
     if (!streamerLogin) {
       console.log("[PlayerView] ERROR: No streamerLogin provided")
-      updateStatus(qsTr("Aucun stream sélectionné"))
+      updateStatus(qsTr("Aucun stream selectionne"))
       return
     }
     
-    updateStatus(qsTr("Récupération de l'URL du flux..."))
+    updateStatus(qsTr("Recuperation de l'URL du flux..."))
     console.log("[PlayerView] Calling twitchService.getStreamHlsUrl() with login:", streamerLogin)
     
     // Obtenir l'URL HLS via le service Twitch
@@ -53,6 +59,24 @@ Item {
   function requestStop() {
     if (mediaService) {
       mediaService.stop()
+    }
+  }
+  
+  function togglePlayPause() {
+    if (mediaService) {
+      mediaService.togglePause()
+    }
+  }
+  
+  function setVolume(vol) {
+    if (mediaService) {
+      mediaService.volume = vol
+    }
+  }
+  
+  function toggleMute() {
+    if (mediaService) {
+      mediaService.toggleMute()
     }
   }
   
@@ -141,7 +165,7 @@ Item {
         }
       }
       
-      // Zone vidéo
+      // Zone video
       Rectangle {
         Layout.fillWidth: true
         Layout.fillHeight: true
@@ -153,20 +177,19 @@ Item {
           fillMode: VideoOutput.PreserveAspectFit
         }
         
-        // Overlay de chargement (seulement avant le début de la lecture)
+        // Overlay de chargement (seulement avant le debut de la lecture)
         Rectangle {
           anchors.fill: parent
           color: "#000000"
-          visible: !playing && (statusText.indexOf("Chargement") >= 0 || statusText.indexOf("Connexion") >= 0 || statusText.indexOf("Récupération") >= 0)
+          visible: !playing && (statusText.indexOf("Chargement") >= 0 || statusText.indexOf("Connexion") >= 0 || statusText.indexOf("Recuperation") >= 0)
           
           ColumnLayout {
             anchors.centerIn: parent
             spacing: 16
             
-            Text {
-              text: "⏳"
-              font.pixelSize: 48
+            BusyIndicator {
               Layout.alignment: Qt.AlignHCenter
+              running: true
             }
             
             Text {
@@ -198,8 +221,10 @@ Item {
             spacing: 6
             
             Text {
-              text: "📺"
-              font.pixelSize: 12
+              text: "AD"
+              font.pixelSize: 10
+              font.bold: true
+              color: "#FF9500"
             }
             
             Text {
@@ -211,24 +236,84 @@ Item {
             }
           }
         }
+        
+        // Barre de controle en bas
+        PlayerControlBar {
+          id: playerControlBar
+          anchors.left: parent.left
+          anchors.right: parent.right
+          anchors.bottom: parent.bottom
+          
+          playing: playerRoot.playing
+          paused: playerRoot.paused
+          buffering: playerRoot.buffering
+          volume: playerRoot.volume
+          muted: playerRoot.muted
+          controlsVisible: playerRoot.controlsVisible
+          
+          onPlayPauseClicked: togglePlayPause()
+          onStopClicked: {
+            requestStop()
+            playerRoot.backRequested()
+          }
+          onVolumeRequested: function(newVolume) { setVolume(newVolume) }
+          onMuteClicked: toggleMute()
+        }
+        
+        // Zone de detection de souris pour afficher/masquer les controles
+        MouseArea {
+          anchors.fill: parent
+          hoverEnabled: true
+          propagateComposedEvents: true
+          
+          onPositionChanged: {
+            controlsVisible = true
+            hideControlsTimer.restart()
+          }
+          
+          onPressed: function(mouse) { mouse.accepted = false }
+          onReleased: function(mouse) { mouse.accepted = false }
+          onClicked: function(mouse) { mouse.accepted = false }
+        }
+        
+        // Timer pour masquer les controles
+        Timer {
+          id: hideControlsTimer
+          interval: 3000
+          onTriggered: {
+            if (playing && !paused) {
+              controlsVisible = false
+            }
+          }
+        }
       }
     }
   }
   
-  Component.onCompleted: {
-    console.log("[PlayerView] Component.onCompleted called")
-    if (mediaService && videoOutput) {
-      mediaService.videoSink = videoOutput.videoSink
-    }
-    // Ne pas appeler loadStream() ici car les propriétés ne sont pas encore définies
-    // loadStream() sera appelé quand streamerLogin sera défini
-  }
-  
-  // Appeler loadStream() quand streamerLogin devient disponible
-  onStreamerLoginChanged: {
-    console.log("[PlayerView] onStreamerLoginChanged called, streamerLogin:", streamerLogin)
-    if (streamerLogin && streamerLogin.length > 0) {
-      loadStream()
+  // Gestion des raccourcis clavier
+  Keys.onPressed: function(event) {
+    switch (event.key) {
+      case Qt.Key_Space:
+        togglePlayPause()
+        event.accepted = true
+        break
+      case Qt.Key_M:
+        toggleMute()
+        event.accepted = true
+        break
+      case Qt.Key_Up:
+        setVolume(Math.min(1.0, volume + 0.1))
+        event.accepted = true
+        break
+      case Qt.Key_Down:
+        setVolume(Math.max(0.0, volume - 0.1))
+        event.accepted = true
+        break
+      case Qt.Key_Escape:
+        requestStop()
+        playerRoot.backRequested()
+        event.accepted = true
+        break
     }
   }
   
@@ -237,12 +322,29 @@ Item {
     function onPlayingChanged(isPlaying) {
       playing = isPlaying
       if (isPlaying) {
+        buffering = false
         updateStatus(qsTr("Lecture en cours"))
+        playerRoot.forceActiveFocus()
       } else {
         if (hlsUrl.length > 0) {
-          updateStatus(qsTr("Lecture arrêtée"))
+          updateStatus(qsTr("Lecture arretee"))
         }
       }
+    }
+    function onPausedChanged(isPaused) {
+      paused = isPaused
+      if (isPaused) {
+        updateStatus(qsTr("Pause"))
+        controlsVisible = true
+      } else if (playing) {
+        updateStatus(qsTr("Lecture en cours"))
+      }
+    }
+    function onVolumeChanged(newVolume) {
+      volume = newVolume
+    }
+    function onMutedChanged(isMuted) {
+      muted = isMuted
     }
     function onErrorOccurred(message) {
       updateStatus(qsTr("Erreur: %1").arg(message))
@@ -257,7 +359,8 @@ Item {
       if (url && url.length > 0) {
         hlsUrl = url
         console.log("[PlayerView] HLS URL received:", url.substring(0, 100) + "...")
-        updateStatus(adsActive ? qsTr("⚠️ Pubs détectées - Connexion...") : qsTr("Connexion au flux..."))
+        updateStatus(adsActive ? qsTr("Pubs detectees - Connexion...") : qsTr("Connexion au flux..."))
+        buffering = true
         if (mediaService) {
           console.log("[PlayerView] Calling mediaService.play() with URL")
           mediaService.play(Qt.resolvedUrl(url))
@@ -266,7 +369,7 @@ Item {
         }
       } else {
         console.log("[PlayerView] ERROR: Empty or invalid HLS URL")
-        updateStatus(qsTr("Impossible de récupérer l'URL du flux"))
+        updateStatus(qsTr("Impossible de recuperer l'URL du flux"))
       }
     }
     function onErrorOccurred(message) {
@@ -277,17 +380,31 @@ Item {
       console.log("[PlayerView] Ads detected:", count, "markers")
       adsActive = true
       adSegments = count
-      // Ne pas changer le status - on continue la lecture normalement
     }
     function onAdsFinished() {
       console.log("[PlayerView] Ads finished")
       adsActive = false
       adSegments = 0
-      // Le status sera mis à jour automatiquement par la lecture
     }
     function onAdFilterLog(message) {
       console.log("[PlayerView AdFilter]", message)
     }
+  }
+  
+  // Appeler loadStream() quand streamerLogin devient disponible
+  onStreamerLoginChanged: {
+    console.log("[PlayerView] onStreamerLoginChanged called, streamerLogin:", streamerLogin)
+    if (streamerLogin && streamerLogin.length > 0) {
+      loadStream()
+    }
+  }
+  
+  Component.onCompleted: {
+    console.log("[PlayerView] Component.onCompleted called")
+    if (mediaService && videoOutput) {
+      mediaService.videoSink = videoOutput.videoSink
+    }
+    playerRoot.forceActiveFocus()
   }
 }
 

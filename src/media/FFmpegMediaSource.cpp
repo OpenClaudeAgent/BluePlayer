@@ -6,6 +6,11 @@
 #include <QMetaObject>
 #include <QVideoFrame>
 #include <QVideoSink>
+#include <QAudioSink>
+#include <QAudioFormat>
+#include <QMediaDevices>
+#include <QAudioDevice>
+#include <QDebug>
 #include <Qt>
 
 #include <atomic>
@@ -14,12 +19,16 @@
 #include <vector>
 #include <mutex>
 #include <condition_variable>
+#include <cmath>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h>
+#include <libswresample/swresample.h>
 #include <libavutil/imgutils.h>
+#include <libavutil/opt.h>
+#include <libavutil/channel_layout.h>
 }
 
 namespace blueplayer::media {
@@ -35,7 +44,7 @@ FFmpegMediaSource::~FFmpegMediaSource() {
 void FFmpegMediaSource::enqueueFrame(QVideoFrame&& frame) {
   std::unique_lock<std::mutex> lock(m_bufferMutex);
   
-  // Attendre si le buffer est plein
+  // Attendre si le buffer est plein (version stable)
   m_bufferCondition.wait(lock, [this]() {
     return m_stopRequested || static_cast<int>(m_frameBuffer.size()) < m_bufferSize;
   });
@@ -43,20 +52,13 @@ void FFmpegMediaSource::enqueueFrame(QVideoFrame&& frame) {
   if (m_stopRequested) return;
   
   m_frameBuffer.push(std::move(frame));
-  
-  // Signaler qu'on a des données
   m_bufferCondition.notify_one();
   
-  // Mettre à jour l'état de buffering
   int currentSize = static_cast<int>(m_frameBuffer.size());
   if (m_buffering && currentSize >= MIN_BUFFER_BEFORE_PLAY) {
     m_buffering = false;
     emit bufferingChanged(false);
   }
-  
-  // Émettre la progression du buffer
-  int progress = (currentSize * 100) / m_bufferSize;
-  emit bufferProgress(progress);
 }
 
 bool FFmpegMediaSource::dequeueFrame(QVideoFrame& frame) {
@@ -121,24 +123,33 @@ void FFmpegMediaSource::play() {
   m_stopRequested = false;
   m_running = true;
   m_buffering = true;
+  m_paused = false;
+  m_hasAudio = false;
   
-  // Vider le buffer existant
+  // Vider les buffers existants
   {
     std::lock_guard<std::mutex> lock(m_bufferMutex);
     while (!m_frameBuffer.empty()) {
       m_frameBuffer.pop();
     }
   }
+  {
+    std::lock_guard<std::mutex> lock(m_audioMutex);
+    while (!m_audioBuffer.empty()) {
+      m_audioBuffer.pop();
+    }
+  }
   
   emit playingChanged(true);
   emit bufferingChanged(true);
+  emit pausedChanged(false);
 
-  // Thread de décodage - remplit le buffer
+  // Thread de décodage - remplit les buffers vidéo et audio
   m_decodeThread = std::make_unique<std::thread>([this]() {
     decodeLoop(m_currentFile);
   });
   
-  // Thread de rendu - consomme le buffer
+  // Thread de rendu vidéo - consomme le buffer vidéo
   m_renderThread = std::make_unique<std::thread>([this]() {
     renderLoop();
     m_running = false;
@@ -152,9 +163,12 @@ void FFmpegMediaSource::stop() {
   }
 
   m_stopRequested = true;
+  m_paused = false;
   
   // Réveiller les threads en attente
   m_bufferCondition.notify_all();
+  m_pauseCondition.notify_all();
+  m_audioCondition.notify_all();
   
   if (m_decodeThread && m_decodeThread->joinable()) {
     m_decodeThread->join();
@@ -166,25 +180,229 @@ void FFmpegMediaSource::stop() {
   }
   m_renderThread.reset();
   
-  // Vider le buffer
+  if (m_audioThread && m_audioThread->joinable()) {
+    m_audioThread->join();
+  }
+  m_audioThread.reset();
+  
+  // Arrêter la sortie audio
+  if (m_audioSink) {
+    m_audioSink->stop();
+    m_audioSink.reset();
+  }
+  m_audioDevice = nullptr;
+  
+  // Vider les buffers
   {
     std::lock_guard<std::mutex> lock(m_bufferMutex);
     while (!m_frameBuffer.empty()) {
       m_frameBuffer.pop();
     }
   }
+  {
+    std::lock_guard<std::mutex> lock(m_audioMutex);
+    while (!m_audioBuffer.empty()) {
+      m_audioBuffer.pop();
+    }
+  }
   
   m_running = false;
+  m_hasAudio = false;
   emit playingChanged(false);
+}
+
+void FFmpegMediaSource::pause() {
+  if (!m_running || m_paused) {
+    return;
+  }
+  
+  m_paused = true;
+  
+  // Pause audio output
+  if (m_audioSink) {
+    m_audioSink->suspend();
+  }
+  
+  emit pausedChanged(true);
+}
+
+void FFmpegMediaSource::resume() {
+  if (!m_running || !m_paused) {
+    return;
+  }
+  
+  m_paused = false;
+  
+  // Resume audio output
+  if (m_audioSink) {
+    m_audioSink->resume();
+  }
+  
+  // Réveiller les threads en attente
+  m_pauseCondition.notify_all();
+  
+  emit pausedChanged(false);
+}
+
+void FFmpegMediaSource::togglePause() {
+  if (m_paused) {
+    resume();
+  } else {
+    pause();
+  }
+}
+
+void FFmpegMediaSource::setVolume(float vol) {
+  vol = std::clamp(vol, 0.0f, 1.0f);
+  float oldVolume = m_volume.exchange(vol);
+  
+  if (std::abs(oldVolume - vol) > 0.001f) {
+    if (m_audioSink) {
+      m_audioSink->setVolume(vol);
+    }
+    emit volumeChanged(vol);
+  }
+}
+
+void FFmpegMediaSource::setMuted(bool muted) {
+  bool oldMuted = m_muted.exchange(muted);
+  
+  if (oldMuted != muted) {
+    if (m_audioSink) {
+      m_audioSink->setVolume(muted ? 0.0f : m_volume.load());
+    }
+    emit mutedChanged(muted);
+  }
+}
+
+void FFmpegMediaSource::enqueueAudio(QByteArray&& audioData) {
+  std::unique_lock<std::mutex> lock(m_audioMutex);
+  
+  // Buffer très petit pour latence minimale (5 frames ~= 100ms)
+  constexpr size_t MAX_AUDIO_BUFFER = 5;
+  
+  // Si buffer plein, drop les anciennes données immédiatement
+  if (m_audioBuffer.size() >= MAX_AUDIO_BUFFER) {
+    m_audioBuffer.pop();  // Drop oldest - garder l'audio frais
+  }
+  
+  if (m_stopRequested) return;
+  
+  m_audioBuffer.push(std::move(audioData));
+  m_audioCondition.notify_one();
+}
+
+bool FFmpegMediaSource::dequeueAudio(QByteArray& audioData) {
+  std::unique_lock<std::mutex> lock(m_audioMutex);
+  
+  // Don't wait too long - use a short timeout for low latency
+  if (m_audioBuffer.empty()) {
+    m_audioCondition.wait_for(lock, std::chrono::milliseconds(5), [this]() {
+      return m_stopRequested || !m_audioBuffer.empty();
+    });
+  }
+  
+  if (m_stopRequested && m_audioBuffer.empty()) {
+    return false;
+  }
+  
+  if (m_audioBuffer.empty()) {
+    return false;
+  }
+  
+  audioData = std::move(m_audioBuffer.front());
+  m_audioBuffer.pop();
+  m_audioCondition.notify_one();
+  
+  return true;
+}
+
+void FFmpegMediaSource::initAudioOutput(int sampleRate, int channels) {
+  QAudioFormat format;
+  format.setSampleRate(sampleRate);
+  format.setChannelCount(channels);
+  format.setSampleFormat(QAudioFormat::Int16);
+  
+  QAudioDevice audioDevice = QMediaDevices::defaultAudioOutput();
+  if (!audioDevice.isFormatSupported(format)) {
+    qWarning() << "Audio format not supported, trying to adjust...";
+    format = audioDevice.preferredFormat();
+  }
+  
+  m_audioSink = std::make_unique<QAudioSink>(audioDevice, format);
+  
+  // Buffer audio device: 100ms est un bon compromis latence/stabilité
+  // buffer_size = sample_rate * channels * bytes_per_sample * seconds
+  int bytesPerSample = 2; // Int16
+  int bufferSize = sampleRate * channels * bytesPerSample / 10; // 100ms
+  m_audioSink->setBufferSize(bufferSize);
+  
+  m_audioSink->setVolume(m_muted ? 0.0f : m_volume.load());
+  m_audioDevice = m_audioSink->start();
+  
+  qDebug() << "[Audio] Initialized: buffer=" << m_audioSink->bufferSize() 
+           << "bytes (~50ms), rate=" << sampleRate << "Hz, channels=" << channels;
+  
+  m_audioSampleRate = sampleRate;
+  m_audioChannels = channels;
+  m_hasAudio = true;
+}
+
+void FFmpegMediaSource::audioLoop() {
+  QByteArray audioData;
+  QByteArray pendingData;  // Données en attente d'écriture
+  
+  while (!m_stopRequested) {
+    // Attendre si en pause
+    if (m_paused) {
+      std::unique_lock<std::mutex> lock(m_bufferMutex);
+      m_pauseCondition.wait(lock, [this]() {
+        return m_stopRequested || !m_paused;
+      });
+      if (m_stopRequested) break;
+      continue;
+    }
+    
+    // Si on a des données en attente, essayer de les écrire d'abord
+    if (!pendingData.isEmpty() && m_audioDevice) {
+      qint64 written = m_audioDevice->write(pendingData);
+      if (written > 0) {
+        pendingData.remove(0, static_cast<int>(written));
+      }
+      if (!pendingData.isEmpty()) {
+        // Device pas prêt, attendre un peu
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        continue;
+      }
+    }
+    
+    // Récupérer de nouvelles données audio
+    if (!dequeueAudio(audioData)) {
+      if (m_stopRequested) break;
+      std::this_thread::sleep_for(std::chrono::milliseconds(2));
+      continue;
+    }
+    
+    if (m_audioDevice && !audioData.isEmpty()) {
+      qint64 written = m_audioDevice->write(audioData);
+      if (written < audioData.size()) {
+        // Garder les données non écrites pour le prochain tour
+        pendingData = audioData.mid(static_cast<int>(written));
+      }
+    }
+  }
 }
 
 void FFmpegMediaSource::decodeLoop(QString path) {
   AVFormatContext* formatContext = nullptr;
-  AVCodecContext* codecContext = nullptr;
+  AVCodecContext* videoCodecContext = nullptr;
+  AVCodecContext* audioCodecContext = nullptr;
   SwsContext* swsContext = nullptr;
+  SwrContext* swrContext = nullptr;
   AVPacket* packet = av_packet_alloc();
   AVFrame* decodedFrame = av_frame_alloc();
   AVFrame* convertedFrame = av_frame_alloc();
+  AVFrame* audioFrame = av_frame_alloc();
   AVDictionary* options = nullptr;
 
   auto cleanup = [&]() {
@@ -200,18 +418,27 @@ void FFmpegMediaSource::decodeLoop(QString path) {
     if (decodedFrame) {
       av_frame_free(&decodedFrame);
     }
+    if (audioFrame) {
+      av_frame_free(&audioFrame);
+    }
     if (swsContext) {
       sws_freeContext(swsContext);
     }
-    if (codecContext) {
-      avcodec_free_context(&codecContext);
+    if (swrContext) {
+      swr_free(&swrContext);
+    }
+    if (videoCodecContext) {
+      avcodec_free_context(&videoCodecContext);
+    }
+    if (audioCodecContext) {
+      avcodec_free_context(&audioCodecContext);
     }
     if (formatContext) {
       avformat_close_input(&formatContext);
     }
   };
 
-  if (!packet || !decodedFrame || !convertedFrame) {
+  if (!packet || !decodedFrame || !convertedFrame || !audioFrame) {
     cleanup();
     return;
   }
@@ -224,29 +451,20 @@ void FFmpegMediaSource::decodeLoop(QString path) {
   bool isHlsStream = path.contains(QStringLiteral(".m3u8")) || path.contains(QStringLiteral("ttvnw.net"));
   if (isHlsStream) {
     // === BUFFERING RÉSEAU ===
-    // Buffer de lecture plus grand (2MB au lieu de 32KB par défaut)
     av_dict_set(&options, "buffer_size", "2097152", 0);
-    // Permettre la reconnexion automatique
     av_dict_set(&options, "reconnect", "1", 0);
     av_dict_set(&options, "reconnect_streamed", "1", 0);
     av_dict_set(&options, "reconnect_delay_max", "5", 0);
     
     // === HLS SPÉCIFIQUE ===
-    // Démarrer près du live edge (-3 segments)
     av_dict_set(&options, "live_start_index", "-3", 0);
-    // Permettre tous les types d'extensions
     av_dict_set(&options, "allowed_extensions", "ALL", 0);
-    // Timeout de connexion (10 secondes)
     av_dict_set(&options, "timeout", "10000000", 0);
-    // Réutiliser les connexions HTTP
     av_dict_set(&options, "http_persistent", "1", 0);
-    // Une seule connexion HTTP à la fois (évite surcharge)
     av_dict_set(&options, "http_multiple", "0", 0);
-    // Nombre max de reloads de playlist
     av_dict_set(&options, "max_reload", "5", 0);
     
     // === PERFORMANCE ===
-    // Utiliser le threading pour le décodage
     av_dict_set(&options, "threads", "auto", 0);
   }
 
@@ -255,57 +473,134 @@ void FFmpegMediaSource::decodeLoop(QString path) {
     return;
   }
 
-  // Options pour la recherche de stream info (limiter le temps de probe)
-  formatContext->probesize = 1024 * 1024;  // 1MB max
-  formatContext->max_analyze_duration = 3 * AV_TIME_BASE;  // 3 secondes max
+  formatContext->probesize = 1024 * 1024;
+  formatContext->max_analyze_duration = 3 * AV_TIME_BASE;
 
   if (avformat_find_stream_info(formatContext, nullptr) < 0) {
     failEarly();
     return;
   }
 
+  // Trouver les streams video et audio
   int videoStreamIndex = -1;
+  int audioStreamIndex = -1;
+  
+  qDebug() << "[FFmpeg] Number of streams:" << formatContext->nb_streams;
+  
   for (unsigned idx = 0; idx < formatContext->nb_streams; ++idx) {
-    if (formatContext->streams[idx]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
+    auto codecType = formatContext->streams[idx]->codecpar->codec_type;
+    qDebug() << "[FFmpeg] Stream" << idx << "type:" << codecType;
+    
+    if (codecType == AVMEDIA_TYPE_VIDEO && videoStreamIndex < 0) {
       videoStreamIndex = static_cast<int>(idx);
-      break;
+      qDebug() << "[FFmpeg] Found VIDEO stream at index" << idx;
+    } else if (codecType == AVMEDIA_TYPE_AUDIO && audioStreamIndex < 0) {
+      audioStreamIndex = static_cast<int>(idx);
+      qDebug() << "[FFmpeg] Found AUDIO stream at index" << idx;
     }
   }
+  
+  qDebug() << "[FFmpeg] Video stream:" << videoStreamIndex << "Audio stream:" << audioStreamIndex;
 
   if (videoStreamIndex < 0) {
     failEarly();
     return;
   }
 
-  AVCodecParameters* codecParameters = formatContext->streams[videoStreamIndex]->codecpar;
-  const AVCodec* codec = avcodec_find_decoder(codecParameters->codec_id);
-  if (!codec) {
+  // Initialiser le décodeur vidéo
+  AVCodecParameters* videoCodecParams = formatContext->streams[videoStreamIndex]->codecpar;
+  const AVCodec* videoCodec = avcodec_find_decoder(videoCodecParams->codec_id);
+  if (!videoCodec) {
     failEarly();
     return;
   }
 
-  codecContext = avcodec_alloc_context3(codec);
-  if (!codecContext) {
+  videoCodecContext = avcodec_alloc_context3(videoCodec);
+  if (!videoCodecContext) {
     failEarly();
     return;
   }
 
-  if (avcodec_parameters_to_context(codecContext, codecParameters) < 0) {
+  if (avcodec_parameters_to_context(videoCodecContext, videoCodecParams) < 0) {
     failEarly();
     return;
   }
 
-  if (avcodec_open2(codecContext, codec, nullptr) < 0) {
+  if (avcodec_open2(videoCodecContext, videoCodec, nullptr) < 0) {
     failEarly();
     return;
   }
 
-  int currentWidth = codecContext->width;
-  int currentHeight = codecContext->height;
-  AVPixelFormat currentPixFmt = codecContext->pix_fmt;
+  // Initialize audio decoder if available
+  bool hasAudioStream = false;
+  int audioSampleRate = 48000;
+  int audioChannels = 2;
+  
+  if (audioStreamIndex >= 0) {
+    AVCodecParameters* audioCodecParams = formatContext->streams[audioStreamIndex]->codecpar;
+    const AVCodec* audioCodec = avcodec_find_decoder(audioCodecParams->codec_id);
+    
+    if (audioCodec) {
+      audioCodecContext = avcodec_alloc_context3(audioCodec);
+      if (audioCodecContext) {
+        if (avcodec_parameters_to_context(audioCodecContext, audioCodecParams) >= 0) {
+          // Enable multi-threading for audio decoder
+          audioCodecContext->thread_count = 2;
+          
+          if (avcodec_open2(audioCodecContext, audioCodec, nullptr) >= 0) {
+            audioSampleRate = audioCodecContext->sample_rate > 0 ? audioCodecContext->sample_rate : 48000;
+            audioChannels = audioCodecContext->ch_layout.nb_channels > 0 ? audioCodecContext->ch_layout.nb_channels : 2;
+            
+            // Limit to stereo
+            if (audioChannels > 2) audioChannels = 2;
+            
+            // Initialize audio resampler
+            swrContext = swr_alloc();
+            if (swrContext) {
+              AVChannelLayout outLayout;
+              av_channel_layout_default(&outLayout, audioChannels);
+              
+              av_opt_set_chlayout(swrContext, "in_chlayout", &audioCodecContext->ch_layout, 0);
+              av_opt_set_chlayout(swrContext, "out_chlayout", &outLayout, 0);
+              av_opt_set_int(swrContext, "in_sample_rate", audioCodecContext->sample_rate, 0);
+              av_opt_set_int(swrContext, "out_sample_rate", audioSampleRate, 0);
+              av_opt_set_sample_fmt(swrContext, "in_sample_fmt", audioCodecContext->sample_fmt, 0);
+              av_opt_set_sample_fmt(swrContext, "out_sample_fmt", AV_SAMPLE_FMT_S16, 0);
+              
+              if (swr_init(swrContext) >= 0) {
+                hasAudioStream = true;
+                qDebug() << "[FFmpeg] Audio enabled:" << audioSampleRate << "Hz," << audioChannels << "channels";
+                
+                // Initialize audio output on main thread
+                QMetaObject::invokeMethod(this, [this, audioSampleRate, audioChannels]() {
+                  initAudioOutput(audioSampleRate, audioChannels);
+                }, Qt::BlockingQueuedConnection);
+                
+                // Start audio playback thread
+                m_audioThread = std::make_unique<std::thread>([this]() {
+                  audioLoop();
+                });
+              } else {
+                swr_free(&swrContext);
+                swrContext = nullptr;
+                qDebug() << "[FFmpeg] Failed to init audio resampler";
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  if (!hasAudioStream) {
+    qDebug() << "[FFmpeg] No audio stream available";
+  }
+
+  int currentWidth = videoCodecContext->width;
+  int currentHeight = videoCodecContext->height;
+  AVPixelFormat currentPixFmt = videoCodecContext->pix_fmt;
   const AVPixelFormat targetFormat = AV_PIX_FMT_RGB32;
 
-  // Créer le contexte swscale initial
   auto createSwsContext = [&](int width, int height, AVPixelFormat pixFmt) -> bool {
     if (swsContext) {
       sws_freeContext(swsContext);
@@ -316,16 +611,9 @@ void FFmpegMediaSource::decodeLoop(QString path) {
       return false;
     }
     
-    swsContext = sws_getContext(width,
-                                height,
-                                pixFmt,
-                                width,
-                                height,
-                                targetFormat,
-                                SWS_FAST_BILINEAR,
-                                nullptr,
-                                nullptr,
-                                nullptr);
+    swsContext = sws_getContext(width, height, pixFmt,
+                                width, height, targetFormat,
+                                SWS_FAST_BILINEAR, nullptr, nullptr, nullptr);
     return swsContext != nullptr;
   };
 
@@ -337,127 +625,108 @@ void FFmpegMediaSource::decodeLoop(QString path) {
   int bufferSize = av_image_get_buffer_size(targetFormat, currentWidth, currentHeight, 1);
   std::vector<uint8_t> buffer(static_cast<size_t>(bufferSize));
   
-  // Initialiser le buffer de sortie
-  av_image_fill_arrays(convertedFrame->data,
-                       convertedFrame->linesize,
-                       buffer.data(),
-                       targetFormat,
-                       currentWidth,
-                       currentHeight,
-                       1);
-
-  // Le framerate sera géré par renderLoop, pas ici
-  // On décode aussi vite que possible pour remplir le buffer
+  av_image_fill_arrays(convertedFrame->data, convertedFrame->linesize,
+                       buffer.data(), targetFormat, currentWidth, currentHeight, 1);
 
   while (!m_stopRequested) {
+    // Attendre si en pause (seulement pour le décodage de fichiers locaux)
+    if (m_paused && !isHlsStream) {
+      std::unique_lock<std::mutex> lock(m_bufferMutex);
+      m_pauseCondition.wait(lock, [this]() {
+        return m_stopRequested || !m_paused;
+      });
+      if (m_stopRequested) break;
+    }
+    
     if (av_read_frame(formatContext, packet) < 0) {
-      // Pour les streams HLS live, on ne sort pas de la boucle sur erreur de lecture
-      // On attend un peu et on réessaie
       if (isHlsStream) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         continue;
       }
       
-      // Pour les fichiers locaux, on flush le décodeur et on sort
-      avcodec_send_packet(codecContext, nullptr);
-      while (avcodec_receive_frame(codecContext, decodedFrame) == 0) {
+      // Flush video decoder
+      avcodec_send_packet(videoCodecContext, nullptr);
+      while (avcodec_receive_frame(videoCodecContext, decodedFrame) == 0) {
         if (swsContext && currentWidth > 0 && currentHeight > 0) {
-          sws_scale(swsContext,
-                    decodedFrame->data,
-                    decodedFrame->linesize,
-                    0,
-                    currentHeight,
-                    convertedFrame->data,
-                    convertedFrame->linesize);
+          sws_scale(swsContext, decodedFrame->data, decodedFrame->linesize,
+                    0, currentHeight, convertedFrame->data, convertedFrame->linesize);
 
-          QImage frameImage(convertedFrame->data[0],
-                            currentWidth,
-                            currentHeight,
-                            convertedFrame->linesize[0],
-                            QImage::Format_RGB32);
-
-          deliverFrame(QVideoFrame(frameImage.copy()));
+          QImage frameImage(convertedFrame->data[0], currentWidth, currentHeight,
+                            convertedFrame->linesize[0], QImage::Format_RGB32);
+          enqueueFrame(QVideoFrame(frameImage.copy()));
         }
       }
       break;
     }
 
-    if (packet->stream_index != videoStreamIndex) {
-      av_packet_unref(packet);
-      continue;
-    }
+    // Traiter les paquets vidéo
+    if (packet->stream_index == videoStreamIndex) {
+      if (avcodec_send_packet(videoCodecContext, packet) >= 0) {
+        while (avcodec_receive_frame(videoCodecContext, decodedFrame) == 0) {
+          if (m_stopRequested) break;
+          
+          if (decodedFrame->width != currentWidth || 
+              decodedFrame->height != currentHeight ||
+              static_cast<AVPixelFormat>(decodedFrame->format) != currentPixFmt) {
+            
+            currentWidth = decodedFrame->width;
+            currentHeight = decodedFrame->height;
+            currentPixFmt = static_cast<AVPixelFormat>(decodedFrame->format);
+            
+            if (currentWidth <= 0 || currentHeight <= 0) continue;
+            if (!createSwsContext(currentWidth, currentHeight, currentPixFmt)) continue;
+            
+            bufferSize = av_image_get_buffer_size(targetFormat, currentWidth, currentHeight, 1);
+            buffer.resize(static_cast<size_t>(bufferSize));
+          }
+          
+          if (currentWidth <= 0 || currentHeight <= 0 || !swsContext) continue;
 
-    if (avcodec_send_packet(codecContext, packet) < 0) {
-      av_packet_unref(packet);
-      continue;
-    }
+          av_image_fill_arrays(convertedFrame->data, convertedFrame->linesize,
+                               buffer.data(), targetFormat, currentWidth, currentHeight, 1);
 
-    while (avcodec_receive_frame(codecContext, decodedFrame) == 0) {
-      if (m_stopRequested) break;
-      
-      // Vérifier si la résolution ou le format a changé
-      if (decodedFrame->width != currentWidth || 
-          decodedFrame->height != currentHeight ||
-          static_cast<AVPixelFormat>(decodedFrame->format) != currentPixFmt) {
-        
-        currentWidth = decodedFrame->width;
-        currentHeight = decodedFrame->height;
-        currentPixFmt = static_cast<AVPixelFormat>(decodedFrame->format);
-        
-        if (currentWidth <= 0 || currentHeight <= 0) {
-          continue;  // Frame invalide, skip
+          sws_scale(swsContext, decodedFrame->data, decodedFrame->linesize,
+                    0, currentHeight, convertedFrame->data, convertedFrame->linesize);
+
+          QImage frameImage(convertedFrame->data[0], currentWidth, currentHeight,
+                            convertedFrame->linesize[0], QImage::Format_RGB32);
+          enqueueFrame(QVideoFrame(frameImage.copy()));
         }
-        
-        // Recréer le contexte swscale
-        if (!createSwsContext(currentWidth, currentHeight, currentPixFmt)) {
-          continue;  // Impossible de créer le contexte, skip cette frame
+      }
+    }
+    // Process audio packets - DISABLED: needs separate thread architecture for stable playback
+    // TODO: Implement proper audio/video sync with separate packet queues
+    else if (false && hasAudioStream && packet->stream_index == audioStreamIndex && audioCodecContext && swrContext) {
+      if (avcodec_send_packet(audioCodecContext, packet) >= 0) {
+        while (avcodec_receive_frame(audioCodecContext, audioFrame) == 0) {
+          if (m_stopRequested) break;
+          
+          // Calculate output buffer size
+          int outSamples = swr_get_out_samples(swrContext, audioFrame->nb_samples);
+          if (outSamples <= 0) continue;
+          
+          int outBufferSize = outSamples * audioChannels * 2; // 2 bytes per sample (S16)
+          QByteArray audioData(outBufferSize, 0);
+          
+          uint8_t* outBuffer = reinterpret_cast<uint8_t*>(audioData.data());
+          int convertedSamples = swr_convert(swrContext, &outBuffer, outSamples,
+                                             const_cast<const uint8_t**>(audioFrame->data),
+                                             audioFrame->nb_samples);
+          
+          if (convertedSamples > 0) {
+            audioData.resize(convertedSamples * audioChannels * 2);
+            enqueueAudio(std::move(audioData));
+          }
         }
-        
-        // Réallouer le buffer
-        bufferSize = av_image_get_buffer_size(targetFormat, currentWidth, currentHeight, 1);
-        buffer.resize(static_cast<size_t>(bufferSize));
       }
-      
-      // Skip si dimensions invalides
-      if (currentWidth <= 0 || currentHeight <= 0 || !swsContext) {
-        continue;
-      }
-
-      // Configurer le buffer de sortie
-      av_image_fill_arrays(convertedFrame->data,
-                           convertedFrame->linesize,
-                           buffer.data(),
-                           targetFormat,
-                           currentWidth,
-                           currentHeight,
-                           1);
-
-      sws_scale(swsContext,
-                decodedFrame->data,
-                decodedFrame->linesize,
-                0,
-                currentHeight,
-                convertedFrame->data,
-                convertedFrame->linesize);
-
-      // Créer la QImage et l'envoyer au buffer (avec copie pour éviter data race)
-      QImage frameImage(convertedFrame->data[0],
-                        currentWidth,
-                        currentHeight,
-                        convertedFrame->linesize[0],
-                        QImage::Format_RGB32);
-
-      // Enqueue dans le buffer (bloque si buffer plein)
-      enqueueFrame(QVideoFrame(frameImage.copy()));
     }
 
     av_packet_unref(packet);
   }
 
   cleanup();
-  
-  // Signaler la fin du décodage pour que renderLoop puisse se terminer
   m_bufferCondition.notify_all();
+  m_audioCondition.notify_all();
 }
 
 void FFmpegMediaSource::renderLoop() {
@@ -475,7 +744,6 @@ void FFmpegMediaSource::renderLoop() {
   emit bufferingChanged(false);
   
   // Framerate cible: 60fps pour les streams Twitch (ou 30fps)
-  // On ajustera dynamiquement si nécessaire
   double targetFps = 60.0;
   auto frameDelay = std::chrono::microseconds(static_cast<int64_t>(1000000.0 / targetFps));
   auto lastFrameTime = std::chrono::steady_clock::now();
@@ -483,12 +751,19 @@ void FFmpegMediaSource::renderLoop() {
   QVideoFrame frame;
   
   while (!m_stopRequested) {
+    // Attendre si en pause
+    if (m_paused) {
+      std::unique_lock<std::mutex> lock(m_bufferMutex);
+      m_pauseCondition.wait(lock, [this]() {
+        return m_stopRequested || !m_paused;
+      });
+      if (m_stopRequested) break;
+      lastFrameTime = std::chrono::steady_clock::now();
+    }
+    
     // Récupérer une frame du buffer
     if (!dequeueFrame(frame)) {
-      // Buffer vide et décodage terminé
       if (m_stopRequested) break;
-      
-      // Buffer temporairement vide, attendre un peu
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
       continue;
     }

@@ -19,10 +19,14 @@ class FFmpegMediaSource;
  * 
  * Fournit une interface Qt pour lire des fichiers vidéo avec FFmpeg.
  * Gère l'ouverture, la lecture et l'arrêt des fichiers média.
+ * Supporte la pause/reprise et le contrôle du volume audio.
  */
 class FFmpegMediaService : public QObject {
   Q_OBJECT
   Q_PROPERTY(QVideoSink* videoSink READ videoSink WRITE setVideoSink NOTIFY videoSinkChanged)
+  Q_PROPERTY(bool paused READ isPaused NOTIFY pausedChanged)
+  Q_PROPERTY(float volume READ volume WRITE setVolume NOTIFY volumeChanged)
+  Q_PROPERTY(bool muted READ isMuted WRITE setMuted NOTIFY mutedChanged)
 
 public:
   /**
@@ -61,9 +65,57 @@ public:
    */
   Q_INVOKABLE void stop();
 
+  /**
+   * @brief Met en pause la lecture
+   */
+  Q_INVOKABLE void pause();
+
+  /**
+   * @brief Reprend la lecture après une pause
+   */
+  Q_INVOKABLE void resume();
+
+  /**
+   * @brief Bascule entre pause et lecture
+   */
+  Q_INVOKABLE void togglePause();
+
+  /**
+   * @brief Vérifie si la lecture est en pause
+   */
+  bool isPaused() const;
+
+  /**
+   * @brief Obtient le niveau de volume (0.0 à 1.0)
+   */
+  float volume() const;
+
+  /**
+   * @brief Définit le niveau de volume (0.0 à 1.0)
+   */
+  void setVolume(float vol);
+
+  /**
+   * @brief Vérifie si le son est coupé
+   */
+  bool isMuted() const;
+
+  /**
+   * @brief Coupe ou active le son
+   */
+  void setMuted(bool muted);
+
+  /**
+   * @brief Bascule l'état muet
+   */
+  Q_INVOKABLE void toggleMute();
+
 signals:
   void videoSinkChanged();
   void playingChanged(bool playing);
+  void pausedChanged(bool paused);
+  void volumeChanged(float volume);
+  void mutedChanged(bool muted);
   void errorOccurred(QString message);
 
 private:

@@ -125,6 +125,7 @@ qt_add_qml_module(BluePlayer
     ui/components/LocalPlaybackCard.qml
     ui/components/HorizontalRowSection.qml
     ui/components/StreamCard.qml
+    ui/components/PlayerControlBar.qml
 )
 
 target_link_libraries(BluePlayer
