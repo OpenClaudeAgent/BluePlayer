@@ -1,7 +1,9 @@
 #include "media/MpvMediaSource.hpp"
 
 #include <QDebug>
+#include <QDir>
 #include <QImage>
+#include <QStandardPaths>
 #include <QVideoFrame>
 #include <QCoreApplication>
 #include <chrono>
@@ -31,19 +33,43 @@ void MpvMediaSource::initMpv() {
   
   // Configuration de base
   mpv_set_option_string(m_mpv, "vo", "libmpv");
-  mpv_set_option_string(m_mpv, "hwdec", "auto");  // Hardware acceleration
   mpv_set_option_string(m_mpv, "keep-open", "yes");
   
-  // Buffering pour streams live - DVR étendu (~10 minutes)
+  // Hardware decoding - forcer VideoToolbox sur Mac
+  mpv_set_option_string(m_mpv, "hwdec", "videotoolbox");
+  mpv_set_option_string(m_mpv, "hwdec-codecs", "all");
+  
+  // Threading optimisé
+  mpv_set_option_string(m_mpv, "vd-lavc-threads", "4");
+  mpv_set_option_string(m_mpv, "ad-lavc-threads", "2");
+  
+  // Buffering pour streams live - DVR étendu avec cache disque
   mpv_set_option_string(m_mpv, "cache", "yes");
-  mpv_set_option_string(m_mpv, "cache-secs", "600");  // 10 minutes de DVR
-  mpv_set_option_string(m_mpv, "demuxer-readahead-secs", "60");  // lecture anticipée
+  mpv_set_option_string(m_mpv, "cache-secs", "3600");  // 1 heure de DVR possible
+  mpv_set_option_string(m_mpv, "demuxer-readahead-secs", "30");  // lecture anticipée réduite
   mpv_set_option_string(m_mpv, "demuxer-seekable-cache", "yes");
-  mpv_set_option_string(m_mpv, "demuxer-max-bytes", "800MiB");   // ~10 min à 8Mbps
-  mpv_set_option_string(m_mpv, "demuxer-max-back-bytes", "700MiB");  // historique seekable
+  
+  // Cache hybride : mémoire limitée + disque pour le reste
+  mpv_set_option_string(m_mpv, "demuxer-max-bytes", "150MiB");   // RAM limitée
+  mpv_set_option_string(m_mpv, "demuxer-max-back-bytes", "100MiB");  // historique RAM
+  mpv_set_option_string(m_mpv, "cache-on-disk", "yes");  // Utiliser le disque
+  
+  // Répertoire cache disque (dans App Support)
+  QString cacheDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/cache";
+  QDir().mkpath(cacheDir);
+  mpv_set_option_string(m_mpv, "cache-dir", cacheDir.toUtf8().constData());
+  qDebug() << "[MPV] Disk cache directory:" << cacheDir;
+  
   mpv_set_option_string(m_mpv, "force-seekable", "yes");
   mpv_set_option_string(m_mpv, "cache-pause", "yes");
-  mpv_set_option_string(m_mpv, "cache-pause-initial", "yes");  // pause au démarrage pour remplir le buffer
+  
+  // Seek sur keyframes pour éviter les artefacts verts
+  mpv_set_option_string(m_mpv, "hr-seek", "no");  // seek aux keyframes, pas exact
+  mpv_set_option_string(m_mpv, "hr-seek-framedrop", "yes");  // drop frames si nécessaire
+  
+  // Optimisations performance CPU
+  mpv_set_option_string(m_mpv, "video-sync", "audio");  // sync sur audio (moins CPU)
+  mpv_set_option_string(m_mpv, "framedrop", "decoder+vo");  // drop frames si CPU surchargé
   
   // HLS spécifique
   mpv_set_option_string(m_mpv, "hls-bitrate", "max");  // Meilleure qualité
@@ -191,32 +217,34 @@ void MpvMediaSource::seek(double seconds) {
   double currentPos = m_position.load();
   qDebug() << "[MPV] Seek requested: target=" << seconds << "current=" << currentPos;
   
-  // Méthode 1: Utiliser la propriété time-pos directement
-  int result = mpv_set_property(m_mpv, "time-pos", MPV_FORMAT_DOUBLE, &seconds);
+  // Utiliser la commande seek avec mode keyframe pour éviter les artefacts verts
+  // "absolute+keyframes" cherche le keyframe le plus proche de la position demandée
+  char seekVal[32];
+  snprintf(seekVal, sizeof(seekVal), "%.3f", seconds);
+  const char* cmd[] = {"seek", seekVal, "absolute+keyframes", nullptr};
+  int result = mpv_command(m_mpv, cmd);
   
   if (result < 0) {
-    qWarning() << "[MPV] time-pos seek failed:" << mpv_error_string(result);
+    qWarning() << "[MPV] Keyframe seek failed:" << mpv_error_string(result);
     
-    // Méthode 2: Utiliser playback-time
-    result = mpv_set_property(m_mpv, "playback-time", MPV_FORMAT_DOUBLE, &seconds);
+    // Fallback: seek absolu standard
+    const char* fallbackCmd[] = {"seek", seekVal, "absolute", nullptr};
+    result = mpv_command(m_mpv, fallbackCmd);
     if (result < 0) {
-      qWarning() << "[MPV] playback-time seek failed:" << mpv_error_string(result);
+      qWarning() << "[MPV] Absolute seek failed:" << mpv_error_string(result);
       
-      // Méthode 3: Commande seek avec array statique
-      char seekVal[32];
-      snprintf(seekVal, sizeof(seekVal), "%.3f", seconds);
-      const char* cmd[] = {"seek", seekVal, "absolute", nullptr};
-      result = mpv_command(m_mpv, cmd);
+      // Dernier recours: propriété time-pos
+      result = mpv_set_property(m_mpv, "time-pos", MPV_FORMAT_DOUBLE, &seconds);
       if (result < 0) {
-        qWarning() << "[MPV] Command seek failed:" << mpv_error_string(result);
+        qWarning() << "[MPV] time-pos seek failed:" << mpv_error_string(result);
       } else {
-        qDebug() << "[MPV] Command seek succeeded";
+        qDebug() << "[MPV] time-pos seek succeeded";
       }
     } else {
-      qDebug() << "[MPV] playback-time seek succeeded";
+      qDebug() << "[MPV] Absolute seek succeeded";
     }
   } else {
-    qDebug() << "[MPV] time-pos seek succeeded";
+    qDebug() << "[MPV] Keyframe seek succeeded";
   }
 }
 
@@ -273,15 +301,16 @@ void MpvMediaSource::stopRecording() {
 }
 
 void MpvMediaSource::handleMpvEvents() {
-  // Timer pour limiter le rendu à ~60fps max
+  // Timer pour limiter le rendu à ~30fps (suffisant pour UI, économie CPU)
   auto lastRender = std::chrono::steady_clock::now();
-  const auto frameInterval = std::chrono::microseconds(16667);  // ~60fps
+  const auto frameInterval = std::chrono::milliseconds(33);  // ~30fps pour économiser CPU
   
   while (!m_stopRequested && m_mpv) {
-    mpv_event* event = mpv_wait_event(m_mpv, 0.005);  // 5ms timeout pour réactivité
+    // Timeout plus long (16ms) pour réduire la charge CPU
+    mpv_event* event = mpv_wait_event(m_mpv, 0.016);
     
     if (event->event_id == MPV_EVENT_NONE) {
-      // Render seulement si assez de temps s'est écoulé (60fps cap)
+      // Render seulement si assez de temps s'est écoulé
       auto now = std::chrono::steady_clock::now();
       if (m_renderCtx && m_videoSink && (now - lastRender) >= frameInterval) {
         renderFrame();
