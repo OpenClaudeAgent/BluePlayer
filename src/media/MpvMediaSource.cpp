@@ -34,15 +34,16 @@ void MpvMediaSource::initMpv() {
   mpv_set_option_string(m_mpv, "hwdec", "auto");  // Hardware acceleration
   mpv_set_option_string(m_mpv, "keep-open", "yes");
   
-  // Buffering pour streams live
+  // Buffering pour streams live - DVR étendu (~10 minutes)
   mpv_set_option_string(m_mpv, "cache", "yes");
-  mpv_set_option_string(m_mpv, "cache-secs", "120");  // buffer long pour DVR court
-  mpv_set_option_string(m_mpv, "demuxer-readahead-secs", "30");
+  mpv_set_option_string(m_mpv, "cache-secs", "600");  // 10 minutes de DVR
+  mpv_set_option_string(m_mpv, "demuxer-readahead-secs", "60");  // lecture anticipée
   mpv_set_option_string(m_mpv, "demuxer-seekable-cache", "yes");
-  mpv_set_option_string(m_mpv, "demuxer-max-bytes", "200MiB");
-  mpv_set_option_string(m_mpv, "demuxer-max-back-bytes", "150MiB");
+  mpv_set_option_string(m_mpv, "demuxer-max-bytes", "800MiB");   // ~10 min à 8Mbps
+  mpv_set_option_string(m_mpv, "demuxer-max-back-bytes", "700MiB");  // historique seekable
   mpv_set_option_string(m_mpv, "force-seekable", "yes");
   mpv_set_option_string(m_mpv, "cache-pause", "yes");
+  mpv_set_option_string(m_mpv, "cache-pause-initial", "yes");  // pause au démarrage pour remplir le buffer
   
   // HLS spécifique
   mpv_set_option_string(m_mpv, "hls-bitrate", "max");  // Meilleure qualité
