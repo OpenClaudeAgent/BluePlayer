@@ -4,6 +4,10 @@
 #include <QString>
 #include <QVideoSink>
 #include <QVideoFrame>
+#include <QOffscreenSurface>
+#include <QOpenGLContext>
+#include <QOpenGLFramebufferObject>
+#include <QOpenGLFunctions>
 #include <atomic>
 #include <memory>
 #include <thread>
@@ -87,10 +91,17 @@ private:
   void renderFrame();
   static void onMpvUpdate(void* ctx);
   static void onMpvRender(void* ctx);
+  bool ensureGlContext(int width, int height);
 
   mpv_handle* m_mpv = nullptr;
   mpv_render_context* m_renderCtx = nullptr;
   QVideoSink* m_videoSink = nullptr;
+  std::unique_ptr<QOpenGLContext> m_glContext;
+  std::unique_ptr<QOffscreenSurface> m_glSurface;
+  std::unique_ptr<QOpenGLFramebufferObject> m_fbo;
+  std::unique_ptr<QOpenGLFunctions> m_gl;
+  int m_fboWidth = 0;
+  int m_fboHeight = 0;
   
   std::atomic<bool> m_playing{false};
   std::atomic<bool> m_paused{false};

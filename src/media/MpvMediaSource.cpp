@@ -6,12 +6,17 @@
 #include <QStandardPaths>
 #include <QVideoFrame>
 #include <QCoreApplication>
+#include <QOpenGLFramebufferObject>
+#include <QOffscreenSurface>
+#include <QOpenGLContext>
+#include <QOpenGLFunctions>
 #include <chrono>
 #include <cstdio>
 #include <cstring>
 
 #include <mpv/client.h>
 #include <mpv/render.h>
+#include <mpv/render_gl.h>
 
 namespace blueplayer::media {
 
@@ -34,6 +39,8 @@ void MpvMediaSource::initMpv() {
   // Configuration de base
   mpv_set_option_string(m_mpv, "vo", "libmpv");
   mpv_set_option_string(m_mpv, "keep-open", "yes");
+  // Logs pour diag perf / hwdec
+  mpv_set_option_string(m_mpv, "msg-level", "vd=debug,vf=debug");  // decode info
   
   // Hardware decoding - forcer VideoToolbox sur Mac
   mpv_set_option_string(m_mpv, "hwdec", "videotoolbox");
@@ -96,19 +103,7 @@ void MpvMediaSource::initMpv() {
     return;
   }
   
-  // Setup software render context for Qt integration
-  mpv_render_param params[] = {
-    {MPV_RENDER_PARAM_API_TYPE, const_cast<char*>(MPV_RENDER_API_TYPE_SW)},
-    {MPV_RENDER_PARAM_INVALID, nullptr}
-  };
-  
-  if (mpv_render_context_create(&m_renderCtx, m_mpv, params) < 0) {
-    qCritical() << "[MPV] Failed to create render context";
-    // Continue without render context - audio will still work
-  } else {
-    // Set callback for render updates
-    mpv_render_context_set_update_callback(m_renderCtx, onMpvRender, this);
-  }
+  // Le render context mpv OpenGL sera créé paresseusement quand le contexte GL Qt sera prêt (voir renderFrame/ensureGlContext).
   
   qDebug() << "[MPV] Initialized successfully";
 }
@@ -389,46 +384,84 @@ void MpvMediaSource::renderFrame() {
     return;
   }
   
+  // Lazy init mpv GL render context once GL context is ready
+  if (!m_renderCtx) {
+    if (!ensureGlContext(m_videoWidth, m_videoHeight)) {
+      return;
+    }
+    m_glContext->makeCurrent(m_glSurface.get());
+    mpv_opengl_init_params glInitParams = {
+      [](void* fn_ctx, const char* name) -> void* {
+        QOpenGLContext* ctx = reinterpret_cast<QOpenGLContext*>(fn_ctx);
+        return reinterpret_cast<void*>(ctx->getProcAddress(QByteArray(name)));
+      },
+      m_glContext.get()
+    };
+    mpv_render_param params[] = {
+      {MPV_RENDER_PARAM_API_TYPE, const_cast<char*>(MPV_RENDER_API_TYPE_OPENGL)},
+      {MPV_RENDER_PARAM_OPENGL_INIT_PARAMS, &glInitParams},
+      {MPV_RENDER_PARAM_INVALID, nullptr}
+    };
+    if (mpv_render_context_create(&m_renderCtx, m_mpv, params) < 0) {
+      qCritical() << "[MPV] Failed to create GL render context (lazy init)";
+      m_glContext->doneCurrent();
+      return;
+    }
+    mpv_render_context_set_update_callback(m_renderCtx, onMpvRender, this);
+    m_glContext->doneCurrent();
+  }
+
   // Check if a new frame is available
   uint64_t flags = mpv_render_context_update(m_renderCtx);
   if (!(flags & MPV_RENDER_UPDATE_FRAME)) {
     return;
   }
   
-  // Réutiliser le buffer statique pour éviter les allocations
-  static thread_local std::vector<uint8_t> buffer;
-  static thread_local int lastWidth = 0;
-  static thread_local int lastHeight = 0;
-  
-  int stride = m_videoWidth * 4;  // RGBA
-  size_t bufferSize = static_cast<size_t>(stride * m_videoHeight);
-  
-  // Réallouer seulement si la taille change
-  if (m_videoWidth != lastWidth || m_videoHeight != lastHeight) {
-    buffer.resize(bufferSize);
-    lastWidth = m_videoWidth;
-    lastHeight = m_videoHeight;
-  }
-  
-  int size[2] = {m_videoWidth, m_videoHeight};
-  
-  mpv_render_param params[] = {
-    {MPV_RENDER_PARAM_SW_SIZE, size},
-    {MPV_RENDER_PARAM_SW_FORMAT, const_cast<char*>("rgba")},
-    {MPV_RENDER_PARAM_SW_STRIDE, &stride},
-    {MPV_RENDER_PARAM_SW_POINTER, buffer.data()},
-    {MPV_RENDER_PARAM_INVALID, nullptr}
-  };
-  
-  if (mpv_render_context_render(m_renderCtx, params) < 0) {
+  // Assurer un contexte GL offscreen
+  if (!ensureGlContext(m_videoWidth, m_videoHeight)) {
     return;
   }
-  
-  // Create QImage and send to video sink
-  QImage image(buffer.data(), m_videoWidth, m_videoHeight, stride, QImage::Format_RGBA8888);
+
+  m_glContext->makeCurrent(m_glSurface.get());
+
+  if (!m_fbo || m_fboWidth != m_videoWidth || m_fboHeight != m_videoHeight) {
+    QOpenGLFramebufferObjectFormat fmt;
+    fmt.setAttachment(QOpenGLFramebufferObject::NoAttachment);
+    fmt.setInternalTextureFormat(GL_RGBA);
+    m_fbo = std::make_unique<QOpenGLFramebufferObject>(m_videoWidth, m_videoHeight, fmt);
+    m_fboWidth = m_videoWidth;
+    m_fboHeight = m_videoHeight;
+  }
+
+  m_fbo->bind();
+
+  mpv_opengl_fbo fbo = {
+    .fbo = static_cast<int>(m_fbo->handle()),
+    .w = m_videoWidth,
+    .h = m_videoHeight,
+    .internal_format = 0
+  };
+  int flip_y = 1;
+  mpv_render_param params[] = {
+    {MPV_RENDER_PARAM_OPENGL_FBO, &fbo},
+    {MPV_RENDER_PARAM_FLIP_Y, &flip_y},
+    {MPV_RENDER_PARAM_INVALID, nullptr}
+  };
+
+  if (mpv_render_context_render(m_renderCtx, params) < 0) {
+    m_fbo->release();
+    m_glContext->doneCurrent();
+    return;
+  }
+
+  // Lire les pixels dans un QImage (copie CPU) pour alimenter QVideoSink.
+  // Note: pour une intégration pure GPU il faudrait un item Qt Quick spécifique.
+  QImage image(m_videoWidth, m_videoHeight, QImage::Format_RGBA8888);
+  m_gl->glReadPixels(0, 0, m_videoWidth, m_videoHeight, GL_RGBA, GL_UNSIGNED_BYTE, image.bits());
+  m_fbo->release();
+  m_glContext->doneCurrent();
+
   QVideoFrame frame(image.copy());
-  
-  // Utiliser DirectConnection si possible pour moins de latence
   if (m_videoSink) {
     QMetaObject::invokeMethod(m_videoSink, [sink = m_videoSink, frame]() {
       if (sink) {
@@ -449,6 +482,37 @@ void MpvMediaSource::onMpvRender(void* ctx) {
   if (self && self->m_videoSink) {
     // Will be handled in event loop
   }
+}
+
+bool MpvMediaSource::ensureGlContext(int width, int height) {
+  Q_UNUSED(width);
+  Q_UNUSED(height);
+  if (m_glContext && m_glSurface && m_glContext->isValid()) {
+    return true;
+  }
+  m_glSurface = std::make_unique<QOffscreenSurface>();
+  m_glSurface->setFormat(QSurfaceFormat::defaultFormat());
+  m_glSurface->create();
+
+  m_glContext = std::make_unique<QOpenGLContext>();
+  m_glContext->setFormat(m_glSurface->format());
+  m_glContext->setShareContext(QOpenGLContext::globalShareContext());
+  if (!m_glContext->create()) {
+    qCritical() << "[MPV] Failed to create GL context";
+    m_glContext.reset();
+    m_glSurface.reset();
+    return false;
+  }
+  if (!m_glContext->makeCurrent(m_glSurface.get())) {
+    qCritical() << "[MPV] Failed to make GL context current";
+    m_glContext.reset();
+    m_glSurface.reset();
+    return false;
+  }
+  m_gl = std::make_unique<QOpenGLFunctions>();
+  m_gl->initializeOpenGLFunctions();
+  m_glContext->doneCurrent();
+  return true;
 }
 
 }  // namespace blueplayer::media

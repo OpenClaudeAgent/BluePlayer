@@ -1,8 +1,8 @@
 import QtQuick 2.15
 import QtQuick.Controls 6.5
 import QtQuick.Layouts 1.15
-import QtMultimedia 6.5
 
+import BluePlayer.Media 1.0
 import "themes/AppleTheme.js" as AppleTheme
 import "components"
 
@@ -10,7 +10,6 @@ Item {
   id: playerRoot
   
   property var twitchService: null
-  property var mediaService: ffmpegService
   property string streamerLogin: ""
   property string streamerName: ""
   property string streamTitle: ""
@@ -61,48 +60,30 @@ Item {
   }
   
   function requestStop() {
-    if (mediaService) {
-      mediaService.stop()
-    }
+    mpvPlayer.stop()
   }
   
   function togglePlayPause() {
-    if (mediaService) {
-      mediaService.togglePause()
-    }
+    mpvPlayer.togglePause()
   }
   
   function setVolume(vol) {
-    if (mediaService) {
-      mediaService.volume = vol
-    }
+    mpvPlayer.volume = vol
   }
   
   function toggleMute() {
-    if (mediaService) {
-      mediaService.toggleMute()
-    }
+    mpvPlayer.muted = !mpvPlayer.muted
   }
 
   function seekTo(seconds) {
     console.log("[PlayerView] seekTo called with seconds:", seconds, "duration:", duration, "position:", position)
-    if (mediaService && seconds >= 0) {
-      mediaService.seek(seconds)
-      liveMode = false
-      if (mediaService.setLiveMode) {
-        mediaService.setLiveMode(false)
-      }
+    if (seconds >= 0) {
+      mpvPlayer.seek(seconds)
     }
   }
 
   function goLive() {
-    if (duration > 0) {
-      seekTo(duration)
-      liveMode = true
-      if (mediaService.setLiveMode) {
-        mediaService.setLiveMode(true)
-      }
-    }
+    mpvPlayer.seekToLive()
   }
   
   Rectangle {
@@ -190,16 +171,71 @@ Item {
         }
       }
       
-      // Zone video
+      // Zone video avec MpvQuickItem (rendu GPU direct)
       Rectangle {
         Layout.fillWidth: true
         Layout.fillHeight: true
         color: "#000000"
         
-        VideoOutput {
-          id: videoOutput
+        // MpvQuickItem - rendu OpenGL direct sans copie CPU
+        MpvQuickItem {
+          id: mpvPlayer
           anchors.fill: parent
-          fillMode: VideoOutput.PreserveAspectFit
+          
+          onPlayingChanged: function(isPlaying) {
+            playerRoot.playing = isPlaying
+            if (isPlaying) {
+              playerRoot.buffering = false
+              playerRoot.updateStatus(qsTr("Lecture en cours"))
+              playerRoot.forceActiveFocus()
+            } else {
+              if (playerRoot.hlsUrl.length > 0) {
+                playerRoot.updateStatus(qsTr("Lecture arretee"))
+              }
+            }
+          }
+          
+          onPausedChanged: function(isPaused) {
+            playerRoot.paused = isPaused
+            if (isPaused) {
+              playerRoot.updateStatus(qsTr("Pause"))
+              playerRoot.controlsVisible = true
+            } else if (playerRoot.playing) {
+              playerRoot.updateStatus(qsTr("Lecture en cours"))
+            }
+          }
+          
+          onVolumeChanged: function(newVolume) {
+            playerRoot.volume = newVolume
+          }
+          
+          onMutedChanged: function(isMuted) {
+            playerRoot.muted = isMuted
+          }
+          
+          onDurationChanged: function(dur) {
+            playerRoot.duration = dur
+          }
+          
+          onPositionChanged: function(pos) {
+            playerRoot.position = pos
+          }
+          
+          onLiveOffsetChanged: function(offset) {
+            playerRoot.liveOffset = offset
+          }
+          
+          onIsLiveModeChanged: function(isLive) {
+            playerRoot.liveMode = isLive
+          }
+          
+          onBufferingChanged: function(isBuffering) {
+            playerRoot.buffering = isBuffering
+          }
+          
+          onErrorOccurred: function(message) {
+            playerRoot.updateStatus(qsTr("Erreur: %1").arg(message))
+          }
         }
         
         // Overlay de chargement (seulement avant le debut de la lecture)
@@ -350,57 +386,6 @@ Item {
   }
   
   Connections {
-    target: mediaService
-    function onPlayingChanged(isPlaying) {
-      playing = isPlaying
-      if (isPlaying) {
-        buffering = false
-        updateStatus(qsTr("Lecture en cours"))
-        playerRoot.forceActiveFocus()
-      } else {
-        if (hlsUrl.length > 0) {
-          updateStatus(qsTr("Lecture arretee"))
-        }
-      }
-    }
-    function onPausedChanged(isPaused) {
-      paused = isPaused
-      if (isPaused) {
-        updateStatus(qsTr("Pause"))
-        controlsVisible = true
-      } else if (playing) {
-        updateStatus(qsTr("Lecture en cours"))
-      }
-    }
-    function onVolumeChanged(newVolume) {
-      volume = newVolume
-    }
-    function onMutedChanged(isMuted) {
-      muted = isMuted
-    }
-    function onDurationChanged(dur) {
-      duration = dur
-    }
-    function onPositionChanged(pos) {
-      position = pos
-    }
-    function onLiveOffsetChanged(offset) {
-      liveOffset = offset
-      // Considérer live si offset < 3s
-      const newLive = offset <= 3
-      if (newLive !== liveMode) {
-        liveMode = newLive
-      }
-    }
-    function onLiveModeChanged(live) {
-      liveMode = live
-    }
-    function onErrorOccurred(message) {
-      updateStatus(qsTr("Erreur: %1").arg(message))
-    }
-  }
-  
-  Connections {
     target: twitchService
     enabled: twitchService !== null
     function onHlsUrlReady(url) {
@@ -410,12 +395,8 @@ Item {
         console.log("[PlayerView] HLS URL received:", url.substring(0, 100) + "...")
         updateStatus(adsActive ? qsTr("Pubs detectees - Connexion...") : qsTr("Connexion au flux..."))
         buffering = true
-        if (mediaService) {
-          console.log("[PlayerView] Calling mediaService.play() with URL")
-          mediaService.play(Qt.resolvedUrl(url))
-        } else {
-          console.log("[PlayerView] ERROR: mediaService is null")
-        }
+        console.log("[PlayerView] Calling mpvPlayer.play() with URL")
+        mpvPlayer.play(url)
       } else {
         console.log("[PlayerView] ERROR: Empty or invalid HLS URL")
         updateStatus(qsTr("Impossible de recuperer l'URL du flux"))
@@ -449,11 +430,7 @@ Item {
   }
   
   Component.onCompleted: {
-    console.log("[PlayerView] Component.onCompleted called")
-    if (mediaService && videoOutput) {
-      mediaService.videoSink = videoOutput.videoSink
-    }
+    console.log("[PlayerView] Component.onCompleted called - Using MpvQuickItem for GPU rendering")
     playerRoot.forceActiveFocus()
   }
 }
-

@@ -60,3 +60,5 @@
 4. Consider using libcurl for GraphQL requests if Qt limitation confirmed
 
 
+
+

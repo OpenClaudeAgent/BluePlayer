@@ -44,6 +44,8 @@ set(BLUEPLAYER_MEDIA_SOURCES
   media/HlsAdFilter.hpp
   media/MpvMediaSource.cpp
   media/MpvMediaSource.hpp
+  media/MpvQuickItem.cpp
+  media/MpvQuickItem.hpp
 )
 
 # blueplayer_core et blueplayer_media ont une dépendance circulaire résolue via forward declarations
@@ -78,7 +80,9 @@ target_include_directories(blueplayer_media PUBLIC
 target_link_libraries(blueplayer_media
   PUBLIC
     Qt6::Core
+    Qt6::Quick
     Qt6::Multimedia
+    Qt6::OpenGL
     avcodec
     avformat
     avutil

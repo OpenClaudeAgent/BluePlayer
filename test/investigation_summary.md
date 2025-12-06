@@ -135,3 +135,5 @@ All investigation steps from the plan have been completed. Below is a summary of
 The investigation has identified that Qt normalizes HTTP headers to lowercase, which may be causing the "Client-ID header is invalid" error with Twitch's GraphQL API. However, since HTTP headers are case-insensitive per specification, the issue may be something else entirely. The curl test script will help determine the exact cause.
 
 
+
+

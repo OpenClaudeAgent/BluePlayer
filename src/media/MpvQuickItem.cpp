@@ -44,14 +44,14 @@ void MpvQuickItem::initMpv() {
   // Enable log messages
   mpv_request_log_messages(m_mpv, "debug");
 
-  // Hardware decoding - DISABLE for software rendering stability
-  // Since we are doing SW rendering (no OpenGL interop), we can try hardware
-  // decoding but let's stick to safe software decoding first as requested. We
-  // can re-enable HW decoding with copy-back if needed later, but 'no' is
-  // safest.
-  mpv_set_option_string(m_mpv, "hwdec", "no");
+  // Hardware decoding - Enable videotoolbox-copy for optimization
+  // With QQuickPaintedItem (Software Rendering), 'copy' mode is ideal as it
+  // utilizes GPU for decoding and copies frames to RAM, where we need them
+  // anyway.
+  mpv_set_option_string(m_mpv, "hwdec", "videotoolbox-copy");
+  mpv_set_option_string(m_mpv, "hwdec-codecs", "all");
 
-  // Threading - essential for smooth SW decoding
+  // Threading - still useful for copy/format conversion
   mpv_set_option_string(m_mpv, "vd-lavc-threads", "0");
   mpv_set_option_string(m_mpv, "ad-lavc-threads", "0");
 

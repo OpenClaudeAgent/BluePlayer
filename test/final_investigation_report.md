@@ -168,3 +168,5 @@ The investigation has **confirmed** that:
 **Next Step**: Run curl test to definitively confirm header case sensitivity, then implement libcurl workaround if confirmed.
 
 
+
+
