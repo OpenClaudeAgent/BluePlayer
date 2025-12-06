@@ -111,7 +111,7 @@ Item {
     cropMode = playerSettings.cropVideo
     playbackRate = playerSettings.playbackRate
     if (mpvPlayer) {
-      mpvPlayer.hardwareDecoding = hardwareDecodingEnabled
+      mpvPlayer.hwdec = hardwareDecodingEnabled ? "auto-safe" : "no"
       mpvPlayer.cropVideo = cropMode
       mpvPlayer.playbackRate = playbackRate
     }
@@ -132,7 +132,7 @@ Item {
     hardwareDecodingEnabled = !hardwareDecodingEnabled
     playerSettings.hardwareDecoding = hardwareDecodingEnabled
     if (mpvPlayer) {
-      mpvPlayer.hardwareDecoding = hardwareDecodingEnabled
+      mpvPlayer.hwdec = hardwareDecodingEnabled ? "auto-safe" : "no"
     }
     toast.show(hardwareDecodingEnabled ? qsTr("Décodage matériel") : qsTr("Décodage logiciel"))
   }
@@ -158,28 +158,24 @@ Item {
       // The player is defined below and reparented dynamically
     }
 
-    MpvQuickItem {
+    MpvFboItem {
       id: mpvPlayer
-      // Parent changes between videoContainer (normal) and fsVideoContainer (fullscreen)
       parent: isFullscreen ? fsVideoContainer : videoContainer
       anchors.fill: parent
-      
+      hwdec: playerRoot.hardwareDecodingEnabled ? "auto-safe" : "no"
+
       onPlayingChanged: function(isPlaying) {
         playerRoot.playing = isPlaying
-        // Trigger center animation
-        centerFeedback.show(isPlaying ? "\u25B6" : "\u23F8") // Play or Pause icon
-        
+        centerFeedback.show(isPlaying ? "\u25B6" : "\u23F8")
         if (isPlaying) {
           playerRoot.buffering = false
           playerRoot.updateStatus(qsTr("Lecture en cours"))
           playerRoot.forceActiveFocus()
-        } else {
-          if (playerRoot.hlsUrl.length > 0) {
-            playerRoot.updateStatus(qsTr("Lecture arretee"))
-          }
+        } else if (playerRoot.hlsUrl.length > 0) {
+          playerRoot.updateStatus(qsTr("Lecture arretee"))
         }
       }
-      
+
       onPausedChanged: function(isPaused) {
         playerRoot.paused = isPaused
         if (isPaused) {
@@ -189,19 +185,22 @@ Item {
           playerRoot.updateStatus(qsTr("Lecture en cours"))
         }
       }
-      
+
       onVolumeChanged: function(newVolume) { playerRoot.volume = newVolume }
       onMutedChanged: function(isMuted) { playerRoot.muted = isMuted }
       onDurationChanged: function(dur) { playerRoot.duration = dur }
       onPositionChanged: function(pos) { playerRoot.position = pos }
-      onLiveOffsetChanged: function(offset) { playerRoot.liveOffset = offset }
-      onIsLiveModeChanged: function(isLive) { playerRoot.liveMode = isLive }
-      onBufferingChanged: function(isBuffering) { playerRoot.buffering = isBuffering }
       onErrorOccurred: function(message) {
         playerRoot.updateStatus(qsTr("Erreur: %1").arg(message))
         playerRoot.errorMessage = message
         playerRoot.showError = true
         errorHideTimer.restart()
+        // Fallback: désactiver HW si échec critique
+        if (playerRoot.hardwareDecodingEnabled) {
+          playerRoot.hardwareDecodingEnabled = false
+          mpvPlayer.hwdec = "no"
+          toast.show(qsTr("Décodage matériel désactivé après erreur"))
+        }
       }
     }
     
@@ -647,9 +646,7 @@ Item {
         updateStatus(adsActive ? qsTr("Pubs detectees - Connexion...") : qsTr("Connexion au flux..."))
         buffering = true
         console.log("[PlayerView] Calling mpvPlayer.play() with URL")
-        mpvPlayer.hardwareDecoding = hardwareDecodingEnabled
-        mpvPlayer.cropVideo = cropMode
-        mpvPlayer.playbackRate = playbackRate
+        mpvPlayer.hwdec = hardwareDecodingEnabled ? "auto-safe" : "no"
         mpvPlayer.play(url)
         controlsVisible = true
       } else {

@@ -21,6 +21,7 @@
 // #include "media/FFmpegMediaService.hpp" // Removed
 
 #include "media/MpvQuickItem.hpp"
+#include "media/MpvFboItem.hpp"
 #include "ui/HomeViewModel.hpp"
 
 #if defined(Q_OS_MAC)
@@ -107,6 +108,8 @@ int main(int argc, char *argv[]) {
 
   qmlRegisterType<blueplayer::media::MpvQuickItem>("BluePlayer.Media", 1, 0,
                                                    "MpvQuickItem");
+  qmlRegisterType<blueplayer::media::MpvFboItem>("BluePlayer.Media", 1, 0,
+                                                 "MpvFboItem");
   qmlRegisterType<blueplayer::api::twitch::TwitchService>(
       "BluePlayer.Twitch", 1, 0, "TwitchService");
   qmlRegisterType<blueplayer::ui::HomeViewModel>("BluePlayer.UI", 1, 0,
