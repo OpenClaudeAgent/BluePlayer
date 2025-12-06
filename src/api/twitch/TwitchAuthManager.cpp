@@ -1,42 +1,42 @@
 #include "api/twitch/TwitchAuthManager.hpp"
 
 #include "core/Constants.hpp"
+#include "core/ErrorHandler.hpp"
 #include "core/Logger.hpp"
 #include "core/SecureStorage.hpp"
-#include "core/ErrorHandler.hpp"
 
-#include <QSettings>  // Pour migration depuis ancien stockage
+#include <QSettings> // Pour migration depuis ancien stockage
 
-using blueplayer::core::Logger;
-using blueplayer::core::LogCategory;
-using blueplayer::core::SecureStorage;
 using blueplayer::core::ErrorHandler;
+using blueplayer::core::LogCategory;
+using blueplayer::core::Logger;
+using blueplayer::core::SecureStorage;
 
+#include <QAbstractSocket>
 #include <QCryptographicHash>
 #include <QDesktopServices>
 #include <QFile>
+#include <QHostAddress>
+#include <QIODevice>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QList>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
-#include <QAbstractSocket>
 #include <QNetworkRequest>
-#include <QList>
+#include <QRandomGenerator>
+#include <QSettings>
 #include <QSslCertificate>
 #include <QSslConfiguration>
 #include <QSslKey>
 #include <QSslSocket>
 #include <QTcpServer>
 #include <QTcpSocket>
-#include <QUrl>
-#include <QUrlQuery>
-#include <QSettings>
-#include <QRandomGenerator>
 #include <QTextStream>
 #include <QTimer>
-#include <QHostAddress>
+#include <QUrl>
+#include <QUrlQuery>
 #include <Qt>
-#include <QIODevice>
 
 namespace {
 
@@ -44,18 +44,17 @@ class CallbackServer : public QTcpServer {
   Q_OBJECT
 
 public:
-  explicit CallbackServer(const QSslConfiguration& config,
-                          quint16 port,
-                          QObject* parent = nullptr)
+  explicit CallbackServer(const QSslConfiguration &config, quint16 port,
+                          QObject *parent = nullptr)
       : QTcpServer(parent), m_sslConfig(config), m_port(port) {}
   ~CallbackServer() override = default;
 
 signals:
-  void callbackReceived(const QUrl& location);
+  void callbackReceived(const QUrl &location);
 
 protected:
   void incomingConnection(qintptr descriptor) override {
-    QTcpSocket* socket = nullptr;
+    QTcpSocket *socket = nullptr;
     if (m_sslConfig.isNull()) {
       socket = new QTcpSocket(this);
       if (!socket->setSocketDescriptor(descriptor)) {
@@ -64,32 +63,29 @@ protected:
       }
       setupRead(socket);
     } else {
-      QSslSocket* sslSocket = new QSslSocket(this);
+      QSslSocket *sslSocket = new QSslSocket(this);
       if (!sslSocket->setSocketDescriptor(descriptor)) {
         sslSocket->deleteLater();
         return;
       }
       sslSocket->setSslConfiguration(m_sslConfig);
-      connect(sslSocket,
-              &QSslSocket::encrypted,
-              this,
+      connect(sslSocket, &QSslSocket::encrypted, this,
               &CallbackServer::onSslEncrypted);
       sslSocket->startServerEncryption();
       socket = sslSocket;
     }
 
-    connect(socket, &QTcpSocket::disconnected, socket, &QTcpSocket::deleteLater);
+    connect(socket, &QTcpSocket::disconnected, socket,
+            &QTcpSocket::deleteLater);
   }
 
 private:
-  void setupRead(QIODevice* ioDevice) {
-    connect(ioDevice,
-            &QIODevice::readyRead,
-            this,
+  void setupRead(QIODevice *ioDevice) {
+    connect(ioDevice, &QIODevice::readyRead, this,
             [this, ioDevice]() { handleRequest(ioDevice); });
   }
 
-  void handleRequest(QIODevice* socket) {
+  void handleRequest(QIODevice *socket) {
     const QByteArray request = socket->readAll();
     const QList<QByteArray> lines = request.split('\n');
     if (!lines.isEmpty()) {
@@ -98,11 +94,10 @@ private:
         const QByteArray path = parts.at(1);
         const QString scheme = m_sslConfig.isNull() ? QStringLiteral("http")
                                                     : QStringLiteral("https");
-        const QUrl url =
-            QUrl(QStringLiteral("%1://127.0.0.1:%2%3")
-                     .arg(scheme)
-                     .arg(m_port)
-                     .arg(QString::fromUtf8(path)));
+        const QUrl url = QUrl(QStringLiteral("%1://127.0.0.1:%2%3")
+                                  .arg(scheme)
+                                  .arg(m_port)
+                                  .arg(QString::fromUtf8(path)));
         emit callbackReceived(url);
       }
     }
@@ -112,8 +107,10 @@ private:
         "\r\n"
         "<!DOCTYPE html>"
         "<html><head><meta charset=\"utf-8\"><title>BluePlayer</title>"
-        "<style>body{font-family:system-ui,sans-serif;background:#050d17;color:#fff;"
-        "display:flex;align-items:center;justify-content:center;height:100vh;margin:0;}"
+        "<style>body{font-family:system-ui,sans-serif;background:#050d17;color:"
+        "#fff;"
+        "display:flex;align-items:center;justify-content:center;height:100vh;"
+        "margin:0;}"
         ".card{padding:24px;border-radius:12px;background:rgba(2,18,44,.95);"
         "box-shadow:0 15px 35px rgba(0,0,0,.35);text-align:center;}"
         ".card h1{margin:0 0 8px;font-size:26px;}"
@@ -123,10 +120,11 @@ private:
         "window.addEventListener('unload', ()=>window.close());"
         "</script></head>"
         "<body><div class=\"card\"><h1>Authentification réussie</h1>"
-        "<p>BluePlayer a bien reçu le callback OAuth. Cette page va se fermer.</p>"
+        "<p>BluePlayer a bien reçu le callback OAuth. Cette page va se "
+        "fermer.</p>"
         "</div></body></html>";
     socket->write(response);
-    if (auto tcpSocket = qobject_cast<QAbstractSocket*>(socket)) {
+    if (auto tcpSocket = qobject_cast<QAbstractSocket *>(socket)) {
       tcpSocket->disconnectFromHost();
     }
   }
@@ -139,14 +137,14 @@ private slots:
 };
 
 void CallbackServer::onSslEncrypted() {
-  if (auto sslSocket = qobject_cast<QSslSocket*>(sender())) {
+  if (auto sslSocket = qobject_cast<QSslSocket *>(sender())) {
     setupRead(sslSocket);
   }
 }
 
-QString base64UrlEncode(const QByteArray& bytes) {
-  return QString::fromUtf8(
-      bytes.toBase64(QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals));
+QString base64UrlEncode(const QByteArray &bytes) {
+  return QString::fromUtf8(bytes.toBase64(QByteArray::Base64UrlEncoding |
+                                          QByteArray::OmitTrailingEquals));
 }
 
 QString buildRandomString(int length) {
@@ -155,31 +153,35 @@ QString buildRandomString(int length) {
   QString result;
   result.reserve(length);
   for (int i = 0; i < length; ++i) {
-    const int index =
-        QRandomGenerator::global()->bounded(static_cast<int>(sizeof(charset)) - 1);
+    const int index = QRandomGenerator::global()->bounded(
+        static_cast<int>(sizeof(charset)) - 1);
     result.append(charset[index]);
   }
   return result;
 }
 
-}  // namespace
+} // namespace
 
 namespace blueplayer::api::twitch {
 
-TwitchAuthManager::TwitchAuthManager(QObject* parent)
-    : QObject(parent),
-      m_scope(QString::fromUtf8(blueplayer::core::constants::twitch::kDefaultScope)),
+TwitchAuthManager::TwitchAuthManager(QObject *parent)
+    : QObject(parent), m_scope(QString::fromUtf8(
+                           blueplayer::core::constants::twitch::kDefaultScope)),
       m_listenPort(blueplayer::core::constants::twitch::kDefaultRedirectPort),
       m_httpClient(new blueplayer::core::network::HttpClient(this)) {
   // Connecter les erreurs réseau de HttpClient
-  connect(m_httpClient, &blueplayer::core::network::HttpClient::networkError, this, [this](const blueplayer::core::Error& error) {
-    emit errorOccurred(error.toString());
-  });
+  connect(m_httpClient, &blueplayer::core::network::HttpClient::networkError,
+          this, [this](const blueplayer::core::Error &error) {
+            emit errorOccurred(error.toString());
+          });
   m_clientId = QString::fromUtf8(qgetenv("TWITCH_CLIENT_ID"));
   m_clientSecret = QString::fromUtf8(qgetenv("TWITCH_CLIENT_SECRET"));
-  
+
   // Log Client-ID used during OAuth token generation for investigation
-  Logger::debug(LogCategory::Twitch, QStringLiteral("[DEBUG] OAuth Client-ID: %1").arg(m_clientId.isEmpty() ? QStringLiteral("EMPTY") : m_clientId));
+  Logger::debug(
+      LogCategory::Twitch,
+      QStringLiteral("[DEBUG] OAuth Client-ID: %1")
+          .arg(m_clientId.isEmpty() ? QStringLiteral("EMPTY") : m_clientId));
   const QByteArray certPath = qgetenv("TWITCH_TLS_CERT_PATH");
   if (!certPath.isEmpty()) {
     m_tlsCertPath = QString::fromUtf8(certPath);
@@ -192,8 +194,8 @@ TwitchAuthManager::TwitchAuthManager(QObject* parent)
   if (!redirect.isEmpty()) {
     m_redirectUri = QString::fromUtf8(redirect);
   } else {
-    m_redirectUri =
-        QStringLiteral("https://127.0.0.1:%1/callback").arg(QString::number(m_listenPort));
+    m_redirectUri = QStringLiteral("https://127.0.0.1:%1/callback")
+                        .arg(QString::number(m_listenPort));
   }
 
   const QByteArray customPort = qgetenv("TWITCH_REDIRECT_PORT");
@@ -202,8 +204,8 @@ TwitchAuthManager::TwitchAuthManager(QObject* parent)
     const int port = QString::fromUtf8(customPort).toInt(&ok);
     if (ok) {
       m_listenPort = static_cast<quint16>(port);
-      m_redirectUri =
-          QStringLiteral("https://127.0.0.1:%1/callback").arg(QString::number(m_listenPort));
+      m_redirectUri = QStringLiteral("https://127.0.0.1:%1/callback")
+                          .arg(QString::number(m_listenPort));
     }
   }
 
@@ -211,23 +213,21 @@ TwitchAuthManager::TwitchAuthManager(QObject* parent)
   loadCredentials();
 }
 
-TwitchAuthManager::~TwitchAuthManager() {
-  stopListener();
-}
+TwitchAuthManager::~TwitchAuthManager() { stopListener(); }
 
-bool TwitchAuthManager::isAuthenticated() const {
-  return m_isAuthenticated;
-}
+bool TwitchAuthManager::isAuthenticated() const { return m_isAuthenticated; }
 
 QString TwitchAuthManager::accessToken() const {
   // Vérifier et rafraîchir le token si nécessaire avant de le retourner
-  const_cast<TwitchAuthManager*>(this)->ensureValidToken();
+  const_cast<TwitchAuthManager *>(this)->ensureValidToken();
   return m_accessToken;
 }
 
 void TwitchAuthManager::login() {
   if (m_clientId.isEmpty()) {
-    const auto error = ErrorHandler::twitchAuthError(QStringLiteral("login"), QStringLiteral("TWITCH_CLIENT_ID n'est pas défini"));
+    const auto error = ErrorHandler::twitchAuthError(
+        QStringLiteral("login"),
+        QStringLiteral("TWITCH_CLIENT_ID n'est pas défini"));
     emit errorOccurred(error.toString());
     return;
   }
@@ -241,15 +241,18 @@ void TwitchAuthManager::login() {
   m_codeVerifier = generateCodeVerifier();
   m_state = generateState();
 
-  QUrl url(QString::fromUtf8(blueplayer::core::constants::twitch::kAuthorizeEndpoint));
+  QUrl url(QString::fromUtf8(
+      blueplayer::core::constants::twitch::kAuthorizeEndpoint));
   QUrlQuery query;
   query.addQueryItem(QStringLiteral("response_type"), QStringLiteral("code"));
   query.addQueryItem(QStringLiteral("client_id"), m_clientId);
   query.addQueryItem(QStringLiteral("redirect_uri"), m_redirectUri);
   query.addQueryItem(QStringLiteral("scope"), m_scope);
   query.addQueryItem(QStringLiteral("state"), m_state);
-  query.addQueryItem(QStringLiteral("code_challenge"), codeChallenge(m_codeVerifier));
-  query.addQueryItem(QStringLiteral("code_challenge_method"), QStringLiteral("S256"));
+  query.addQueryItem(QStringLiteral("code_challenge"),
+                     codeChallenge(m_codeVerifier));
+  query.addQueryItem(QStringLiteral("code_challenge_method"),
+                     QStringLiteral("S256"));
   url.setQuery(query);
 
   QDesktopServices::openUrl(url);
@@ -260,14 +263,14 @@ void TwitchAuthManager::logout() {
   m_accessToken.clear();
   m_refreshToken.clear();
   m_isAuthenticated = false;
-  
+
   // Supprimer tous les tokens et le Client-ID stocké
   SecureStorage secureStorage(this);
   secureStorage.remove(QStringLiteral("access_token"));
   secureStorage.remove(QStringLiteral("refresh_token"));
   secureStorage.remove(QStringLiteral("token_expiration"));
   secureStorage.remove(QStringLiteral("token_client_id"));
-  
+
   // Émettre explicitement le signal de déconnexion
   if (wasAuthenticated) {
     emit authenticatedChanged(false);
@@ -277,50 +280,66 @@ void TwitchAuthManager::logout() {
 
 void TwitchAuthManager::refresh() {
   if (m_refreshToken.isEmpty()) {
-    const auto error = ErrorHandler::twitchAuthError(QStringLiteral("refresh"), QStringLiteral("Jeton de rafraîchissement manquant"));
+    const auto error = ErrorHandler::twitchAuthError(
+        QStringLiteral("refresh"),
+        QStringLiteral("Jeton de rafraîchissement manquant"));
     emit errorOccurred(error.toString());
-    Logger::warning(LogCategory::Twitch, QStringLiteral("Cannot refresh token: refresh token is empty"));
+    Logger::warning(
+        LogCategory::Twitch,
+        QStringLiteral("Cannot refresh token: refresh token is empty"));
     m_isRefreshing = false;
     return;
   }
 
   if (m_isRefreshing) {
-    Logger::debug(LogCategory::Twitch, QStringLiteral("Token refresh already in progress, skipping"));
+    Logger::debug(
+        LogCategory::Twitch,
+        QStringLiteral("Token refresh already in progress, skipping"));
     return;
   }
 
   m_isRefreshing = true;
-  Logger::debug(LogCategory::Twitch, QStringLiteral("Refreshing access token..."));
+  Logger::debug(LogCategory::Twitch,
+                QStringLiteral("Refreshing access token..."));
 
-  QUrl tokenUrl(QString::fromUtf8(blueplayer::core::constants::twitch::kTokenEndpoint));
+  QUrl tokenUrl(
+      QString::fromUtf8(blueplayer::core::constants::twitch::kTokenEndpoint));
   QUrlQuery body;
   body.addQueryItem(QStringLiteral("client_id"), m_clientId);
-  body.addQueryItem(QStringLiteral("grant_type"), QStringLiteral("refresh_token"));
+  body.addQueryItem(QStringLiteral("grant_type"),
+                    QStringLiteral("refresh_token"));
   body.addQueryItem(QStringLiteral("refresh_token"), m_refreshToken);
   if (!m_clientSecret.isEmpty()) {
     body.addQueryItem(QStringLiteral("client_secret"), m_clientSecret);
   }
 
   QHash<QString, QString> headers;
-  headers.insert(QStringLiteral("Content-Type"), QStringLiteral("application/x-www-form-urlencoded"));
-  QNetworkReply* reply = m_httpClient->post(tokenUrl, body.query(QUrl::FullyEncoded).toUtf8(), headers);
-  connect(reply, &QNetworkReply::finished, this, &TwitchAuthManager::handleTokenReply);
+  headers.insert(QStringLiteral("Content-Type"),
+                 QStringLiteral("application/x-www-form-urlencoded"));
+  QNetworkReply *reply = m_httpClient->post(
+      tokenUrl, body.query(QUrl::FullyEncoded).toUtf8(), headers);
+  connect(reply, &QNetworkReply::finished, this,
+          &TwitchAuthManager::handleTokenReply);
 }
 
-void TwitchAuthManager::handleLocalCallback(const QUrl& location) {
+void TwitchAuthManager::handleLocalCallback(const QUrl &location) {
   stopListener();
   const QUrlQuery query(location.query());
   const QString state = query.queryItemValue(QStringLiteral("state"));
   const QString code = query.queryItemValue(QStringLiteral("code"));
 
   if (state != m_state) {
-    const auto error = ErrorHandler::twitchAuthError(QStringLiteral("handleLocalCallback"), QStringLiteral("État OAuth incohérent"));
+    const auto error =
+        ErrorHandler::twitchAuthError(QStringLiteral("handleLocalCallback"),
+                                      QStringLiteral("État OAuth incohérent"));
     emit errorOccurred(error.toString());
     return;
   }
 
   if (code.isEmpty()) {
-    const auto error = ErrorHandler::twitchAuthError(QStringLiteral("handleLocalCallback"), QStringLiteral("Code d'autorisation manquant"));
+    const auto error = ErrorHandler::twitchAuthError(
+        QStringLiteral("handleLocalCallback"),
+        QStringLiteral("Code d'autorisation manquant"));
     emit errorOccurred(error.toString());
     return;
   }
@@ -329,15 +348,32 @@ void TwitchAuthManager::handleLocalCallback(const QUrl& location) {
 }
 
 void TwitchAuthManager::handleTokenReply() {
-  QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
+  QNetworkReply *reply = qobject_cast<QNetworkReply *>(sender());
   if (!reply) {
     return;
   }
 
-  const blueplayer::core::Error networkError = blueplayer::core::network::HttpClient::checkNetworkError(reply, QStringLiteral("requête OAuth"));
+  const blueplayer::core::Error networkError =
+      blueplayer::core::network::HttpClient::checkNetworkError(
+          reply, QStringLiteral("requête OAuth"));
   if (networkError.isValid()) {
     m_isRefreshing = false;
     emit errorOccurred(networkError.toString());
+
+    // Si on obtient une erreur 400 (Bad Request) ou 401 (Unauthorized) lors
+    // d'un refresh, cela signifie généralement que le refresh token est
+    // invalide ou révoqué. Il faut déconnecter l'utilisateur pour nettoyer
+    // l'état.
+    int statusCode =
+        reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    if (statusCode == 400 || statusCode == 401) {
+      Logger::warning(
+          LogCategory::Twitch,
+          QStringLiteral("Refresh token invalid (Status %1) - logging out")
+              .arg(statusCode));
+      logout();
+    }
+
     reply->deleteLater();
     return;
   }
@@ -346,7 +382,9 @@ void TwitchAuthManager::handleTokenReply() {
   const QJsonDocument document = QJsonDocument::fromJson(data);
   if (!document.isObject()) {
     m_isRefreshing = false;
-    const auto error = ErrorHandler::twitchAuthError(QStringLiteral("handleTokenReply"), QStringLiteral("Réponse OAuth invalide"));
+    const auto error =
+        ErrorHandler::twitchAuthError(QStringLiteral("handleTokenReply"),
+                                      QStringLiteral("Réponse OAuth invalide"));
     emit errorOccurred(error.toString());
     reply->deleteLater();
     return;
@@ -354,22 +392,26 @@ void TwitchAuthManager::handleTokenReply() {
 
   const QJsonObject object = document.object();
   m_accessToken = object.value(QStringLiteral("access_token")).toString();
-  
-  // Récupérer le refresh_token s'il est présent (peut être absent lors d'un refresh)
-  const QString newRefreshToken = object.value(QStringLiteral("refresh_token")).toString();
+
+  // Récupérer le refresh_token s'il est présent (peut être absent lors d'un
+  // refresh)
+  const QString newRefreshToken =
+      object.value(QStringLiteral("refresh_token")).toString();
   if (!newRefreshToken.isEmpty()) {
     m_refreshToken = newRefreshToken;
   }
-  
+
   // Récupérer expires_in et calculer la date d'expiration
-  // expires_in est en secondes, par défaut 4 heures (14400 secondes) pour Twitch
+  // expires_in est en secondes, par défaut 4 heures (14400 secondes) pour
+  // Twitch
   const int expiresIn = object.value(QStringLiteral("expires_in")).toInt(14400);
   m_tokenExpirationTime = QDateTime::currentDateTimeUtc().addSecs(expiresIn);
-  
-  Logger::debug(LogCategory::Twitch, QStringLiteral("Token expires at: %1 (in %2 seconds)")
-               .arg(m_tokenExpirationTime.toString(Qt::ISODate))
-               .arg(expiresIn));
-  
+
+  Logger::debug(LogCategory::Twitch,
+                QStringLiteral("Token expires at: %1 (in %2 seconds)")
+                    .arg(m_tokenExpirationTime.toString(Qt::ISODate))
+                    .arg(expiresIn));
+
   m_isRefreshing = false;
   persistCredentials();
   emitTokenChanged();
@@ -384,15 +426,15 @@ void TwitchAuthManager::startListener() {
 
   m_sslConfig = buildSslConfiguration();
   m_server = new CallbackServer(m_sslConfig, m_listenPort, this);
-  if (auto callbackServer = qobject_cast<CallbackServer*>(m_server)) {
-    connect(callbackServer,
-            &CallbackServer::callbackReceived,
-            this,
+  if (auto callbackServer = qobject_cast<CallbackServer *>(m_server)) {
+    connect(callbackServer, &CallbackServer::callbackReceived, this,
             &TwitchAuthManager::handleLocalCallback);
   }
 
   if (!m_server->listen(QHostAddress::LocalHost, m_listenPort)) {
-    const auto error = ErrorHandler::networkError(QStringLiteral("startListener"), QStringLiteral("Impossible d'écouter le port local pour OAuth"));
+    const auto error = ErrorHandler::networkError(
+        QStringLiteral("startListener"),
+        QStringLiteral("Impossible d'écouter le port local pour OAuth"));
     emit errorOccurred(error.toString());
     stopListener();
   }
@@ -408,15 +450,18 @@ void TwitchAuthManager::stopListener() {
   }
 }
 
-void TwitchAuthManager::consumeAuthorizationCode(const QString& code, const QString&) {
+void TwitchAuthManager::consumeAuthorizationCode(const QString &code,
+                                                 const QString &) {
   requestAccessToken(code);
 }
 
-void TwitchAuthManager::requestAccessToken(const QString& code) {
-  QUrl tokenUrl(QString::fromUtf8(blueplayer::core::constants::twitch::kTokenEndpoint));
+void TwitchAuthManager::requestAccessToken(const QString &code) {
+  QUrl tokenUrl(
+      QString::fromUtf8(blueplayer::core::constants::twitch::kTokenEndpoint));
   QUrlQuery body;
   body.addQueryItem(QStringLiteral("client_id"), m_clientId);
-  body.addQueryItem(QStringLiteral("grant_type"), QStringLiteral("authorization_code"));
+  body.addQueryItem(QStringLiteral("grant_type"),
+                    QStringLiteral("authorization_code"));
   body.addQueryItem(QStringLiteral("code"), code);
   body.addQueryItem(QStringLiteral("redirect_uri"), m_redirectUri);
   body.addQueryItem(QStringLiteral("code_verifier"), m_codeVerifier);
@@ -425,63 +470,87 @@ void TwitchAuthManager::requestAccessToken(const QString& code) {
   }
 
   QHash<QString, QString> headers;
-  headers.insert(QStringLiteral("Content-Type"), QStringLiteral("application/x-www-form-urlencoded"));
-  QNetworkReply* reply = m_httpClient->post(tokenUrl, body.query(QUrl::FullyEncoded).toUtf8(), headers);
-  connect(reply, &QNetworkReply::finished, this, &TwitchAuthManager::handleTokenReply);
+  headers.insert(QStringLiteral("Content-Type"),
+                 QStringLiteral("application/x-www-form-urlencoded"));
+  QNetworkReply *reply = m_httpClient->post(
+      tokenUrl, body.query(QUrl::FullyEncoded).toUtf8(), headers);
+  connect(reply, &QNetworkReply::finished, this,
+          &TwitchAuthManager::handleTokenReply);
 }
 
 void TwitchAuthManager::persistCredentials() {
   // Utiliser SecureStorage pour chiffrer les tokens
   SecureStorage secureStorage(this);
-  
+
   // Ne logger que les premiers caractères du token pour la sécurité
-  QString tokenPreview = m_accessToken.isEmpty() ? QStringLiteral("EMPTY") 
-                                                  : m_accessToken.left(8) + "...";
-  Logger::debug(LogCategory::Twitch, QStringLiteral("Persisting access token: %1").arg(tokenPreview));
-  
+  QString tokenPreview = m_accessToken.isEmpty()
+                             ? QStringLiteral("EMPTY")
+                             : m_accessToken.left(8) + "...";
+  Logger::debug(
+      LogCategory::Twitch,
+      QStringLiteral("Persisting access token: %1").arg(tokenPreview));
+
   secureStorage.store(QStringLiteral("access_token"), m_accessToken);
   secureStorage.store(QStringLiteral("refresh_token"), m_refreshToken);
-  
+
   // Stocker la date d'expiration (en format ISO string)
   if (m_tokenExpirationTime.isValid()) {
-    secureStorage.store(QStringLiteral("token_expiration"), m_tokenExpirationTime.toString(Qt::ISODate));
+    secureStorage.store(QStringLiteral("token_expiration"),
+                        m_tokenExpirationTime.toString(Qt::ISODate));
   }
-  
+
   // IMPORTANT: Stocker le Client-ID utilisé pour générer le token
   // Cela permet de vérifier que le token correspond au Client-ID actuel
   secureStorage.store(QStringLiteral("token_client_id"), m_clientId);
-  Logger::debug(LogCategory::Twitch, QStringLiteral("Persisting Client-ID used for token: %1").arg(m_clientId.isEmpty() ? QStringLiteral("EMPTY") : m_clientId.left(10) + "..."));
+  Logger::debug(LogCategory::Twitch,
+                QStringLiteral("Persisting Client-ID used for token: %1")
+                    .arg(m_clientId.isEmpty() ? QStringLiteral("EMPTY")
+                                              : m_clientId.left(10) + "..."));
 }
 
 void TwitchAuthManager::loadCredentials() {
-  Logger::debug(LogCategory::Twitch, QStringLiteral("loadCredentials() called"));
-  
+  Logger::debug(LogCategory::Twitch,
+                QStringLiteral("loadCredentials() called"));
+
   // Utiliser SecureStorage pour déchiffrer les tokens
   SecureStorage secureStorage(this);
-  
+
   m_accessToken = secureStorage.retrieve(QStringLiteral("access_token"));
   m_refreshToken = secureStorage.retrieve(QStringLiteral("refresh_token"));
-  
+
   // Charger la date d'expiration du token
-  const QString expirationStr = secureStorage.retrieve(QStringLiteral("token_expiration"));
+  const QString expirationStr =
+      secureStorage.retrieve(QStringLiteral("token_expiration"));
   if (!expirationStr.isEmpty()) {
     m_tokenExpirationTime = QDateTime::fromString(expirationStr, Qt::ISODate);
     if (!m_tokenExpirationTime.isValid()) {
-      Logger::warning(LogCategory::Twitch, QStringLiteral("Invalid token expiration date: %1").arg(expirationStr));
-      m_tokenExpirationTime = QDateTime();  // Invalider
+      Logger::warning(LogCategory::Twitch,
+                      QStringLiteral("Invalid token expiration date: %1")
+                          .arg(expirationStr));
+      m_tokenExpirationTime = QDateTime(); // Invalider
     }
   }
-  
-  // IMPORTANT: Vérifier que le Client-ID utilisé pour générer le token correspond au Client-ID actuel
-  // Si ce n'est pas le cas, le token est invalide et doit être régénéré
-  // NOTE: Pour les anciens tokens sans Client-ID stocké, on les considère comme valides
-  // et on stocke le Client-ID actuel. Si le token ne fonctionne pas, l'erreur 400 sera détectée
-  // lors de la première requête API et le token sera invalidé à ce moment-là.
-  const QString storedClientId = secureStorage.retrieve(QStringLiteral("token_client_id"));
+
+  // IMPORTANT: Vérifier que le Client-ID utilisé pour générer le token
+  // correspond au Client-ID actuel Si ce n'est pas le cas, le token est
+  // invalide et doit être régénéré NOTE: Pour les anciens tokens sans Client-ID
+  // stocké, on les considère comme valides et on stocke le Client-ID actuel. Si
+  // le token ne fonctionne pas, l'erreur 400 sera détectée lors de la première
+  // requête API et le token sera invalidé à ce moment-là.
+  const QString storedClientId =
+      secureStorage.retrieve(QStringLiteral("token_client_id"));
   if (!m_accessToken.isEmpty() && !storedClientId.isEmpty()) {
     if (storedClientId != m_clientId) {
-      Logger::warning(LogCategory::Twitch, QStringLiteral("Client-ID mismatch detected! Token was generated with Client-ID '%1' but current Client-ID is '%2'").arg(storedClientId.left(10) + "...", m_clientId.isEmpty() ? QStringLiteral("EMPTY") : m_clientId.left(10) + "..."));
-      Logger::warning(LogCategory::Twitch, QStringLiteral("Invalidating tokens - user must re-authenticate with current Client-ID"));
+      Logger::warning(
+          LogCategory::Twitch,
+          QStringLiteral("Client-ID mismatch detected! Token was generated "
+                         "with Client-ID '%1' but current Client-ID is '%2'")
+              .arg(storedClientId.left(10) + "...",
+                   m_clientId.isEmpty() ? QStringLiteral("EMPTY")
+                                        : m_clientId.left(10) + "..."));
+      Logger::warning(LogCategory::Twitch,
+                      QStringLiteral("Invalidating tokens - user must "
+                                     "re-authenticate with current Client-ID"));
       // Invalider les tokens car ils ne correspondent pas au Client-ID actuel
       m_accessToken.clear();
       m_refreshToken.clear();
@@ -491,27 +560,44 @@ void TwitchAuthManager::loadCredentials() {
       secureStorage.remove(QStringLiteral("token_expiration"));
       secureStorage.remove(QStringLiteral("token_client_id"));
     } else {
-      Logger::debug(LogCategory::Twitch, QStringLiteral("Client-ID verification passed: token matches current Client-ID"));
+      Logger::debug(LogCategory::Twitch,
+                    QStringLiteral("Client-ID verification passed: token "
+                                   "matches current Client-ID"));
     }
   } else if (!m_accessToken.isEmpty() && storedClientId.isEmpty()) {
-    // Token existe mais pas de Client-ID stocké (ancien token avant cette implémentation)
-    // On considère le token comme valide pour l'instant et on stocke le Client-ID actuel
-    // Si le token ne fonctionne pas avec ce Client-ID, l'erreur 400 sera détectée lors
-    // de la première requête API et le token sera invalidé à ce moment-là
-    Logger::debug(LogCategory::Twitch, QStringLiteral("Token found but no stored Client-ID - storing current Client-ID for future verification"));
-    Logger::debug(LogCategory::Twitch, QStringLiteral("Token will be validated on first API call - if Client-ID mismatch, error 400 will trigger token invalidation"));
+    // Token existe mais pas de Client-ID stocké (ancien token avant cette
+    // implémentation) On considère le token comme valide pour l'instant et on
+    // stocke le Client-ID actuel Si le token ne fonctionne pas avec ce
+    // Client-ID, l'erreur 400 sera détectée lors de la première requête API et
+    // le token sera invalidé à ce moment-là
+    Logger::debug(
+        LogCategory::Twitch,
+        QStringLiteral("Token found but no stored Client-ID - storing current "
+                       "Client-ID for future verification"));
+    Logger::debug(
+        LogCategory::Twitch,
+        QStringLiteral(
+            "Token will be validated on first API call - if Client-ID "
+            "mismatch, error 400 will trigger token invalidation"));
     secureStorage.store(QStringLiteral("token_client_id"), m_clientId);
   }
-  
+
   // Migration depuis l'ancien QSettings si SecureStorage est vide
   if (m_accessToken.isEmpty()) {
-    Logger::debug(LogCategory::Twitch, QStringLiteral("No tokens in SecureStorage, checking legacy QSettings"));
-    QSettings legacySettings(QStringLiteral("BluePlayer"), QStringLiteral("Twitch"));
-    QString legacyAccessToken = legacySettings.value(QStringLiteral("access_token")).toString();
-    QString legacyRefreshToken = legacySettings.value(QStringLiteral("refresh_token")).toString();
-    
+    Logger::debug(LogCategory::Twitch,
+                  QStringLiteral(
+                      "No tokens in SecureStorage, checking legacy QSettings"));
+    QSettings legacySettings(QStringLiteral("BluePlayer"),
+                             QStringLiteral("Twitch"));
+    QString legacyAccessToken =
+        legacySettings.value(QStringLiteral("access_token")).toString();
+    QString legacyRefreshToken =
+        legacySettings.value(QStringLiteral("refresh_token")).toString();
+
     if (!legacyAccessToken.isEmpty()) {
-      Logger::debug(LogCategory::Twitch, QStringLiteral("Found legacy tokens, migrating to SecureStorage"));
+      Logger::debug(
+          LogCategory::Twitch,
+          QStringLiteral("Found legacy tokens, migrating to SecureStorage"));
       m_accessToken = legacyAccessToken;
       m_refreshToken = legacyRefreshToken;
       // Migrer vers SecureStorage
@@ -526,36 +612,66 @@ void TwitchAuthManager::loadCredentials() {
       Logger::debug(LogCategory::Twitch, QStringLiteral("Migration completed"));
     }
   }
-  
+
   // Ne logger que les premiers caractères du token pour la sécurité
-  QString tokenPreview = m_accessToken.isEmpty() ? QStringLiteral("EMPTY") 
-                                                  : m_accessToken.left(8) + "...";
-  Logger::debug(LogCategory::Twitch, QStringLiteral("Loaded access token: %1 (length: %2)").arg(tokenPreview).arg(m_accessToken.length()));
-  Logger::debug(LogCategory::Twitch, QStringLiteral("Loaded refresh token, length: %1").arg(m_refreshToken.length()));
-  
+  QString tokenPreview = m_accessToken.isEmpty()
+                             ? QStringLiteral("EMPTY")
+                             : m_accessToken.left(8) + "...";
+  Logger::debug(LogCategory::Twitch,
+                QStringLiteral("Loaded access token: %1 (length: %2)")
+                    .arg(tokenPreview)
+                    .arg(m_accessToken.length()));
+  Logger::debug(LogCategory::Twitch,
+                QStringLiteral("Loaded refresh token, length: %1")
+                    .arg(m_refreshToken.length()));
+
   const bool wasAuthenticated = m_isAuthenticated;
   m_isAuthenticated = !m_accessToken.isEmpty();
-  
-  Logger::debug(LogCategory::Twitch, QStringLiteral("Was authenticated: %1").arg(wasAuthenticated));
-  Logger::debug(LogCategory::Twitch, QStringLiteral("Is authenticated: %1").arg(m_isAuthenticated));
-  
+
+  Logger::debug(LogCategory::Twitch,
+                QStringLiteral("Was authenticated: %1").arg(wasAuthenticated));
+  Logger::debug(LogCategory::Twitch,
+                QStringLiteral("Is authenticated: %1").arg(m_isAuthenticated));
+
   // Si on a un token, émettre les signaux pour déclencher l'auto-login
   if (m_isAuthenticated) {
-    Logger::debug(LogCategory::Twitch, QStringLiteral("Emitting authentication signals"));
+    Logger::debug(LogCategory::Twitch,
+                  QStringLiteral("Emitting authentication signals"));
+    // Vérifier si le token est expiré ou va expirer bientôt et le rafraîchir si
+    // nécessaire
+    bool isHappeningRefresh = false;
+    if (isTokenExpiredOrExpiringSoon() && !m_refreshToken.isEmpty()) {
+      Logger::debug(
+          LogCategory::Twitch,
+          QStringLiteral("Token expired or expiring soon, refreshing..."));
+      refresh();
+      isHappeningRefresh = true;
+    }
+
+    // Si on a lancé un refresh, on ATTEND que le nouveau token arrive avant
+    // d'émettre authenticatedChanged(true). Cela évite que TwitchService
+    // utilise le token expiré et reçoive des erreurs 401 pendant la seconde où
+    // le refresh se fait.
+    if (isHappeningRefresh) {
+      Logger::debug(LogCategory::Twitch,
+                    QStringLiteral("Refresh started during load - suppressing "
+                                   "immediate authentication signal"));
+      return;
+    }
+
     if (!wasAuthenticated) {
-      Logger::debug(LogCategory::Twitch, QStringLiteral("Emitting authenticatedChanged(true)"));
+      Logger::debug(LogCategory::Twitch,
+                    QStringLiteral("Emitting authenticatedChanged(true)"));
       emit authenticatedChanged(true);
     }
-    Logger::debug(LogCategory::Twitch, QStringLiteral("Emitting accessTokenChanged()"));
+    Logger::debug(LogCategory::Twitch,
+                  QStringLiteral("Emitting accessTokenChanged()"));
     emit accessTokenChanged(m_accessToken);
-    
-    // Vérifier si le token est expiré ou va expirer bientôt et le rafraîchir si nécessaire
-    if (isTokenExpiredOrExpiringSoon() && !m_refreshToken.isEmpty()) {
-      Logger::debug(LogCategory::Twitch, QStringLiteral("Token expired or expiring soon, refreshing..."));
-      refresh();
-    }
+
   } else {
-    Logger::debug(LogCategory::Twitch, QStringLiteral("No credentials found, user not authenticated"));
+    Logger::debug(
+        LogCategory::Twitch,
+        QStringLiteral("No credentials found, user not authenticated"));
   }
 }
 
@@ -574,17 +690,18 @@ void TwitchAuthManager::emitTokenChanged() {
 
 bool TwitchAuthManager::isTokenExpiredOrExpiringSoon() const {
   if (!m_tokenExpirationTime.isValid()) {
-    // Si pas de date d'expiration stockée, considérer comme expiré pour forcer un refresh
-    // (utile pour les tokens existants avant cette implémentation)
+    // Si pas de date d'expiration stockée, considérer comme expiré pour forcer
+    // un refresh (utile pour les tokens existants avant cette implémentation)
     return true;
   }
-  
+
   const QDateTime now = QDateTime::currentDateTimeUtc();
   const qint64 secondsUntilExpiration = now.secsTo(m_tokenExpirationTime);
-  
-  // Rafraîchir si le token est expiré ou va expirer dans les 5 prochaines minutes
-  constexpr qint64 refreshThresholdSeconds = 300;  // 5 minutes
-  
+
+  // Rafraîchir si le token est expiré ou va expirer dans les 5 prochaines
+  // minutes
+  constexpr qint64 refreshThresholdSeconds = 300; // 5 minutes
+
   return secondsUntilExpiration <= refreshThresholdSeconds;
 }
 
@@ -593,20 +710,26 @@ void TwitchAuthManager::ensureValidToken() {
   if (m_accessToken.isEmpty()) {
     return;
   }
-  
+
   // Ne rien faire si un rafraîchissement est déjà en cours
   if (m_isRefreshing) {
     return;
   }
-  
+
   // Vérifier si le token est expiré ou va expirer bientôt
   if (isTokenExpiredOrExpiringSoon()) {
     if (!m_refreshToken.isEmpty()) {
-      Logger::debug(LogCategory::Twitch, QStringLiteral("Token expired or expiring soon, refreshing automatically..."));
+      Logger::debug(
+          LogCategory::Twitch,
+          QStringLiteral(
+              "Token expired or expiring soon, refreshing automatically..."));
       refresh();
     } else {
-      Logger::warning(LogCategory::Twitch, QStringLiteral("Token expired but no refresh token available"));
-      // Le token est expiré et on ne peut pas le rafraîchir, déconnecter l'utilisateur
+      Logger::warning(
+          LogCategory::Twitch,
+          QStringLiteral("Token expired but no refresh token available"));
+      // Le token est expiré et on ne peut pas le rafraîchir, déconnecter
+      // l'utilisateur
       logout();
     }
   }
@@ -620,12 +743,11 @@ QString TwitchAuthManager::generateState() const {
   return buildRandomString(24);
 }
 
-QString TwitchAuthManager::codeChallenge(const QString& verifier) const {
+QString TwitchAuthManager::codeChallenge(const QString &verifier) const {
   const QByteArray hash =
       QCryptographicHash::hash(verifier.toUtf8(), QCryptographicHash::Sha256);
   return base64UrlEncode(hash);
 }
-
 
 QSslConfiguration TwitchAuthManager::buildSslConfiguration() const {
   if (m_tlsCertPath.isEmpty() || m_tlsKeyPath.isEmpty()) {
@@ -663,7 +785,6 @@ QSslConfiguration TwitchAuthManager::buildSslConfiguration() const {
   return config;
 }
 
-}  // namespace blueplayer::api::twitch
+} // namespace blueplayer::api::twitch
 
 #include "api/twitch/TwitchAuthManager.moc"
-
