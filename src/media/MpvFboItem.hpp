@@ -65,6 +65,7 @@ private:
   void processPropertyChange(const char *name, void *data, int format);
   void initMpv();
   void destroyMpv();
+  void initRenderContextIfNeeded();
   void ensureHwdecApplied();
 
   mpv_handle *m_mpv = nullptr;

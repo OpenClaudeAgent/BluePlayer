@@ -1,10 +1,17 @@
 #include "media/MpvFboItem.hpp"
 
 #include <QDebug>
+#include <QByteArray>
 #include <QOpenGLFramebufferObject>
 #include <QOpenGLFunctions>
+#include <QOpenGLContext>
 
 namespace blueplayer::media {
+
+static void *get_proc_address(void *, const char *name) {
+  return reinterpret_cast<void *>(
+      QOpenGLContext::currentContext()->getProcAddress(QByteArray(name)));
+}
 
 static void onMpvEvents(void *ctx) {
   auto *self = static_cast<MpvFboItem *>(ctx);
@@ -61,7 +68,25 @@ void MpvFboItem::initMpv() {
     return;
   }
 
-  mpv_opengl_init_params gl_init_params{nullptr, nullptr, nullptr};
+  mpv_set_wakeup_callback(m_mpv, onMpvEvents, this);
+}
+
+void MpvFboItem::destroyMpv() {
+  if (m_renderCtx) {
+    mpv_render_context_free(m_renderCtx);
+    m_renderCtx = nullptr;
+  }
+  if (m_mpv) {
+    mpv_terminate_destroy(m_mpv);
+    m_mpv = nullptr;
+  }
+}
+
+void MpvFboItem::initRenderContextIfNeeded() {
+  if (!m_mpv || m_renderCtx)
+    return;
+
+  mpv_opengl_init_params gl_init_params{get_proc_address, nullptr};
   mpv_render_param params[] = {
       {MPV_RENDER_PARAM_API_TYPE,
        const_cast<char *>(MPV_RENDER_API_TYPE_OPENGL)},
@@ -77,18 +102,6 @@ void MpvFboItem::initMpv() {
   }
 
   mpv_render_context_set_update_callback(m_renderCtx, onMpvUpdate, this);
-  mpv_set_wakeup_callback(m_mpv, onMpvEvents, this);
-}
-
-void MpvFboItem::destroyMpv() {
-  if (m_renderCtx) {
-    mpv_render_context_free(m_renderCtx);
-    m_renderCtx = nullptr;
-  }
-  if (m_mpv) {
-    mpv_terminate_destroy(m_mpv);
-    m_mpv = nullptr;
-  }
 }
 
 void MpvFboItem::handleMpvEvents() {
@@ -113,8 +126,7 @@ void MpvFboItem::handleMpvEvents() {
     }
     case MPV_EVENT_LOG_MESSAGE: {
       auto *msg = static_cast<mpv_event_log_message *>(event->data);
-      if (msg->event_id == MPV_EVENT_LOG_MESSAGE &&
-          msg->log_level <= MPV_LOG_LEVEL_ERROR) {
+      if (msg->log_level <= MPV_LOG_LEVEL_ERROR) {
         QString text = QString::fromUtf8(msg->text).trimmed();
         emit errorOccurred(text);
       }
@@ -273,6 +285,7 @@ MpvFboRenderer::createFramebufferObject(const QSize &size) {
 }
 
 void MpvFboRenderer::render() {
+  m_item->initRenderContextIfNeeded();
   if (!m_item->m_renderCtx)
     return;
 
@@ -282,8 +295,6 @@ void MpvFboRenderer::render() {
     return;
 
   GLuint fbo_handle = fbo->handle();
-  int vp[] = {0, 0, fbo->width(), fbo->height()};
-
   mpv_opengl_fbo mpvfbo{static_cast<int>(fbo_handle), fbo->width(),
                         fbo->height(), 0};
   int flip_y = 1;
