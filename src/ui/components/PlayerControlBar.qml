@@ -32,6 +32,7 @@ Rectangle {
   signal seekRequested(real seconds)
   signal liveRequested()
   signal liveClicked()
+  signal fullscreenClicked()
   
   height: 80
   
@@ -446,8 +447,55 @@ Rectangle {
           onReleased: function(mouse) { mouse.accepted = false }
         }
       }
+      }
+
+      // Spacer
+      Item { Layout.fillWidth: true }
+
+      // Fullscreen Button
+      Item {
+        id: fullscreenButton
+        Layout.preferredWidth: 40
+        Layout.preferredHeight: 40
+        
+        Rectangle {
+            anchors.fill: parent
+            radius: 20
+            color: fsMouseArea.containsMouse ? "#26FFFFFF" : "transparent"
+            Behavior on color { ColorAnimation { duration: 150 } }
+        }
+        
+        Canvas {
+            anchors.centerIn: parent
+            width: 20
+            height: 20
+            onPaint: {
+                var ctx = getContext("2d")
+                ctx.reset()
+                ctx.strokeStyle = "#FFFFFF"
+                ctx.lineWidth = 2
+                ctx.lineCap = "round"
+                
+                // Top Left
+                ctx.beginPath(); ctx.moveTo(0, 6); ctx.lineTo(0,0); ctx.lineTo(6,0); ctx.stroke();
+                // Top Right
+                ctx.beginPath(); ctx.moveTo(14, 0); ctx.lineTo(20,0); ctx.lineTo(20,6); ctx.stroke();
+                // Bottom Left
+                ctx.beginPath(); ctx.moveTo(0, 14); ctx.lineTo(0,20); ctx.lineTo(6,20); ctx.stroke();
+                // Bottom Right
+                ctx.beginPath(); ctx.moveTo(14, 20); ctx.lineTo(20,20); ctx.lineTo(20,14); ctx.stroke();
+            }
+        }
+        
+        MouseArea {
+            id: fsMouseArea
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: controlBar.fullscreenClicked()
+        }
+      }
     }
-  }
   
   // Timer to hide volume slider
   Timer {

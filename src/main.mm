@@ -87,11 +87,19 @@ void ensureMacPreferencesMenu(const std::function<void()> &callback) {
 }
 #endif
 
+#include <clocale>
+
 using blueplayer::core::Application;
 
 int main(int argc, char *argv[]) {
   qputenv("QT_QUICK_CONTROLS_STYLE", "Material");
   QApplication app(argc, argv);
+
+  // Fix for MPV: Ensure standard C locale for number parsing
+  // Must be called AFTER QApplication because QApp resets locale to system
+  // default
+  std::setlocale(LC_NUMERIC, "C");
+
   app.setApplicationName("BluePlayer");
   app.setApplicationDisplayName(QStringLiteral(u"BluePlayer"));
   qmlRegisterType<blueplayer::media::FFmpegMediaService>(

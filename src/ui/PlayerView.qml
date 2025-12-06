@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 6.5
 import QtQuick.Layouts 1.15
+import QtQuick.Window 2.2
 
 import BluePlayer.Media 1.0
 import "themes/AppleTheme.js" as AppleTheme
@@ -89,273 +90,324 @@ Item {
   Rectangle {
     anchors.fill: parent
     color: "#000000"
-    
-    ColumnLayout {
+
+    // 1. Video Layer (Full Screen)
+
+    MpvQuickItem {
+      id: mpvPlayer
       anchors.fill: parent
-      spacing: 0
       
-      // Barre de contrôle en haut avec bouton retour
-      Rectangle {
-        Layout.fillWidth: true
-        Layout.preferredHeight: 60
-        color: "#1a1a1a"
-        z: 10
+      onPlayingChanged: function(isPlaying) {
+        playerRoot.playing = isPlaying
+        // Trigger center animation
+        centerFeedback.show(isPlaying ? "\u25B6" : "\u23F8") // Play or Pause icon
         
-        RowLayout {
-          anchors.fill: parent
-          anchors.leftMargin: 16
-          anchors.rightMargin: 16
-          spacing: 16
-          
-          // Bouton retour
-          Rectangle {
-            Layout.preferredWidth: 40
-            Layout.preferredHeight: 40
-            radius: 20
-            color: backButtonMouseArea.containsMouse ? "#2a2a2a" : "#1a1a1a"
-            border.color: AppleTheme.divider
-            border.width: 1
-            
-            Text {
-              anchors.centerIn: parent
-              text: "←"
-              font.pixelSize: 20
-              color: AppleTheme.primaryText
-            }
-            
-            MouseArea {
-              id: backButtonMouseArea
-              anchors.fill: parent
-              hoverEnabled: true
-              cursorShape: Qt.PointingHandCursor
-              onClicked: {
-                requestStop()
-                playerRoot.backRequested()
-              }
-            }
-          }
-          
-          // Informations du stream
-          ColumnLayout {
-            Layout.fillWidth: true
-            spacing: 4
-            
-            Text {
-              text: streamerName || streamerLogin
-              font.family: AppleTheme.fontFamily
-              font.pixelSize: 16
-              font.bold: true
-              color: AppleTheme.primaryText
-              elide: Text.ElideRight
-              Layout.fillWidth: true
-            }
-            
-            Text {
-              text: streamTitle || qsTr("Stream en direct")
-              font.family: AppleTheme.fontFamily
-              font.pixelSize: 12
-              color: AppleTheme.secondaryText
-              elide: Text.ElideRight
-              Layout.fillWidth: true
-            }
-          }
-          
-          // Statut
-          Text {
-            text: statusText
-            font.family: AppleTheme.fontFamily
-            font.pixelSize: 12
-            color: AppleTheme.mutedText
-            Layout.alignment: Qt.AlignVCenter
+        if (isPlaying) {
+          playerRoot.buffering = false
+          playerRoot.updateStatus(qsTr("Lecture en cours"))
+          playerRoot.forceActiveFocus()
+        } else {
+          if (playerRoot.hlsUrl.length > 0) {
+            playerRoot.updateStatus(qsTr("Lecture arretee"))
           }
         }
       }
       
-      // Zone video avec MpvQuickItem (rendu GPU direct)
-      Rectangle {
-        Layout.fillWidth: true
-        Layout.fillHeight: true
-        color: "#000000"
-        
-        // MpvQuickItem - rendu OpenGL direct sans copie CPU
-        MpvQuickItem {
-          id: mpvPlayer
-          anchors.fill: parent
-          
-          onPlayingChanged: function(isPlaying) {
-            playerRoot.playing = isPlaying
-            if (isPlaying) {
-              playerRoot.buffering = false
-              playerRoot.updateStatus(qsTr("Lecture en cours"))
-              playerRoot.forceActiveFocus()
-            } else {
-              if (playerRoot.hlsUrl.length > 0) {
-                playerRoot.updateStatus(qsTr("Lecture arretee"))
-              }
-            }
-          }
-          
-          onPausedChanged: function(isPaused) {
-            playerRoot.paused = isPaused
-            if (isPaused) {
-              playerRoot.updateStatus(qsTr("Pause"))
-              playerRoot.controlsVisible = true
-            } else if (playerRoot.playing) {
-              playerRoot.updateStatus(qsTr("Lecture en cours"))
-            }
-          }
-          
-          onVolumeChanged: function(newVolume) {
-            playerRoot.volume = newVolume
-          }
-          
-          onMutedChanged: function(isMuted) {
-            playerRoot.muted = isMuted
-          }
-          
-          onDurationChanged: function(dur) {
-            playerRoot.duration = dur
-          }
-          
-          onPositionChanged: function(pos) {
-            playerRoot.position = pos
-          }
-          
-          onLiveOffsetChanged: function(offset) {
-            playerRoot.liveOffset = offset
-          }
-          
-          onIsLiveModeChanged: function(isLive) {
-            playerRoot.liveMode = isLive
-          }
-          
-          onBufferingChanged: function(isBuffering) {
-            playerRoot.buffering = isBuffering
-          }
-          
-          onErrorOccurred: function(message) {
-            playerRoot.updateStatus(qsTr("Erreur: %1").arg(message))
-          }
+      onPausedChanged: function(isPaused) {
+        playerRoot.paused = isPaused
+        if (isPaused) {
+          playerRoot.updateStatus(qsTr("Pause"))
+          playerRoot.controlsVisible = true
+        } else if (playerRoot.playing) {
+          playerRoot.updateStatus(qsTr("Lecture en cours"))
         }
+      }
+      
+      onVolumeChanged: function(newVolume) { playerRoot.volume = newVolume }
+      onMutedChanged: function(isMuted) { playerRoot.muted = isMuted }
+      onDurationChanged: function(dur) { playerRoot.duration = dur }
+      onPositionChanged: function(pos) { playerRoot.position = pos }
+      onLiveOffsetChanged: function(offset) { playerRoot.liveOffset = offset }
+      onIsLiveModeChanged: function(isLive) { playerRoot.liveMode = isLive }
+      onBufferingChanged: function(isBuffering) { playerRoot.buffering = isBuffering }
+      onErrorOccurred: function(message) { playerRoot.updateStatus(qsTr("Erreur: %1").arg(message)) }
+    }
+    
+    // 2. Mouse Interaction Layer (Background)
+    // Placed here so it is BEHIND interface overlays (TopBar, ControlBar)
+    MouseArea {
+      id: backgroundMouseArea
+      anchors.fill: parent
+      hoverEnabled: true
+      propagateComposedEvents: true 
+      
+      onPositionChanged: {
+        playerRoot.controlsVisible = true
+        hideControlsTimer.restart()
+      }
+      
+      onClicked: {
+          togglePlayPause()
+          playerRoot.controlsVisible = true
+          hideControlsTimer.restart()
+      }
+      
+      onDoubleClicked: {
+          var win = Window.window
+          if (win) {
+              if (win.visibility === Window.FullScreen)
+                  win.showNormal()
+              else
+                  win.showFullScreen()
+          }
+      }
+    }
+    
+    Timer {
+      id: hideControlsTimer
+      interval: 3000
+      onTriggered: {
+        if (playing && !paused) {
+          playerRoot.controlsVisible = false
+        }
+      }
+    }
+
+    // 3. Interface Layer (Overlays)
+    
+    // Top Bar Overlay (Gradient)
+    Rectangle {
+      id: topBar
+      anchors.top: parent.top
+      anchors.left: parent.left
+      anchors.right: parent.right
+      height: 80
+      
+      gradient: Gradient {
+        GradientStop { position: 0.0; color: "#CC000000" }
+        GradientStop { position: 1.0; color: "transparent" }
+      }
+      
+      // Visibility Animation
+      opacity: playerRoot.controlsVisible ? 1.0 : 0.0
+      visible: opacity > 0
+      Behavior on opacity { NumberAnimation { duration: 300 } }
+      
+      RowLayout {
+        anchors.fill: parent
+        anchors.leftMargin: 24
+        anchors.rightMargin: 24
+        spacing: 16
         
-        // Overlay de chargement (seulement avant le debut de la lecture)
+        // Back Button
         Rectangle {
-          anchors.fill: parent
-          color: "#000000"
-          visible: !playing && (statusText.indexOf("Chargement") >= 0 || statusText.indexOf("Connexion") >= 0 || statusText.indexOf("Recuperation") >= 0)
+          Layout.preferredWidth: 40
+          Layout.preferredHeight: 40
+          radius: 20
+          color: backButtonMouseArea.containsMouse ? "#4DFFFFFF" : "#1AFFFFFF"
           
-          ColumnLayout {
+          Text {
             anchors.centerIn: parent
-            spacing: 16
-            
-            BusyIndicator {
-              Layout.alignment: Qt.AlignHCenter
-              running: true
-            }
-            
-            Text {
-              text: statusText
-              font.family: AppleTheme.fontFamily
-              font.pixelSize: 14
-              color: AppleTheme.primaryText
-              Layout.alignment: Qt.AlignHCenter
+            text: "←"
+            font.pixelSize: 22
+            color: "#FFFFFF"
+          }
+          
+          MouseArea {
+            id: backButtonMouseArea
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+              requestStop()
+              playerRoot.backRequested()
             }
           }
         }
         
-        // Badge pub discret dans le coin (visible pendant les pubs)
+        // Stream Info
+        ColumnLayout {
+          Layout.fillWidth: true
+          spacing: 2
+          
+          Text {
+            text: streamerName || streamerLogin
+            font.family: AppleTheme.fontFamily
+            font.pixelSize: 18
+            font.bold: true
+            color: "#FFFFFF"
+            style: Text.Outline; styleColor: "#80000000"
+            elide: Text.ElideRight
+            Layout.fillWidth: true
+          }
+          
+          Text {
+            text: streamTitle || qsTr("Stream en direct")
+            font.family: AppleTheme.fontFamily
+            font.pixelSize: 13
+            color: "#DDFFFFFF"
+            style: Text.Outline; styleColor: "#80000000"
+            elide: Text.ElideRight
+            Layout.fillWidth: true
+          }
+        }
+        
+        // Status Badge
         Rectangle {
-          visible: adsActive
-          anchors.top: parent.top
-          anchors.left: parent.left
-          anchors.margins: 12
-          width: adBadgeRow.width + 16
-          height: 28
-          radius: 6
-          color: "#DD000000"
-          border.color: "#FF9500"
-          border.width: 1
+          Layout.preferredHeight: 24
+          Layout.preferredWidth: statusLabel.width + 16
+          radius: 12
+          color: "#4D000000"
+          visible: statusText.length > 0
           
-          Row {
-            id: adBadgeRow
+          Text {
+            id: statusLabel
             anchors.centerIn: parent
-            spacing: 6
-            
-            Text {
-              text: "AD"
-              font.pixelSize: 10
-              font.bold: true
-              color: "#FF9500"
-            }
-            
-            Text {
-              text: qsTr("Pub en cours...")
-              font.family: AppleTheme.fontFamily
-              font.pixelSize: 11
-              font.bold: true
-              color: "#FF9500"
-            }
-          }
-        }
-        
-        // Barre de controle en bas
-        PlayerControlBar {
-          id: playerControlBar
-          anchors.left: parent.left
-          anchors.right: parent.right
-          anchors.bottom: parent.bottom
-          
-          playing: playerRoot.playing
-          paused: playerRoot.paused
-          buffering: playerRoot.buffering
-          volume: playerRoot.volume
-          muted: playerRoot.muted
-          duration: playerRoot.duration
-          position: playerRoot.position
-          liveOffset: playerRoot.liveOffset
-          liveMode: playerRoot.liveMode
-          controlsVisible: playerRoot.controlsVisible
-          
-          onPlayPauseClicked: togglePlayPause()
-          onStopClicked: {
-            requestStop()
-            playerRoot.backRequested()
-          }
-          onVolumeRequested: function(newVolume) { setVolume(newVolume) }
-          onMuteClicked: toggleMute()
-          onSeekRequested: function(seconds) { seekTo(seconds) }
-          onLiveRequested: goLive()
-          onLiveClicked: goLive()
-        }
-        
-        // Zone de detection de souris pour afficher/masquer les controles
-        MouseArea {
-          anchors.fill: parent
-          hoverEnabled: true
-          propagateComposedEvents: true
-          
-          onPositionChanged: {
-            controlsVisible = true
-            hideControlsTimer.restart()
-          }
-          
-          onPressed: function(mouse) { mouse.accepted = false }
-          onReleased: function(mouse) { mouse.accepted = false }
-          onClicked: function(mouse) { mouse.accepted = false }
-        }
-        
-        // Timer pour masquer les controles
-        Timer {
-          id: hideControlsTimer
-          interval: 3000
-          onTriggered: {
-            if (playing && !paused) {
-              controlsVisible = false
-            }
+            text: statusText
+            font.pixelSize: 11
+            color: "#FFFFFF"
           }
         }
       }
     }
+
+    // Center Play/Pause Feedback Animation
+    Item {
+      id: centerFeedback
+      anchors.centerIn: parent
+      width: 100
+      height: 100
+      opacity: 0
+      
+      property string iconText: ""
+      
+      function show(icon) {
+        iconText = icon
+        feedbackAnim.restart()
+      }
+      
+      Rectangle {
+        anchors.fill: parent
+        radius: 50
+        color: "#80000000"
+        
+        Text {
+          anchors.centerIn: parent
+          text: centerFeedback.iconText
+          color: "#FFFFFF"
+          font.pixelSize: 48
+        }
+      }
+      
+      SequentialAnimation {
+        id: feedbackAnim
+        
+        ParallelAnimation {
+            NumberAnimation { target: centerFeedback; property: "opacity"; to: 1; duration: 100 }
+            NumberAnimation { target: centerFeedback; property: "scale"; from: 0.8; to: 1.1; duration: 150 }
+        }
+        PauseAnimation { duration: 300 }
+        ParallelAnimation {
+            NumberAnimation { target: centerFeedback; property: "opacity"; to: 0; duration: 250 }
+            NumberAnimation { target: centerFeedback; property: "scale"; to: 1.5; duration: 250 }
+        }
+      }
+    }
+
+    // Loading Overlay
+    Rectangle {
+      anchors.centerIn: parent
+      width: 120; height: 120
+      radius: 20
+      color: "#80000000"
+      visible: !playing && (statusText.indexOf("Chargement") >= 0 || statusText.indexOf("Connexion") >= 0)
+      
+      ColumnLayout {
+        anchors.centerIn: parent
+        spacing: 16
+        
+        BusyIndicator {
+          Layout.alignment: Qt.AlignHCenter
+          running: true
+          palette.dark: "#FFFFFF" // Force white indicator
+        }
+      }
+    }
+    
+    // Ad Badge (Top Left, under Top Bar)
+    Rectangle {
+      visible: adsActive
+      anchors.top: parent.top
+      anchors.left: parent.left
+      anchors.topMargin: 90 // Clear top bar
+      anchors.leftMargin: 24
+      width: adBadgeRow.width + 20
+      height: 32
+      radius: 16
+      color: "#CC000000"
+      border.color: "#FF9500"
+      border.width: 1
+      
+      Row {
+        id: adBadgeRow
+        anchors.centerIn: parent
+        spacing: 8
+        
+        Text {
+          text: "AD"
+          font.pixelSize: 11
+          font.bold: true
+          color: "#FF9500"
+        }
+        Text {
+          text: qsTr("Pub en cours (%1)").arg(adSegments)
+          font.pixelSize: 11
+          font.bold: true
+          color: "#FFFFFF"
+        }
+      }
+    }
+    
+    // Bottom Control Bar
+    PlayerControlBar {
+      id: playerControlBar
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.bottom: parent.bottom
+      
+      playing: playerRoot.playing
+      paused: playerRoot.paused
+      buffering: playerRoot.buffering
+      volume: playerRoot.volume
+      muted: playerRoot.muted
+      duration: playerRoot.duration
+      position: playerRoot.position
+      liveOffset: playerRoot.liveOffset
+      liveMode: playerRoot.liveMode
+      controlsVisible: playerRoot.controlsVisible
+      
+      onPlayPauseClicked: togglePlayPause()
+      onStopClicked: {
+        requestStop()
+        playerRoot.backRequested()
+      }
+      onVolumeRequested: function(newVolume) { setVolume(newVolume) }
+      onMuteClicked: toggleMute()
+      onSeekRequested: function(seconds) { seekTo(seconds) }
+      onLiveRequested: goLive()
+      onLiveClicked: goLive()
+      onFullscreenClicked: {
+          var win = Window.window
+          if (win) {
+              if (win.visibility === Window.FullScreen)
+                  win.showNormal()
+              else
+                  win.showFullScreen()
+          }
+      }
+    }
+    
+
   }
   
   // Gestion des raccourcis clavier
@@ -428,7 +480,7 @@ Item {
       loadStream()
     }
   }
-  
+
   Component.onCompleted: {
     console.log("[PlayerView] Component.onCompleted called - Using MpvQuickItem for GPU rendering")
     playerRoot.forceActiveFocus()

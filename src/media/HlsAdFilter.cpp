@@ -132,19 +132,29 @@ void HlsAdFilter::onVariantPlaylistReceived() {
   
   if (hasAds) {
     m_adsDetected = true;
-    emit debugLog(QStringLiteral("[AdFilter] ⚠️  Ads detected (%1 markers) - playing anyway").arg(m_adSegmentCount));
+    emit debugLog(QStringLiteral("[AdFilter] ⚠️  ADS DETECTED! %1 ad markers found").arg(m_adSegmentCount));
     emit adsDetected(m_adSegmentCount);
     
-    // NOUVELLE STRATÉGIE: Jouer IMMÉDIATEMENT sans attendre
-    // Les pubs sont server-side stitched, réessayer ne sert à rien
-    // On joue le stream et on monitore pour la fin des pubs
-    emit debugLog(QStringLiteral("[AdFilter] ▶️ Starting playback immediately"));
+    // Stratégie simplifiée: essayer 1-2 fois avec nouveau token, puis jouer quand même
+    // Les pubs Twitch sont server-side stitched, donc nouveau token != stream propre garanti
+    if (m_retryCount < MAX_RETRIES) {
+      m_retryCount++;
+      emit debugLog(QStringLiteral("[AdFilter] 🔄 Trying NEW token (attempt %1/%2)...").arg(m_retryCount).arg(MAX_RETRIES));
+      
+      // Signal pour demander un nouveau token
+      QTimer::singleShot(300, this, [this]() {
+        emit requestNewToken();
+      });
+      return;
+    }
     
-    // Démarrer le monitoring pour détecter la fin des pubs
+    // Max retries atteint - JOUER QUAND MÊME
+    // Les pubs durent généralement 15-30 secondes, le stream commencera après
+    emit debugLog(QStringLiteral("[AdFilter] ⏩ Playing stream (ads will play first, ~15-30 seconds)"));
+    emit maxRetriesReached(m_selectedVariantUrl);
+    
+    // Monitoring pour notifier quand les pubs sont finies
     m_adCheckTimer->start();
-    
-    // Émettre l'URL pour commencer la lecture tout de suite
-    emit cleanStreamReady(m_selectedVariantUrl);
     return;
   }
   
@@ -279,25 +289,27 @@ QString HlsAdFilter::selectBestVariant(const QList<StreamVariant>& variants, con
 bool HlsAdFilter::detectAdsInPlaylist(const QString& playlistContent) {
   m_adSegmentCount = 0;
   
-  // Patterns SPÉCIFIQUES aux pubs Twitch (pas les tags HLS normaux!)
+  // Patterns qui indiquent des pubs Twitch
   // Source: https://github.com/pixeltris/TwitchAdSolutions
   
   QStringList adPatterns = {
-    // Tags Twitch spécifiques aux pubs stitchées
-    QStringLiteral("X-TV-TWITCH-AD-QUARTILE"),
-    QStringLiteral("X-TV-TWITCH-AD-POD-FILLED"),
-    QStringLiteral("X-TV-TWITCH-AD-ROLL-TYPE"),
-    QStringLiteral("CLASS=\"twitch-stitched-ad\""),
+    // Tags Twitch pour les pubs stitchées
+    QStringLiteral("twitch-stitched-ad"),
+    QStringLiteral("twitch-prefetch"),
+    QStringLiteral("Amazon-Ads"),
+    QStringLiteral("stitched-ad"),
     
-    // Marqueurs d'insertion pub
-    QStringLiteral("Amazon-Ads-Signal"),
+    // EXT-X-DATERANGE avec classe pub
+    QStringLiteral("CLASS=\"twitch-stitched-ad\""),
+    QStringLiteral("X-TV-TWITCH-AD-"),
+    
+    // Segments pre-roll
+    QStringLiteral("EXT-X-DISCONTINUITY"),
+    
+    // Attributs spécifiques aux pubs
+    QStringLiteral("AD-INSERTION"),
     QStringLiteral("SCTE35-OUT"),
   };
-  
-  // NOTE: On ne détecte PAS ces patterns normaux:
-  // - "twitch-prefetch" = prefetch normal des segments
-  // - "EXT-X-DISCONTINUITY" = changement de segment normal
-  // - "stitched" seul = peut être dans des URLs normales
   
   bool hasAds = false;
   
@@ -316,6 +328,28 @@ bool HlsAdFilter::detectAdsInPlaylist(const QString& playlistContent) {
       
       emit debugLog(QStringLiteral("[AdFilter] Ad marker found: '%1' (x%2)").arg(pattern).arg(count));
     }
+  }
+  
+  // Vérification supplémentaire: segments avec durée courte (< 2s) au début peuvent être des pubs
+  QRegularExpression extinf(QStringLiteral("#EXTINF:([\\d.]+),"));
+  QRegularExpressionMatchIterator it = extinf.globalMatch(playlistContent);
+  
+  int shortSegments = 0;
+  int segmentIndex = 0;
+  while (it.hasNext()) {
+    QRegularExpressionMatch match = it.next();
+    double duration = match.captured(1).toDouble();
+    
+    // Les premiers segments courts peuvent indiquer un pre-roll
+    if (segmentIndex < 5 && duration < 2.0) {
+      shortSegments++;
+    }
+    segmentIndex++;
+  }
+  
+  if (shortSegments >= 3) {
+    emit debugLog(QStringLiteral("[AdFilter] Suspicious: %1 short segments at start (possible pre-roll)").arg(shortSegments));
+    hasAds = true;
   }
   
   return hasAds;

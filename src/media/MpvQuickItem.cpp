@@ -297,7 +297,9 @@ void MpvQuickItem::play(const QString &url) {
     emit sourceChanged(url);
   }
 
-  const char *cmd[] = {"loadfile", url.toUtf8().constData(), nullptr};
+  // Store QByteArray to keep it alive during mpv_command
+  QByteArray urlBytes = url.toUtf8();
+  const char *cmd[] = {"loadfile", urlBytes.constData(), nullptr};
   mpv_command(m_mpv, cmd);
 
   m_playing = true;

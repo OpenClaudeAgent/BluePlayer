@@ -5,7 +5,7 @@ BLUEPLAYER_ROOT := $(shell pwd)
 BUILD_DIR := $(BLUEPLAYER_ROOT)/build
 SCRIPTS_DIR := $(BLUEPLAYER_ROOT)/scripts
 LOAD_ENV_SCRIPT := $(SCRIPTS_DIR)/load_env.sh
-CMAKE_EXECUTABLE := $(shell brew --prefix)/bin/cmake
+CMAKE_EXECUTABLE := /opt/homebrew/bin/cmake
 
 # Default target when `make` is run without arguments
 .PHONY: all
