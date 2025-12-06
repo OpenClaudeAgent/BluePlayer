@@ -46,7 +46,10 @@ void MpvQuickItem::initMpv() {
   // Enable log messages
   mpv_request_log_messages(m_mpv, "debug");
 
-  // Hardware decoding mode (default copy for SW render). Could be overridden by hwdecMode.
+  // Hardware decoding - Enable videotoolbox-copy for optimization
+  // With QQuickPaintedItem (Software Rendering), 'copy' mode is ideal as it
+  // utilizes GPU for decoding and copies frames to RAM, where we need them
+  // anyway.
   mpv_set_option_string(m_mpv, "hwdec",
                         m_hwDecoding ? "videotoolbox-copy" : "no");
   mpv_set_option_string(m_mpv, "hwdec-codecs", "all");
@@ -450,19 +453,6 @@ void MpvQuickItem::setCropVideo(bool crop) {
   double panscan = crop ? 1.0 : 0.0;
   mpv_set_property(m_mpv, "panscan", MPV_FORMAT_DOUBLE, &panscan);
   emit cropVideoChanged(crop);
-}
-
-void MpvQuickItem::setHwdecMode(const QString &mode) {
-  if (!m_mpv)
-    return;
-  if (mode == QStringLiteral("no")) {
-    m_hwDecoding = false;
-  } else {
-    m_hwDecoding = true;
-  }
-  mpv_set_property_string(m_mpv, "hwdec", mode.toUtf8().constData());
-  emit hardwareDecodingChanged(m_hwDecoding);
-  emit hwdecModeChanged(mode);
 }
 
 } // namespace blueplayer::media

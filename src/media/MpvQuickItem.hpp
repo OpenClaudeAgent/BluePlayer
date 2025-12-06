@@ -54,8 +54,6 @@ public:
   double playbackRate() const { return m_playbackRate; }
   bool hardwareDecoding() const { return m_hwDecoding; }
   bool cropVideo() const { return m_cropVideo; }
-  QString hwdecMode() const { return m_hwDecoding ? QStringLiteral("videotoolbox-copy")
-                                                  : QStringLiteral("no"); }
 
   // MPV access
   mpv_handle *mpvHandle() const { return m_mpv; }
@@ -84,7 +82,6 @@ public slots:
   void setPlaybackRate(double rate);
   void setHardwareDecoding(bool enabled);
   void setCropVideo(bool crop);
-  void setHwdecMode(const QString &mode);
 
 signals:
   void sourceChanged(const QString &source);
@@ -103,7 +100,6 @@ signals:
   void playbackRateChanged(double rate);
   void hardwareDecodingChanged(bool enabled);
   void cropVideoChanged(bool crop);
-  void hwdecModeChanged(const QString &mode);
 
 private slots:
   void handleMpvEvents();
