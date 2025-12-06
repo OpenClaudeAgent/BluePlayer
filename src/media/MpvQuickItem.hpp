@@ -25,6 +25,12 @@ class MpvQuickItem : public QQuickPaintedItem {
   Q_PROPERTY(bool recording READ isRecording NOTIFY recordingChanged)
   Q_PROPERTY(
       QString recordingPath READ recordingPath NOTIFY recordingPathChanged)
+  Q_PROPERTY(double playbackRate READ playbackRate WRITE setPlaybackRate NOTIFY
+                 playbackRateChanged)
+  Q_PROPERTY(bool hardwareDecoding READ hardwareDecoding WRITE
+                 setHardwareDecoding NOTIFY hardwareDecodingChanged)
+  Q_PROPERTY(bool cropVideo READ cropVideo WRITE setCropVideo NOTIFY
+                 cropVideoChanged)
 
 public:
   explicit MpvQuickItem(QQuickItem *parent = nullptr);
@@ -45,6 +51,9 @@ public:
   bool buffering() const { return m_buffering; }
   bool isRecording() const { return m_isRecording; }
   QString recordingPath() const { return m_recordingPath; }
+  double playbackRate() const { return m_playbackRate; }
+  bool hardwareDecoding() const { return m_hwDecoding; }
+  bool cropVideo() const { return m_cropVideo; }
 
   // MPV access
   mpv_handle *mpvHandle() const { return m_mpv; }
@@ -70,6 +79,9 @@ public slots:
   void setPaused(bool paused);
   void startRecording(const QString &outputPath);
   void stopRecording();
+  void setPlaybackRate(double rate);
+  void setHardwareDecoding(bool enabled);
+  void setCropVideo(bool crop);
 
 signals:
   void sourceChanged(const QString &source);
@@ -85,6 +97,9 @@ signals:
   void bufferingChanged(bool buffering);
   void recordingChanged(bool recording);
   void recordingPathChanged(const QString &path);
+  void playbackRateChanged(double rate);
+  void hardwareDecodingChanged(bool enabled);
+  void cropVideoChanged(bool crop);
 
 private slots:
   void handleMpvEvents();
@@ -114,6 +129,11 @@ private:
   std::atomic<double> m_duration{0.0};
   std::atomic<double> m_position{0.0};
   std::atomic<bool> m_isLiveMode{false};
+
+  // Playback tweaks
+  double m_playbackRate = 1.0;
+  bool m_hwDecoding = true;
+  bool m_cropVideo = false;
 
   // Software rendering buffer
   QImage m_buffer;

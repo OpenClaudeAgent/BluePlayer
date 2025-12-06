@@ -2,6 +2,7 @@ import QtQuick 2.15
 import QtQuick.Controls 6.5
 import QtQuick.Layouts 1.15
 import QtQuick.Window 2.2
+import Qt.labs.settings 1.1
 
 import BluePlayer.Media 1.0
 import "themes/AppleTheme.js" as AppleTheme
@@ -29,8 +30,22 @@ Item {
   property int adSegments: 0
   property bool controlsVisible: true
   property bool isFullscreen: false  // Safari-style fullscreen mode
+  property bool hardwareDecodingEnabled: true
+  property bool cropMode: false
+  property real playbackRate: 1.0
+  property string errorMessage: ""
+  property bool showError: false
+  property bool settingsApplied: false  // avoid double applying settings on load
   
   signal backRequested()
+  
+  Settings {
+    id: playerSettings
+    category: "player"
+    property bool hardwareDecoding: true
+    property bool cropVideo: false
+    property double playbackRate: 1.0
+  }
   
   function updateStatus(message) {
     statusText = message
@@ -63,6 +78,7 @@ Item {
   
   function requestStop() {
     mpvPlayer.stop()
+    statusText = qsTr("Lecture arrêtée")
   }
   
   function togglePlayPause() {
@@ -86,6 +102,48 @@ Item {
 
   function goLive() {
     mpvPlayer.seekToLive()
+  }
+  
+  function applyPersistedSettings() {
+    if (settingsApplied)
+      return
+    hardwareDecodingEnabled = playerSettings.hardwareDecoding
+    cropMode = playerSettings.cropVideo
+    playbackRate = playerSettings.playbackRate
+    if (mpvPlayer) {
+      mpvPlayer.hardwareDecoding = hardwareDecodingEnabled
+      mpvPlayer.cropVideo = cropMode
+      mpvPlayer.playbackRate = playbackRate
+    }
+    settingsApplied = true
+  }
+
+  function adjustPlaybackRate(targetRate) {
+    var clamped = Math.max(0.25, Math.min(3.0, targetRate))
+    playbackRate = clamped
+    playerSettings.playbackRate = clamped
+    if (mpvPlayer) {
+      mpvPlayer.playbackRate = clamped
+    }
+    toast.show(qsTr("Vitesse %1x").arg(clamped.toFixed(2)))
+  }
+
+  function toggleHardwareDecoding() {
+    hardwareDecodingEnabled = !hardwareDecodingEnabled
+    playerSettings.hardwareDecoding = hardwareDecodingEnabled
+    if (mpvPlayer) {
+      mpvPlayer.hardwareDecoding = hardwareDecodingEnabled
+    }
+    toast.show(hardwareDecodingEnabled ? qsTr("Décodage matériel") : qsTr("Décodage logiciel"))
+  }
+
+  function toggleCropMode() {
+    cropMode = !cropMode
+    playerSettings.cropVideo = cropMode
+    if (mpvPlayer) {
+      mpvPlayer.cropVideo = cropMode
+    }
+    toast.show(cropMode ? qsTr("Rognage actif") : qsTr("Adaptation proportionnelle"))
   }
   
   Rectangle {
@@ -139,7 +197,12 @@ Item {
       onLiveOffsetChanged: function(offset) { playerRoot.liveOffset = offset }
       onIsLiveModeChanged: function(isLive) { playerRoot.liveMode = isLive }
       onBufferingChanged: function(isBuffering) { playerRoot.buffering = isBuffering }
-      onErrorOccurred: function(message) { playerRoot.updateStatus(qsTr("Erreur: %1").arg(message)) }
+      onErrorOccurred: function(message) {
+        playerRoot.updateStatus(qsTr("Erreur: %1").arg(message))
+        playerRoot.errorMessage = message
+        playerRoot.showError = true
+        errorHideTimer.restart()
+      }
     }
     
     // 2. Mouse Interaction Layer (Background)
@@ -394,6 +457,9 @@ Item {
       liveOffset: playerRoot.liveOffset
       liveMode: playerRoot.liveMode
       controlsVisible: playerRoot.controlsVisible
+      playbackRate: playerRoot.playbackRate
+      hardwareDecoding: playerRoot.hardwareDecodingEnabled
+      cropVideo: playerRoot.cropMode
       
       onPlayPauseClicked: togglePlayPause()
       onStopClicked: {
@@ -409,8 +475,99 @@ Item {
           isFullscreen = !isFullscreen
           console.log("[PlayerView] Fullscreen toggled:", isFullscreen)
       }
+      onPlaybackRateRequested: function(rate) { adjustPlaybackRate(rate) }
+      onHardwareToggleClicked: toggleHardwareDecoding()
+      onCropToggleClicked: toggleCropMode()
     }
-    
+
+    // Buffering badge (when already en lecture)
+    Rectangle {
+      anchors.top: parent.top
+      anchors.right: parent.right
+      anchors.margins: 20
+      visible: buffering
+      opacity: buffering ? 1.0 : 0.0
+      radius: 12
+      color: "#AA000000"
+      border.color: "#33FFFFFF"
+      border.width: 1
+      Behavior on opacity { NumberAnimation { duration: 150 } }
+
+      RowLayout {
+        anchors.fill: parent
+        anchors.margins: 12
+        spacing: 8
+
+        BusyIndicator { running: true; Layout.preferredWidth: 20; Layout.preferredHeight: 20 }
+        Text { text: qsTr("Buffering..."); color: "#FFFFFF"; font.pixelSize: 12 }
+      }
+    }
+
+    // Toast pour toggles rapides
+    Rectangle {
+      id: toast
+      anchors.horizontalCenter: parent.horizontalCenter
+      anchors.bottom: playerControlBar.top
+      anchors.bottomMargin: 12
+      radius: 10
+      color: "#CC000000"
+      border.color: "#55FFFFFF"
+      visible: opacity > 0
+      opacity: 0
+      Behavior on opacity { NumberAnimation { duration: 200 } }
+      property string text: ""
+
+      function show(msg) {
+        text = msg
+        toastAnim.restart()
+      }
+
+      Row {
+        anchors.margins: 12
+        anchors.fill: parent
+        spacing: 8
+        Text { text: "\u2139"; color: "#FFFFFF"; font.pixelSize: 13 }
+        Text { text: toast.text; color: "#FFFFFF"; font.pixelSize: 13 }
+      }
+
+      SequentialAnimation {
+        id: toastAnim
+        running: false
+        PropertyAnimation { target: toast; property: "opacity"; to: 1; duration: 120 }
+        PauseAnimation { duration: 1400 }
+        PropertyAnimation { target: toast; property: "opacity"; to: 0; duration: 200 }
+      }
+    }
+
+    // Erreur toast
+    Rectangle {
+      id: errorToast
+      anchors.horizontalCenter: parent.horizontalCenter
+      anchors.bottom: playerControlBar.top
+      anchors.bottomMargin: 60
+      radius: 10
+      color: "#CCB00020"
+      border.color: "#FF5252"
+      visible: showError
+      opacity: showError ? 1.0 : 0.0
+      Behavior on opacity { NumberAnimation { duration: 180 } }
+
+      Row {
+        anchors.fill: parent
+        anchors.margins: 12
+        spacing: 8
+        Text { text: "\u26A0"; color: "#FFFFFF"; font.pixelSize: 13 }
+        Text { text: errorMessage; color: "#FFFFFF"; font.pixelSize: 13; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+      }
+    }
+
+    Timer {
+      id: errorHideTimer
+      interval: 4000
+      running: false
+      repeat: false
+      onTriggered: showError = false
+    }
 
   }
   
@@ -419,6 +576,14 @@ Item {
     switch (event.key) {
       case Qt.Key_Space:
         togglePlayPause()
+        event.accepted = true
+        break
+      case Qt.Key_Left:
+        seekTo(Math.max(0, position - 10))
+        event.accepted = true
+        break
+      case Qt.Key_Right:
+        seekTo(duration > 0 ? Math.min(duration, position + 10) : position + 10)
         event.accepted = true
         break
       case Qt.Key_M:
@@ -438,6 +603,36 @@ Item {
         playerRoot.backRequested()
         event.accepted = true
         break
+      case Qt.Key_Plus:
+      case Qt.Key_Equal:
+        adjustPlaybackRate(playbackRate + 0.1)
+        event.accepted = true
+        break
+      case Qt.Key_Minus:
+      case Qt.Key_Underscore:
+        adjustPlaybackRate(playbackRate - 0.1)
+        event.accepted = true
+        break
+      case Qt.Key_R:
+        adjustPlaybackRate(1.0)
+        event.accepted = true
+        break
+      case Qt.Key_F:
+        isFullscreen = !isFullscreen
+        event.accepted = true
+        break
+      case Qt.Key_L:
+        goLive()
+        event.accepted = true
+        break
+      case Qt.Key_H:
+        toggleHardwareDecoding()
+        event.accepted = true
+        break
+      case Qt.Key_C:
+        toggleCropMode()
+        event.accepted = true
+        break
     }
   }
   
@@ -452,7 +647,11 @@ Item {
         updateStatus(adsActive ? qsTr("Pubs detectees - Connexion...") : qsTr("Connexion au flux..."))
         buffering = true
         console.log("[PlayerView] Calling mpvPlayer.play() with URL")
+        mpvPlayer.hardwareDecoding = hardwareDecodingEnabled
+        mpvPlayer.cropVideo = cropMode
+        mpvPlayer.playbackRate = playbackRate
         mpvPlayer.play(url)
+        controlsVisible = true
       } else {
         console.log("[PlayerView] ERROR: Empty or invalid HLS URL")
         updateStatus(qsTr("Impossible de recuperer l'URL du flux"))
@@ -487,6 +686,7 @@ Item {
 
   Component.onCompleted: {
     console.log("[PlayerView] Component.onCompleted called - Using MpvQuickItem for GPU rendering")
+    applyPersistedSettings()
     playerRoot.forceActiveFocus()
   }
   

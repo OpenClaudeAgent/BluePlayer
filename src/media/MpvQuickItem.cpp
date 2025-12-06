@@ -3,6 +3,8 @@
 #include <QDebug>
 #include <QDir>
 #include <QPainter>
+#include <QByteArray>
+#include <QtGlobal>
 #include <QStandardPaths>
 #include <QTimer>
 #include <cstring>
@@ -48,7 +50,8 @@ void MpvQuickItem::initMpv() {
   // With QQuickPaintedItem (Software Rendering), 'copy' mode is ideal as it
   // utilizes GPU for decoding and copies frames to RAM, where we need them
   // anyway.
-  mpv_set_option_string(m_mpv, "hwdec", "videotoolbox-copy");
+  mpv_set_option_string(m_mpv, "hwdec",
+                        m_hwDecoding ? "videotoolbox-copy" : "no");
   mpv_set_option_string(m_mpv, "hwdec-codecs", "all");
 
   // Threading - still useful for copy/format conversion
@@ -77,6 +80,9 @@ void MpvQuickItem::initMpv() {
   mpv_set_option_string(m_mpv, "audio-channels", "stereo");
   mpv_set_option_string(m_mpv, "volume-max", "100");
   mpv_set_option_string(m_mpv, "osd-level", "0");
+  mpv_set_option_string(m_mpv, "panscan", m_cropVideo ? "1" : "0");
+  const QByteArray speedVal = QByteArray::number(m_playbackRate);
+  mpv_set_option_string(m_mpv, "speed", speedVal.constData());
 
   // Observe properties
   mpv_observe_property(m_mpv, 0, "time-pos", MPV_FORMAT_DOUBLE);
@@ -268,6 +274,7 @@ void MpvQuickItem::processPropertyChange(const char *name, void *data,
   } else if (strcmp(name, "paused-for-cache") == 0 &&
              format == MPV_FORMAT_FLAG) {
     bool buffering = *static_cast<int *>(data) != 0;
+    m_buffering = buffering;
     emit bufferingChanged(buffering);
   }
 }
@@ -314,7 +321,9 @@ void MpvQuickItem::stop() {
   const char *cmd[] = {"stop", nullptr};
   mpv_command(m_mpv, cmd);
   m_playing = false;
+  m_buffering = false;
   emit playingChanged(false);
+  emit bufferingChanged(false);
 }
 
 void MpvQuickItem::pause() {
@@ -409,6 +418,41 @@ void MpvQuickItem::stopRecording() {
   mpv_set_option_string(m_mpv, "stream-record", "");
   m_isRecording = false;
   emit recordingChanged(false);
+}
+
+void MpvQuickItem::setPlaybackRate(double rate) {
+  if (!m_mpv)
+    return;
+  double clamped = qBound(0.25, rate, 3.0);
+  if (qFuzzyCompare(m_playbackRate, clamped))
+    return;
+
+  m_playbackRate = clamped;
+  mpv_set_property(m_mpv, "speed", MPV_FORMAT_DOUBLE, &clamped);
+  emit playbackRateChanged(clamped);
+}
+
+void MpvQuickItem::setHardwareDecoding(bool enabled) {
+  if (!m_mpv)
+    return;
+  if (m_hwDecoding == enabled)
+    return;
+  m_hwDecoding = enabled;
+  mpv_set_property_string(m_mpv, "hwdec",
+                          enabled ? "videotoolbox-copy" : "no");
+  emit hardwareDecodingChanged(enabled);
+}
+
+void MpvQuickItem::setCropVideo(bool crop) {
+  if (!m_mpv)
+    return;
+  if (m_cropVideo == crop)
+    return;
+  m_cropVideo = crop;
+
+  double panscan = crop ? 1.0 : 0.0;
+  mpv_set_property(m_mpv, "panscan", MPV_FORMAT_DOUBLE, &panscan);
+  emit cropVideoChanged(crop);
 }
 
 } // namespace blueplayer::media

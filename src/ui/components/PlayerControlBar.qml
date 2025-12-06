@@ -23,6 +23,9 @@ Rectangle {
   property real liveOffset: 0.0
   property bool stickToLive: true
   property bool liveMode: true
+  property real playbackRate: 1.0
+  property bool hardwareDecoding: true
+  property bool cropVideo: false
   
   // Signals
   signal playPauseClicked()
@@ -33,6 +36,9 @@ Rectangle {
   signal liveRequested()
   signal liveClicked()
   signal fullscreenClicked()
+  signal playbackRateRequested(real rate)
+  signal hardwareToggleClicked()
+  signal cropToggleClicked()
   
   height: 80
   
@@ -59,14 +65,14 @@ Rectangle {
     anchors.rightMargin: 24
     anchors.bottomMargin: 16
     anchors.topMargin: 24
-    spacing: 20
-    
+    spacing: 16
+
     // Play/Pause Button
     Item {
       id: playPauseButton
       Layout.preferredWidth: 44
       Layout.preferredHeight: 44
-      
+
       Rectangle {
         id: playPauseBg
         anchors.fill: parent
@@ -74,23 +80,23 @@ Rectangle {
         color: playPauseMouseArea.containsMouse ? "#33FFFFFF" : "#1AFFFFFF"
         border.color: "#4DFFFFFF"
         border.width: 1
-        
+
         Behavior on color {
           ColorAnimation { duration: 150 }
         }
-        
+
         scale: playPauseMouseArea.pressed ? 0.92 : (playPauseMouseArea.containsMouse ? 1.05 : 1.0)
         Behavior on scale {
           NumberAnimation { duration: 100; easing.type: Easing.OutQuad }
         }
       }
-      
+
       // Play/Pause Icon container
       Item {
         anchors.centerIn: parent
         width: 24
         height: 24
-        
+
         // Play triangle - using Unicode character
         Text {
           anchors.centerIn: parent
@@ -101,13 +107,13 @@ Rectangle {
           horizontalAlignment: Text.AlignHCenter
           verticalAlignment: Text.AlignVCenter
         }
-        
+
         // Pause bars
         Row {
           anchors.centerIn: parent
           spacing: 4
           visible: !buffering && playing && !paused
-          
+
           Rectangle {
             width: 4
             height: 14
@@ -121,7 +127,7 @@ Rectangle {
             color: "#FFFFFF"
           }
         }
-        
+
         // Loading indicator
         Text {
           anchors.centerIn: parent
@@ -132,7 +138,7 @@ Rectangle {
           color: "#FFFFFF"
         }
       }
-      
+
       MouseArea {
         id: playPauseMouseArea
         anchors.fill: parent
@@ -140,31 +146,42 @@ Rectangle {
         cursorShape: Qt.PointingHandCursor
         onClicked: controlBar.playPauseClicked()
       }
-      
+
       ToolTip.visible: playPauseMouseArea.containsMouse
       ToolTip.text: buffering ? qsTr("Loading...") : (playing && !paused ? qsTr("Pause (Space)") : qsTr("Play (Space)"))
       ToolTip.delay: 800
     }
-    
+
     // Spacer
     Item { Layout.fillWidth: true }
 
-    // Live/VOD toggle next to play/pause
+    // Live/VOD toggle harmonized with other chips
     Rectangle {
       id: liveToggle
-      Layout.preferredWidth: 64
-      Layout.preferredHeight: 36
-      radius: 18
-      color: controlBar.liveMode ? "#E53935" : "#0066FF"
-      border.color: controlBar.liveMode ? "#FFCDD2" : "#99C2FF"
+      Layout.preferredWidth: 70
+      Layout.preferredHeight: 32
+      radius: 16
+      color: "#26FFFFFF"
+      border.color: controlBar.liveMode ? "#FF7061" : "#4DFFFFFF"
       border.width: 1
 
-      Text {
+      Row {
         anchors.centerIn: parent
-        text: controlBar.liveMode ? qsTr("LIVE") : qsTr("VOD")
-        font.pixelSize: 12
-        font.bold: true
-        color: "#FFFFFF"
+        spacing: 8
+
+        Rectangle {
+          width: 10; height: 10; radius: 5
+          color: controlBar.liveMode ? "#FF3B30" : "#8BC34A"
+          anchors.verticalCenter: parent.verticalCenter
+        }
+
+        Text {
+          anchors.verticalCenter: parent.verticalCenter
+          text: controlBar.liveMode ? qsTr("LIVE") : qsTr("VOD")
+          font.pixelSize: 12
+          font.bold: true
+          color: "#FFFFFF"
+        }
       }
 
       MouseArea {
@@ -278,38 +295,129 @@ Rectangle {
         }
       }
     }
-    
+
+    // Spacer
+    Item { Layout.fillWidth: true }
+
+    // Playback / video toggles cluster
+    RowLayout {
+      spacing: 6
+      Layout.alignment: Qt.AlignVCenter
+
+      Rectangle {
+        id: rateDown
+        width: 32; height: 32; radius: 16
+        color: "#1AFFFFFF"
+        Text { anchors.centerIn: parent; text: "\u2212"; color: "#FFFFFF"; font.pixelSize: 14 }
+        MouseArea {
+          anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+          onClicked: controlBar.playbackRateRequested(Math.max(0.25, playbackRate - 0.1))
+        }
+      }
+
+      Rectangle {
+        id: rateChip
+        width: 70; height: 32; radius: 16
+        color: "#26FFFFFF"
+        border.color: "#4DFFFFFF"; border.width: 1
+        Text {
+          anchors.centerIn: parent
+          text: playbackRate.toFixed(2) + "x"
+          color: "#FFFFFF"
+          font.pixelSize: 12
+          font.bold: true
+        }
+        MouseArea {
+          anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+          onClicked: controlBar.playbackRateRequested(1.0)
+          ToolTip.visible: containsMouse
+          ToolTip.text: qsTr("Réinitialiser la vitesse (R)")
+        }
+      }
+
+      Rectangle {
+        id: rateUp
+        width: 32; height: 32; radius: 16
+        color: "#1AFFFFFF"
+        Text { anchors.centerIn: parent; text: "+"; color: "#FFFFFF"; font.pixelSize: 14 }
+        MouseArea {
+          anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+          onClicked: controlBar.playbackRateRequested(Math.min(3.0, playbackRate + 0.1))
+        }
+      }
+
+      Rectangle {
+        id: hwToggle
+        width: 52; height: 32; radius: 16
+        color: hardwareDecoding ? "#3349c7ff" : "#1AFFFFFF"
+        border.color: hardwareDecoding ? "#49c7ff" : "#4DFFFFFF"
+        Text {
+          anchors.centerIn: parent
+          text: hardwareDecoding ? qsTr("HW") : qsTr("SW")
+          color: "#FFFFFF"
+          font.pixelSize: 12
+          font.bold: true
+        }
+        MouseArea {
+          anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+          onClicked: controlBar.hardwareToggleClicked()
+          ToolTip.visible: containsMouse
+          ToolTip.text: hardwareDecoding ? qsTr("Décodage matériel") : qsTr("Décodage logiciel")
+        }
+      }
+
+      Rectangle {
+        id: cropToggle
+        width: 68; height: 32; radius: 16
+        color: cropVideo ? "#339C27B0" : "#1AFFFFFF"
+        border.color: cropVideo ? "#9C27B0" : "#4DFFFFFF"
+        Text {
+          anchors.centerIn: parent
+          text: cropVideo ? qsTr("Crop") : qsTr("Fit")
+          color: "#FFFFFF"
+          font.pixelSize: 12
+          font.bold: true
+        }
+        MouseArea {
+          anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+          onClicked: controlBar.cropToggleClicked()
+          ToolTip.visible: containsMouse
+          ToolTip.text: cropVideo ? qsTr("Rognage (panscan)") : qsTr("Adapter")
+        }
+      }
+    }
+
     // Volume Control Group
     RowLayout {
       spacing: 4
-      
+
       // Volume Icon Button
       Item {
         id: volumeButton
         Layout.preferredWidth: 40
         Layout.preferredHeight: 40
-        
+
         Rectangle {
           anchors.fill: parent
           radius: 20
           color: volumeMouseArea.containsMouse ? "#26FFFFFF" : "transparent"
-          
+
           Behavior on color {
             ColorAnimation { duration: 150 }
           }
         }
-        
+
         // Volume Icon
         Canvas {
           id: volumeIcon
           anchors.centerIn: parent
           width: 22
           height: 22
-          
+
           property real vol: muted ? 0 : volume
           onVolChanged: requestPaint()
           Component.onCompleted: requestPaint()
-          
+
           onPaint: {
             var ctx = getContext("2d")
             ctx.reset()
@@ -317,7 +425,7 @@ Rectangle {
             ctx.strokeStyle = "#FFFFFF"
             ctx.lineWidth = 1.5
             ctx.lineCap = "round"
-            
+
             // Speaker body
             ctx.beginPath()
             ctx.moveTo(3, 8)
@@ -328,7 +436,7 @@ Rectangle {
             ctx.lineTo(3, 14)
             ctx.closePath()
             ctx.fill()
-            
+
             if (vol === 0 || muted) {
               // X for muted
               ctx.beginPath()
@@ -354,7 +462,7 @@ Rectangle {
             }
           }
         }
-        
+
         MouseArea {
           id: volumeMouseArea
           anchors.fill: parent
@@ -363,23 +471,23 @@ Rectangle {
           onClicked: controlBar.muteClicked()
           onEntered: showVolumeSlider = true
         }
-        
+
         ToolTip.visible: volumeMouseArea.containsMouse && !showVolumeSlider
         ToolTip.text: muted ? qsTr("Unmute (M)") : qsTr("Mute (M)")
         ToolTip.delay: 800
       }
-      
+
       // Volume Slider Container
       Item {
         id: volumeSliderContainer
         Layout.preferredWidth: showVolumeSlider ? 110 : 0
         Layout.preferredHeight: 40
         clip: true
-        
+
         Behavior on Layout.preferredWidth {
           NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
         }
-        
+
         // Slider background pill
         Rectangle {
           anchors.verticalCenter: parent.verticalCenter
@@ -389,7 +497,7 @@ Rectangle {
           height: 32
           radius: 16
           color: "#1AFFFFFF"
-          
+
           Slider {
             id: volumeSlider
             anchors.centerIn: parent
@@ -397,7 +505,7 @@ Rectangle {
             from: 0.0
             to: 1.0
             value: muted ? 0 : volume
-            
+
             background: Rectangle {
               x: volumeSlider.leftPadding
               y: volumeSlider.topPadding + volumeSlider.availableHeight / 2 - height / 2
@@ -405,7 +513,7 @@ Rectangle {
               height: 4
               radius: 2
               color: "#33FFFFFF"
-              
+
               Rectangle {
                 width: volumeSlider.visualPosition * parent.width
                 height: parent.height
@@ -413,7 +521,7 @@ Rectangle {
                 color: "#FFFFFF"
               }
             }
-            
+
             handle: Rectangle {
               x: volumeSlider.leftPadding + volumeSlider.visualPosition * (volumeSlider.availableWidth - width)
               y: volumeSlider.topPadding + volumeSlider.availableHeight / 2 - height / 2
@@ -421,13 +529,13 @@ Rectangle {
               height: 14
               radius: 7
               color: "#FFFFFF"
-              
+
               scale: volumeSlider.pressed ? 1.2 : 1.0
               Behavior on scale {
                 NumberAnimation { duration: 100 }
               }
             }
-            
+
             onMoved: {
               if (muted && value > 0) {
                 controlBar.muteClicked()
@@ -436,7 +544,7 @@ Rectangle {
             }
           }
         }
-        
+
         MouseArea {
           anchors.fill: parent
           hoverEnabled: true
@@ -447,56 +555,56 @@ Rectangle {
           onReleased: function(mouse) { mouse.accepted = false }
         }
       }
+    }
+
+    // Spacer
+    Item { Layout.fillWidth: true }
+
+    // Fullscreen Button
+    Item {
+      id: fullscreenButton
+      Layout.preferredWidth: 40
+      Layout.preferredHeight: 40
+
+      Rectangle {
+          anchors.fill: parent
+          radius: 20
+          color: fsMouseArea.containsMouse ? "#26FFFFFF" : "transparent"
+          Behavior on color { ColorAnimation { duration: 150 } }
       }
 
-      // Spacer
-      Item { Layout.fillWidth: true }
+      Canvas {
+          anchors.centerIn: parent
+          width: 20
+          height: 20
+          onPaint: {
+              var ctx = getContext("2d")
+              ctx.reset()
+              ctx.strokeStyle = "#FFFFFF"
+              ctx.lineWidth = 2
+              ctx.lineCap = "round"
 
-      // Fullscreen Button
-      Item {
-        id: fullscreenButton
-        Layout.preferredWidth: 40
-        Layout.preferredHeight: 40
-        
-        Rectangle {
-            anchors.fill: parent
-            radius: 20
-            color: fsMouseArea.containsMouse ? "#26FFFFFF" : "transparent"
-            Behavior on color { ColorAnimation { duration: 150 } }
-        }
-        
-        Canvas {
-            anchors.centerIn: parent
-            width: 20
-            height: 20
-            onPaint: {
-                var ctx = getContext("2d")
-                ctx.reset()
-                ctx.strokeStyle = "#FFFFFF"
-                ctx.lineWidth = 2
-                ctx.lineCap = "round"
-                
-                // Top Left
-                ctx.beginPath(); ctx.moveTo(0, 6); ctx.lineTo(0,0); ctx.lineTo(6,0); ctx.stroke();
-                // Top Right
-                ctx.beginPath(); ctx.moveTo(14, 0); ctx.lineTo(20,0); ctx.lineTo(20,6); ctx.stroke();
-                // Bottom Left
-                ctx.beginPath(); ctx.moveTo(0, 14); ctx.lineTo(0,20); ctx.lineTo(6,20); ctx.stroke();
-                // Bottom Right
-                ctx.beginPath(); ctx.moveTo(14, 20); ctx.lineTo(20,20); ctx.lineTo(20,14); ctx.stroke();
-            }
-        }
-        
-        MouseArea {
-            id: fsMouseArea
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: controlBar.fullscreenClicked()
-        }
+              // Top Left
+              ctx.beginPath(); ctx.moveTo(0, 6); ctx.lineTo(0,0); ctx.lineTo(6,0); ctx.stroke();
+              // Top Right
+              ctx.beginPath(); ctx.moveTo(14, 0); ctx.lineTo(20,0); ctx.lineTo(20,6); ctx.stroke();
+              // Bottom Left
+              ctx.beginPath(); ctx.moveTo(0, 14); ctx.lineTo(0,20); ctx.lineTo(6,20); ctx.stroke();
+              // Bottom Right
+              ctx.beginPath(); ctx.moveTo(14, 20); ctx.lineTo(20,20); ctx.lineTo(20,14); ctx.stroke();
+          }
+      }
+
+      MouseArea {
+          id: fsMouseArea
+          anchors.fill: parent
+          hoverEnabled: true
+          cursorShape: Qt.PointingHandCursor
+          onClicked: controlBar.fullscreenClicked()
       }
     }
-  
+  }
+
   // Timer to hide volume slider
   Timer {
     id: hideVolumeTimer
