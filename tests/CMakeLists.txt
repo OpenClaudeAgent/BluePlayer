@@ -77,19 +77,7 @@ target_link_directories(test_twitch_auth_manager PRIVATE /opt/homebrew/lib ${FFM
 apply_coverage_flags(test_twitch_auth_manager)
 add_test(NAME TwitchAuthManager COMMAND test_twitch_auth_manager)
 
-# Tests unitaires pour FFmpegMediaService
-add_executable(test_ffmpeg_media_service
-  media/TestFFmpegMediaService.cpp
-)
-target_link_libraries(test_ffmpeg_media_service PRIVATE
-  test_helpers
-  ${TEST_LIBS}
-  blueplayer_media  # Nécessaire pour FFmpegMediaService
-)
-target_include_directories(test_ffmpeg_media_service PRIVATE ${TEST_INCLUDE_DIRS})
-target_link_directories(test_ffmpeg_media_service PRIVATE /opt/homebrew/lib ${FFMPEG_LIBS_LIBRARY_DIRS})
-apply_coverage_flags(test_ffmpeg_media_service)
-add_test(NAME FFmpegMediaService COMMAND test_ffmpeg_media_service)
+
 
 # Tests d'intégration pour le flux Twitch complet
 add_executable(test_twitch_integration
@@ -105,19 +93,7 @@ target_link_directories(test_twitch_integration PRIVATE /opt/homebrew/lib ${FFMP
 apply_coverage_flags(test_twitch_integration)
 add_test(NAME TwitchIntegration COMMAND test_twitch_integration)
 
-# Tests d'intégration pour le pipeline média
-add_executable(test_media_pipeline
-  integration/TestMediaPipeline.cpp
-)
-target_link_libraries(test_media_pipeline PRIVATE
-  test_helpers
-  ${TEST_LIBS}
-  blueplayer_media  # Nécessaire pour FFmpegMediaService
-)
-target_include_directories(test_media_pipeline PRIVATE ${TEST_INCLUDE_DIRS})
-target_link_directories(test_media_pipeline PRIVATE /opt/homebrew/lib ${FFMPEG_LIBS_LIBRARY_DIRS})
-apply_coverage_flags(test_media_pipeline)
-add_test(NAME MediaPipeline COMMAND test_media_pipeline)
+
 
 # Tests unitaires pour les modules core
 add_executable(test_config
@@ -206,29 +182,7 @@ apply_coverage_flags(test_api_client_base)
 add_test(NAME ApiClientBase COMMAND test_api_client_base)
 
 # Tests unitaires pour les modules media
-add_executable(test_ffmpeg_bridge
-  media/TestFFmpegBridge.cpp
-)
-target_link_libraries(test_ffmpeg_bridge PRIVATE
-  ${TEST_LIBS}
-  blueplayer_media
-)
-target_include_directories(test_ffmpeg_bridge PRIVATE ${TEST_INCLUDE_DIRS})
-target_link_directories(test_ffmpeg_bridge PRIVATE /opt/homebrew/lib)
-apply_coverage_flags(test_ffmpeg_bridge)
-add_test(NAME FFmpegBridge COMMAND test_ffmpeg_bridge)
 
-add_executable(test_ffmpeg_media_source
-  media/TestFFmpegMediaSource.cpp
-)
-target_link_libraries(test_ffmpeg_media_source PRIVATE
-  ${TEST_LIBS}
-  blueplayer_media
-)
-target_include_directories(test_ffmpeg_media_source PRIVATE ${TEST_INCLUDE_DIRS})
-target_link_directories(test_ffmpeg_media_source PRIVATE /opt/homebrew/lib)
-apply_coverage_flags(test_ffmpeg_media_source)
-add_test(NAME FFmpegMediaSource COMMAND test_ffmpeg_media_source)
 
 # Tests unitaires pour les ViewModels
 add_executable(test_home_view_model

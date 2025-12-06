@@ -1,7 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 6.5
 import QtQuick.Layouts 1.15
-import QtMultimedia 6.5
+
 
 import "themes/AppleTheme.js" as AppleTheme
 import "components"
@@ -177,12 +177,7 @@ ApplicationWindow {
     }
   }
 
-  Connections {
-    target: ffmpegService
-    function onErrorOccurred(message) {
-      statusText = message
-    }
-  }
+
 
   // Connexion pour rediriger vers LoginView après déconnexion
   Connections {

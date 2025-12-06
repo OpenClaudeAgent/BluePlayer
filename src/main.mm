@@ -18,7 +18,8 @@
 
 #include "api/twitch/TwitchService.hpp"
 #include "core/Application.hpp"
-#include "media/FFmpegMediaService.hpp"
+// #include "media/FFmpegMediaService.hpp" // Removed
+
 #include "media/MpvQuickItem.hpp"
 #include "ui/HomeViewModel.hpp"
 
@@ -102,8 +103,8 @@ int main(int argc, char *argv[]) {
 
   app.setApplicationName("BluePlayer");
   app.setApplicationDisplayName(QStringLiteral(u"BluePlayer"));
-  qmlRegisterType<blueplayer::media::FFmpegMediaService>(
-      "BluePlayer.Media", 1, 0, "FFmpegMediaService");
+  // FFmpegMediaService removed
+
   qmlRegisterType<blueplayer::media::MpvQuickItem>("BluePlayer.Media", 1, 0,
                                                    "MpvQuickItem");
   qmlRegisterType<blueplayer::api::twitch::TwitchService>(
@@ -114,8 +115,8 @@ int main(int argc, char *argv[]) {
   coreApp.initialize();
 
   QQmlApplicationEngine engine;
-  engine.rootContext()->setContextProperty("ffmpegService",
-                                           coreApp.mediaService());
+  // FFmpegMediaService removed
+
   engine.rootContext()->setContextProperty("twitchService",
                                            coreApp.twitchService());
   const QUrl url(QStringLiteral("qrc:/qt/qml/BluePlayer/ui/main.qml"));

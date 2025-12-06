@@ -55,10 +55,8 @@ include(cmake/CompilerWarnings.cmake OPTIONAL)
 
 find_package(Qt6 6.5 COMPONENTS Core Quick Gui Multimedia QuickControls2 Widgets REQUIRED)
 
-# Désactiver pkg_search_module et FindFFmpeg.cmake pour FFmpeg
-# et lier les bibliothèques manuellement.
-set(FFmpeg_LIBRARIES avcodec avformat avutil swscale swresample)
-set(FFmpeg_INCLUDE_DIRS /opt/homebrew/include) # Chemin des en-têtes Homebrew
+# FFmpeg dependencies removed
+
 
 add_subdirectory(src)
 

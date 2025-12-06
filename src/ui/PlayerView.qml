@@ -28,6 +28,7 @@ Item {
   property bool adsActive: false
   property int adSegments: 0
   property bool controlsVisible: true
+  property bool isFullscreen: false  // Safari-style fullscreen mode
   
   signal backRequested()
   
@@ -91,10 +92,18 @@ Item {
     anchors.fill: parent
     color: "#000000"
 
-    // 1. Video Layer (Full Screen)
+    // 1. Video Layer Container - player will be reparented here when not fullscreen
+    Item {
+      id: videoContainer
+      anchors.fill: parent
+      
+      // The player is defined below and reparented dynamically
+    }
 
     MpvQuickItem {
       id: mpvPlayer
+      // Parent changes between videoContainer (normal) and fsVideoContainer (fullscreen)
+      parent: isFullscreen ? fsVideoContainer : videoContainer
       anchors.fill: parent
       
       onPlayingChanged: function(isPlaying) {
@@ -397,13 +406,8 @@ Item {
       onLiveRequested: goLive()
       onLiveClicked: goLive()
       onFullscreenClicked: {
-          var win = Window.window
-          if (win) {
-              if (win.visibility === Window.FullScreen)
-                  win.showNormal()
-              else
-                  win.showFullScreen()
-          }
+          isFullscreen = !isFullscreen
+          console.log("[PlayerView] Fullscreen toggled:", isFullscreen)
       }
     }
     
@@ -484,5 +488,137 @@ Item {
   Component.onCompleted: {
     console.log("[PlayerView] Component.onCompleted called - Using MpvQuickItem for GPU rendering")
     playerRoot.forceActiveFocus()
+  }
+  
+  // ========================================
+  // FULLSCREEN WINDOW (Safari-style)
+  // ========================================
+  // A separate window that goes fullscreen independently
+  // The main app window stays in normal mode
+  
+  Window {
+    id: fullscreenWindow
+    title: streamerName || streamerLogin
+    color: "#000000"
+    flags: Qt.Window
+    
+    // Controls visibility state
+    property bool controlsShown: true
+    
+    // Only show when fullscreen is active
+    visible: isFullscreen
+    
+    // Start in fullscreen when shown
+    onVisibleChanged: {
+      if (visible) {
+        console.log("[Fullscreen] Window opened")
+        showFullScreen()
+      } else {
+        console.log("[Fullscreen] Window closed")
+        showNormal()
+      }
+    }
+    
+    // Container for the reparented player
+    Item {
+      id: fsVideoContainer
+      anchors.fill: parent
+    }
+    
+    // Mouse interaction
+    MouseArea {
+      id: fsMouseArea
+      anchors.fill: parent
+      hoverEnabled: true
+      
+      onPositionChanged: {
+        fullscreenWindow.controlsShown = true
+        fsControlsTimer.restart()
+      }
+      
+      onDoubleClicked: {
+        isFullscreen = false
+      }
+      
+      onClicked: {
+         // Toggle controls on click
+         fullscreenWindow.controlsShown = !fullscreenWindow.controlsShown
+         if (fullscreenWindow.controlsShown) fsControlsTimer.restart()
+      }
+    }
+    
+    // Auto-hide controls timer
+    Timer {
+      id: fsControlsTimer
+      interval: 3000
+      onTriggered: fullscreenWindow.controlsShown = false
+    }
+    
+    // Minimal overlay controls
+    Rectangle {
+      id: fsControls
+      anchors.bottom: parent.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      height: 80
+      
+      gradient: Gradient {
+        GradientStop { position: 0.0; color: "transparent" }
+        GradientStop { position: 1.0; color: "#CC000000" }
+      }
+      
+      opacity: fullscreenWindow.controlsShown ? 1.0 : 0.0
+      visible: opacity > 0
+      Behavior on opacity { NumberAnimation { duration: 200 } }
+      
+      // Streamer name
+      Text {
+        anchors.left: parent.left
+        anchors.bottom: parent.bottom
+        anchors.margins: 20
+        text: streamerName || streamerLogin
+        font.family: AppleTheme.fontFamily
+        font.pixelSize: 18
+        font.bold: true
+        color: "#FFFFFF"
+      }
+      
+      // Exit button
+      Rectangle {
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.margins: 20
+        width: 100
+        height: 36
+        radius: 8
+        color: exitFsBtnMouse.containsMouse ? "#FF4444" : "#80FFFFFF"
+        
+        Text {
+          anchors.centerIn: parent
+          text: "Exit ⎋"
+          font.pixelSize: 14
+          color: exitFsBtnMouse.containsMouse ? "#FFFFFF" : "#000000"
+        }
+        
+        MouseArea {
+          id: exitFsBtnMouse
+          anchors.fill: parent
+          hoverEnabled: true
+          cursorShape: Qt.PointingHandCursor
+          onClicked: isFullscreen = false
+        }
+      }
+    }
+    
+    // Keyboard shortcuts
+    Shortcut {
+      sequence: "Escape"
+      onActivated: isFullscreen = false
+    }
+    
+    Shortcut {
+      sequence: "F"
+      onActivated: isFullscreen = false
+    }
   }
 }

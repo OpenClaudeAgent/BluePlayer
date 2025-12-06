@@ -34,16 +34,10 @@ set(BLUEPLAYER_CORE_SOURCES
 )
 
 set(BLUEPLAYER_MEDIA_SOURCES
-  media/FFmpegBridge.cpp
-  media/FFmpegBridge.hpp
-  media/FFmpegMediaService.cpp
-  media/FFmpegMediaService.hpp
-  media/FFmpegMediaSource.cpp
-  media/FFmpegMediaSource.hpp
+
   media/HlsAdFilter.cpp
   media/HlsAdFilter.hpp
-  media/MpvMediaSource.cpp
-  media/MpvMediaSource.hpp
+
   media/MpvQuickItem.cpp
   media/MpvQuickItem.hpp
 )
@@ -74,7 +68,7 @@ setup_compiler_warnings(blueplayer_core)
 add_library(blueplayer_media STATIC ${BLUEPLAYER_MEDIA_SOURCES})
 target_include_directories(blueplayer_media PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}
-  ${FFmpeg_INCLUDE_DIRS}
+
   /opt/homebrew/include  # For libmpv
 )
 target_link_libraries(blueplayer_media
@@ -83,11 +77,7 @@ target_link_libraries(blueplayer_media
     Qt6::Quick
     Qt6::Multimedia
     Qt6::OpenGL
-    avcodec
-    avformat
-    avutil
-    swscale
-    swresample
+
     mpv  # libmpv for video playback
   PRIVATE
     blueplayer_core  # Nécessaire pour Logger, LogCategory, InputValidator
@@ -146,11 +136,7 @@ target_link_libraries(BluePlayer
     Qt6::Multimedia
     blueplayer_core
     blueplayer_media  # Nécessaire car blueplayer_core ne lie plus blueplayer_media
-    avcodec
-    avformat
-    avutil
-    swscale
-    swresample
+
 )
 target_link_directories(BluePlayer PRIVATE /opt/homebrew/lib)
 

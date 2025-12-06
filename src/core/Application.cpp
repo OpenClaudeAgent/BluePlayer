@@ -6,14 +6,12 @@
 #include "core/Config.hpp"
 #include "core/Constants.hpp"
 #include "core/Logger.hpp"
-#include "media/FFmpegBridge.hpp"
-#include "media/FFmpegMediaService.hpp"
 
 namespace blueplayer::core {
 
 Application::Application(QObject *parent)
     : QObject(parent),
-      m_mediaService(std::make_unique<media::FFmpegMediaService>(this)),
+
       m_twitchService(std::make_unique<api::twitch::TwitchService>(this)) {}
 
 Application::~Application() =
@@ -23,12 +21,7 @@ void Application::initialize() {
   Config::instance().load();
   Logger::initialize();
 
-  blueplayer::media::FFmpegBridge::ensureInitialized();
-  Logger::info(LogCategory::Core,
-               QStringLiteral("Initialisation BluePlayer (squelette)."));
-  Logger::info(LogCategory::Core,
-               QStringLiteral("FFmpeg: %1")
-                   .arg(blueplayer::media::FFmpegBridge::versionSummary()));
+  Logger::info(LogCategory::Core, QStringLiteral("Initializing BluePlayer."));
 
   Logger::debug(LogCategory::Core, QStringLiteral("initialize() called"));
   Logger::debug(LogCategory::Core, QStringLiteral("TwitchService exists: %1")
@@ -83,10 +76,6 @@ void Application::initialize() {
       Logger::error(LogCategory::Core, QStringLiteral("TwitchService is null"));
     }
   }
-}
-
-blueplayer::media::FFmpegMediaService *Application::mediaService() const {
-  return m_mediaService.get();
 }
 
 blueplayer::api::twitch::TwitchService *Application::twitchService() const {

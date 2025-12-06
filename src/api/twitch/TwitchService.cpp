@@ -112,24 +112,14 @@ TwitchService::TwitchService(QObject *parent)
 }
 
 void TwitchService::onStreamsReady(const QVariantList &streams) {
-  Logger::debug(
-      LogCategory::Twitch,
-      QStringLiteral("[DEBUG] onStreamsReady() called with %1 streams")
-          .arg(streams.size()));
+  Logger::debug(LogCategory::Twitch,
+                QStringLiteral("Streams ready: %1").arg(streams.size()));
   m_streams = streams;
   emit streamsChanged();
-  Logger::debug(LogCategory::Twitch,
-                QStringLiteral("[DEBUG] Emitted streamsChanged()"));
+
   if (!streams.isEmpty()) {
-    Logger::debug(LogCategory::Twitch,
-                  QStringLiteral("[DEBUG] Selecting first stream"));
     selectUrl(0);
-  } else {
-    Logger::debug(LogCategory::Twitch,
-                  QStringLiteral("[DEBUG] No streams to select"));
   }
-  // refreshFollowedClips() sera appelé après que les chaînes suivies soient
-  // chargées (dans onFollowedChannelsReady)
 }
 
 void TwitchService::onRecommendedStreamsReady(const QVariantList &streams) {
@@ -255,16 +245,11 @@ void TwitchService::onCategoryStreamsReady(const QVariantList &streams) {
 }
 
 void TwitchService::onUserInfoReady(const QString &userId) {
-  Logger::debug(
-      LogCategory::Twitch,
-      QStringLiteral("[DEBUG] onUserInfoReady() called with userId: %1")
-          .arg(userId));
   if (m_userId != userId) {
+    Logger::debug(LogCategory::Twitch,
+                  QStringLiteral("User ID changed: %1").arg(userId));
     m_userId = userId;
     emit userIdChanged();
-    Logger::debug(
-        LogCategory::Twitch,
-        QStringLiteral("[DEBUG] User ID changed, emitted userIdChanged()"));
   }
 }
 
@@ -784,16 +769,10 @@ void TwitchService::logout() {
 }
 
 void TwitchService::refreshStreams() {
-  Logger::debug(LogCategory::Twitch, QStringLiteral("refreshStreams() called"));
-  Logger::debug(LogCategory::Twitch,
-                QStringLiteral("Authenticated: %1").arg(isAuthenticated()));
-  Logger::debug(
-      LogCategory::Twitch,
-      QStringLiteral("Current userId: %1")
-          .arg(m_userId.isEmpty() ? QStringLiteral("EMPTY") : m_userId));
-
   if (!isAuthenticated()) {
-    Logger::error(LogCategory::Twitch, QStringLiteral("Not authenticated"));
+    Logger::warning(
+        LogCategory::Twitch,
+        QStringLiteral("Cannot refresh streams: Not authenticated"));
     emit errorOccurred(QStringLiteral("Authentifiez-vous d'abord."));
     return;
   }
