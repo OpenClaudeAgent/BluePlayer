@@ -10,11 +10,16 @@ using blueplayer::core::InputValidator;
 using blueplayer::core::LogCategory;
 using blueplayer::core::Logger;
 
+#include <QDateTime>
+#include <QFile>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QRandomGenerator>
 #include <QRegularExpression>
+#include <QTextStream>
 #include <QTimer>
 #include <QUrl>
 #include <QVariantMap>
@@ -303,26 +308,33 @@ void TwitchService::onAuthStateChanged(bool authenticated) {
     Logger::debug(LogCategory::Twitch,
                   QStringLiteral("[DEBUG] Setting access token, length: %1")
                       .arg(token.length()));
-    m_apiClient->setAccessToken(token);
-    // Si on vient de s'authentifier, charger les streams automatiquement
-    if (!m_userId.isEmpty()) {
-      Logger::debug(
-          LogCategory::Twitch,
-          QStringLiteral(
-              "[DEBUG] User ID already known (%1), refreshing streams")
-              .arg(m_userId));
-      refreshStreams();
-      refreshRecommendedStreams();
-      refreshCategories();
+    // Ne définir le token que s'il n'est pas vide (peut être vide pendant un refresh)
+    if (!token.isEmpty()) {
+      m_apiClient->setAccessToken(token);
+      // Si on vient de s'authentifier, charger les streams automatiquement
+      if (!m_userId.isEmpty()) {
+        Logger::debug(
+            LogCategory::Twitch,
+            QStringLiteral(
+                "[DEBUG] User ID already known (%1), refreshing streams")
+                .arg(m_userId));
+        refreshStreams();
+        refreshRecommendedStreams();
+        refreshCategories();
+      } else {
+        Logger::debug(
+            LogCategory::Twitch,
+            QStringLiteral(
+                "[DEBUG] User ID not known yet, will be loaded via getUserInfo"));
+        // getUserInfo sera appelé par refreshStreams
+        refreshStreams();
+        refreshRecommendedStreams();
+        refreshCategories();
+      }
     } else {
-      Logger::debug(
-          LogCategory::Twitch,
-          QStringLiteral(
-              "[DEBUG] User ID not known yet, will be loaded via getUserInfo"));
-      // getUserInfo sera appelé par refreshStreams
-      refreshStreams();
-      refreshRecommendedStreams();
-      refreshCategories();
+      Logger::debug(LogCategory::Twitch,
+                    QStringLiteral("[DEBUG] Token is empty (refresh in progress?), "
+                                   "skipping API calls"));
     }
   }
 }
@@ -689,8 +701,42 @@ void TwitchService::onAccessTokenChanged(const QString &token) {
       LogCategory::Twitch,
       QStringLiteral("onAccessTokenChanged() called, token length: %1")
           .arg(token.length()));
+  // #region agent log
+  QFile logFile(QStringLiteral("/Users/user/Projects/BluePlayer/.cursor/debug.log"));
+  if (logFile.open(QIODevice::WriteOnly | QIODevice::Append)) {
+    QJsonObject logEntry;
+    logEntry[QStringLiteral("sessionId")] = QStringLiteral("debug-session");
+    logEntry[QStringLiteral("runId")] = QStringLiteral("run1");
+    logEntry[QStringLiteral("hypothesisId")] = QStringLiteral("C");
+    logEntry[QStringLiteral("location")] = QStringLiteral("TwitchService.cpp:687");
+    logEntry[QStringLiteral("message")] = QStringLiteral("onAccessTokenChanged() received");
+    QJsonObject data;
+    data[QStringLiteral("tokenLength")] = token.length();
+    data[QStringLiteral("hasApiClient")] = (m_apiClient != nullptr);
+    logEntry[QStringLiteral("data")] = data;
+    logEntry[QStringLiteral("timestamp")] = QDateTime::currentMSecsSinceEpoch();
+    QTextStream stream(&logFile);
+    stream << QJsonDocument(logEntry).toJson(QJsonDocument::Compact) << "\n";
+    logFile.close();
+  }
+  // #endregion
   if (m_apiClient) {
     m_apiClient->setAccessToken(token);
+    // #region agent log
+    if (logFile.open(QIODevice::WriteOnly | QIODevice::Append)) {
+      QJsonObject logEntry;
+      logEntry[QStringLiteral("sessionId")] = QStringLiteral("debug-session");
+      logEntry[QStringLiteral("runId")] = QStringLiteral("run1");
+      logEntry[QStringLiteral("hypothesisId")] = QStringLiteral("D");
+      logEntry[QStringLiteral("location")] = QStringLiteral("TwitchService.cpp:693");
+      logEntry[QStringLiteral("message")] = QStringLiteral("onAccessTokenChanged() - token set in API client");
+      logEntry[QStringLiteral("data")] = QJsonObject();
+      logEntry[QStringLiteral("timestamp")] = QDateTime::currentMSecsSinceEpoch();
+      QTextStream stream(&logFile);
+      stream << QJsonDocument(logEntry).toJson(QJsonDocument::Compact) << "\n";
+      logFile.close();
+    }
+    // #endregion
   } else {
     Logger::error(LogCategory::Twitch, QStringLiteral("API client is null"));
   }

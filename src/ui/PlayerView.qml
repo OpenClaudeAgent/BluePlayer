@@ -23,6 +23,8 @@ Item {
   property real duration: 0.0
   property real position: 0.0
   property real liveOffset: 0.0
+  property bool loggingEnabled: false
+  property bool loggingVerbose: false
   property bool liveMode: true
   property string statusText: qsTr("Chargement du flux...")
   property string hlsUrl: ""
@@ -47,11 +49,26 @@ Item {
     property double playbackRate: 1.0
   }
   
+  function seekTo(seconds) {
+    if (loggingEnabled) {
+      console.log("[seekbar] seekTo seconds=" + seconds.toFixed(2))
+    }
+    // #region agent log
+    console.log(JSON.stringify({location:'PlayerView.qml:55',message:'seekTo called',data:{seconds:seconds,liveMode:playerRoot.liveMode},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1'}));
+    // #endregion
+    if (seconds >= 0) {
+      mpvPlayer.seek(seconds)
+    }
+  }
+
   function updateStatus(message) {
     statusText = message
   }
   
   function loadStream() {
+    // #region agent log
+    console.log(JSON.stringify({location:'PlayerView.qml:66',message:'loadStream called',data:{streamerLogin:streamerLogin,liveMode:playerRoot.liveMode},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1'}));
+    // #endregion
     console.log("[PlayerView] loadStream() called")
     console.log("[PlayerView] streamerLogin:", streamerLogin)
     console.log("[PlayerView] streamerName:", streamerName)
@@ -93,14 +110,10 @@ Item {
     mpvPlayer.muted = !mpvPlayer.muted
   }
 
-  function seekTo(seconds) {
-    console.log("[PlayerView] seekTo called with seconds:", seconds, "duration:", duration, "position:", position)
-    if (seconds >= 0) {
-      mpvPlayer.seek(seconds)
-    }
-  }
-
   function goLive() {
+    if (loggingEnabled) {
+      console.log("[seekbar] goLive")
+    }
     mpvPlayer.seekToLive()
   }
   
@@ -146,6 +159,7 @@ Item {
     toast.show(cropMode ? qsTr("Rognage actif") : qsTr("Adaptation proportionnelle"))
   }
   
+  
   Rectangle {
     anchors.fill: parent
     color: "#000000"
@@ -169,6 +183,10 @@ Item {
         // Trigger center animation
         centerFeedback.show(isPlaying ? "\u25B6" : "\u23F8") // Play or Pause icon
         
+        // #region agent log
+        console.log(JSON.stringify({location:'PlayerView.qml:175',message:'onPlayingChanged',data:{isPlaying:isPlaying,liveMode:playerRoot.liveMode},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H3'}));
+        // #endregion
+
         if (isPlaying) {
           playerRoot.buffering = false
           playerRoot.updateStatus(qsTr("Lecture en cours"))
@@ -192,10 +210,24 @@ Item {
       
       onVolumeChanged: function(newVolume) { playerRoot.volume = newVolume }
       onMutedChanged: function(isMuted) { playerRoot.muted = isMuted }
-      onDurationChanged: function(dur) { playerRoot.duration = dur }
-      onPositionChanged: function(pos) { playerRoot.position = pos }
-      onLiveOffsetChanged: function(offset) { playerRoot.liveOffset = offset }
-      onIsLiveModeChanged: function(isLive) { playerRoot.liveMode = isLive }
+      onDurationChanged: function(dur) {
+        playerRoot.duration = dur
+      }
+      onPositionChanged: function(pos) {
+        playerRoot.position = pos
+        if (playerRoot.duration > 0) {
+          playerRoot.liveOffset = Math.max(0, playerRoot.duration - pos)
+        }
+      }
+      onLiveOffsetChanged: function(offset) {
+        playerRoot.liveOffset = offset
+      }
+      onIsLiveModeChanged: function(isLive) { 
+        playerRoot.liveMode = isLive
+        // #region agent log
+        console.log(JSON.stringify({location:'PlayerView.qml:215',message:'onIsLiveModeChanged',data:{isLive:isLive,playerRootLiveMode:playerRoot.liveMode},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H3'}));
+        // #endregion
+      }
       onBufferingChanged: function(isBuffering) { playerRoot.buffering = isBuffering }
       onErrorOccurred: function(message) {
         playerRoot.updateStatus(qsTr("Erreur: %1").arg(message))
@@ -468,7 +500,24 @@ Item {
       }
       onVolumeRequested: function(newVolume) { setVolume(newVolume) }
       onMuteClicked: toggleMute()
-      onSeekRequested: function(seconds) { seekTo(seconds) }
+      onSeekRequested: function(seconds) {
+        seekTo(seconds)
+      }
+      onSeekDragStarted: {
+        if (playerRoot.loggingEnabled) {
+          console.log("[seekbar] drag_start")
+        }
+      }
+      onSeekPreviewed: function(seconds) {
+        if (playerRoot.loggingEnabled && playerRoot.loggingVerbose) {
+          console.log("[seekbar] drag_preview seconds=", seconds.toFixed(2))
+        }
+      }
+      onSeekDragEnded: function(seconds) {
+        if (playerRoot.loggingEnabled) {
+          console.log("[seekbar] drag_end seconds=", seconds.toFixed(2))
+        }
+      }
       onLiveRequested: goLive()
       onLiveClicked: goLive()
       onFullscreenClicked: {
@@ -583,7 +632,7 @@ Item {
         event.accepted = true
         break
       case Qt.Key_Right:
-        seekTo(duration > 0 ? Math.min(duration, position + 10) : position + 10)
+        seekTo(Math.min(duration, position + 10))
         event.accepted = true
         break
       case Qt.Key_M:
@@ -652,6 +701,13 @@ Item {
         mpvPlayer.playbackRate = playbackRate
         mpvPlayer.play(url)
         controlsVisible = true
+        // Force live mode and seek to live edge when a new stream is loaded
+        mpvPlayer.seekToLive()
+        // #region agent log
+        console.log(JSON.stringify({sessionId:'debug-session', runId:'run1', hypothesisId:'H3'
+, location:'PlayerView.qml:706', message:'seekToLive called', data:{playerRootLiveMode: playerRoot.liveMode}, timestamp:Date.now()}));
+        // #endregion
+        liveModeEnforcementTimer.start()
       } else {
         console.log("[PlayerView] ERROR: Empty or invalid HLS URL")
         updateStatus(qsTr("Impossible de recuperer l'URL du flux"))

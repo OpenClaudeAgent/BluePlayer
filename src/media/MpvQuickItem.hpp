@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QElapsedTimer>
 #include <QImage>
 #include <QMutex>
 #include <QQuickPaintedItem>
@@ -129,6 +130,7 @@ private:
   std::atomic<double> m_duration{0.0};
   std::atomic<double> m_position{0.0};
   std::atomic<bool> m_isLiveMode{false};
+  std::atomic<double> m_streamStart{-1.0}; // -1.0 means not observed or not a live stream
 
   // Playback tweaks
   double m_playbackRate = 1.0;
@@ -138,6 +140,10 @@ private:
   // Software rendering buffer
   QImage m_buffer;
   QMutex m_bufferMutex;
+
+  // Throttle time-pos notifications to avoid UI overload
+  QElapsedTimer m_posThrottle;
+  double m_lastEmittedPos = -1.0;
 };
 
 } // namespace blueplayer::media

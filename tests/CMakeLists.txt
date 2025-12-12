@@ -183,6 +183,31 @@ add_test(NAME ApiClientBase COMMAND test_api_client_base)
 
 # Tests unitaires pour les modules media
 
+# Tests unitaires pour StateMachineLiveReplay
+add_executable(test_state_machine_live_replay
+  core/TestStateMachineLiveReplay.cpp
+)
+target_link_libraries(test_state_machine_live_replay PRIVATE
+  ${TEST_LIBS}
+  blueplayer_core
+)
+target_include_directories(test_state_machine_live_replay PRIVATE ${TEST_INCLUDE_DIRS})
+target_link_directories(test_state_machine_live_replay PRIVATE /opt/homebrew/lib)
+apply_coverage_flags(test_state_machine_live_replay)
+add_test(NAME StateMachineLiveReplay COMMAND test_state_machine_live_replay)
+
+# Tests unitaires pour CacheManager
+add_executable(test_cache_manager
+  core/TestCacheManager.cpp
+)
+target_link_libraries(test_cache_manager PRIVATE
+  ${TEST_LIBS}
+  blueplayer_core
+)
+target_include_directories(test_cache_manager PRIVATE ${TEST_INCLUDE_DIRS})
+target_link_directories(test_cache_manager PRIVATE /opt/homebrew/lib)
+apply_coverage_flags(test_cache_manager)
+add_test(NAME CacheManager COMMAND test_cache_manager)
 
 # Tests unitaires pour les ViewModels
 add_executable(test_home_view_model

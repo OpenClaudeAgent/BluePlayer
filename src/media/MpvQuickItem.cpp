@@ -23,6 +23,8 @@ MpvQuickItem::MpvQuickItem(QQuickItem *parent) : QQuickPaintedItem(parent) {
   setAntialiasing(false);
   setPerformanceHint(QQuickPaintedItem::FastFBOResizing, true);
 
+  m_posThrottle.start();
+
   initMpv();
 }
 
@@ -69,7 +71,7 @@ void MpvQuickItem::initMpv() {
 
   mpv_set_option_string(m_mpv, "force-seekable", "yes");
   mpv_set_option_string(m_mpv, "cache-pause", "yes");
-  mpv_set_option_string(m_mpv, "hr-seek", "no");
+  mpv_set_option_string(m_mpv, "hr-seek", "yes");
   mpv_set_option_string(m_mpv, "hr-seek-framedrop", "yes");
 
   // Sync alignment
@@ -253,20 +255,44 @@ void MpvQuickItem::processPropertyChange(const char *name, void *data,
   if (strcmp(name, "time-pos") == 0 && format == MPV_FORMAT_DOUBLE) {
     double pos = *static_cast<double *>(data);
     m_position = pos;
-    emit positionChanged(pos);
-    emit liveOffsetChanged(liveOffset());
 
+    if (!m_posThrottle.isValid()) {
+      m_posThrottle.start();
+    }
+
+    const qint64 elapsed = m_posThrottle.elapsed();
+    // Increase throttle interval to reduce UI updates (was 80ms, now 250ms)
+    // Also increase delta threshold to avoid micro-updates
+    const bool smallDelta =
+        (m_lastEmittedPos >= 0.0) && (qAbs(pos - m_lastEmittedPos) < 0.25);
+
+    // Only emit if enough time passed OR significant position change
+    if (elapsed >= 250 || !smallDelta) {
+      m_lastEmittedPos = pos;
+      m_posThrottle.restart();
+      emit positionChanged(pos);
+      emit liveOffsetChanged(liveOffset());
+    }
+
+    // Update live mode based on proximity to live edge or stream-start property
     double dur = m_duration.load();
-    if (dur > 0 && (dur - pos) < 5.0) {
-      if (!m_isLiveMode.load()) {
-        m_isLiveMode = true;
-        emit isLiveModeChanged(true);
-      }
+    bool shouldBeLiveByPosition = dur > 0 && (dur - pos) < 5.0;
+    bool shouldBeLiveByStreamStart = m_streamStart.load() >= 0; // if stream-start is defined, it's a live stream
+    
+    bool newLiveModeState = shouldBeLiveByStreamStart || shouldBeLiveByPosition;
+
+    if (newLiveModeState != m_isLiveMode.load()) {
+      m_isLiveMode = newLiveModeState;
+      emit isLiveModeChanged(newLiveModeState);
     }
   } else if (strcmp(name, "duration") == 0 && format == MPV_FORMAT_DOUBLE) {
     double dur = *static_cast<double *>(data);
-    m_duration = dur;
-    emit durationChanged(dur);
+    double oldDur = m_duration.load();
+    // Only emit duration change if significant (>0.5s) to reduce flickering
+    if (qAbs(dur - oldDur) > 0.5) {
+      m_duration = dur;
+      emit durationChanged(dur);
+    }
   } else if (strcmp(name, "pause") == 0 && format == MPV_FORMAT_FLAG) {
     bool paused = *static_cast<int *>(data) != 0;
     m_paused = paused;
@@ -276,6 +302,9 @@ void MpvQuickItem::processPropertyChange(const char *name, void *data,
     bool buffering = *static_cast<int *>(data) != 0;
     m_buffering = buffering;
     emit bufferingChanged(buffering);
+  } else if (strcmp(name, "stream-start") == 0 && format == MPV_FORMAT_DOUBLE) {
+    m_streamStart = *static_cast<double *>(data);
+    // The live mode state will be re-evaluated in the next positionChanged update
   }
 }
 
@@ -359,15 +388,15 @@ void MpvQuickItem::seek(double seconds) {
   char seekVal[32];
   snprintf(seekVal, sizeof(seekVal), "%.3f", seconds);
   const char *cmd[] = {"seek", seekVal, "absolute", nullptr};
-  mpv_command(m_mpv, cmd);
+  mpv_command_async(m_mpv, 0, cmd);
 }
 
 void MpvQuickItem::seekToLive() {
   if (!m_mpv)
     return;
   const char *cmd[] = {"seek", "100", "absolute-percent", nullptr};
-  mpv_command(m_mpv, cmd);
-  m_isLiveMode = true;
+  mpv_command_async(m_mpv, 0, cmd);
+  m_isLiveMode = true; // Assume live mode when seeking to live edge
   emit isLiveModeChanged(true);
 }
 

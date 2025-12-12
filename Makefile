@@ -6,6 +6,13 @@ BUILD_DIR := $(BLUEPLAYER_ROOT)/build
 SCRIPTS_DIR := $(BLUEPLAYER_ROOT)/scripts
 LOAD_ENV_SCRIPT := $(SCRIPTS_DIR)/load_env.sh
 CMAKE_EXECUTABLE := /opt/homebrew/bin/cmake
+LOG_DIR := $(BUILD_DIR)/logs
+BUILD_LOG := $(LOG_DIR)/build.log
+TEST_LOG := $(LOG_DIR)/test.log
+COVERAGE_LOG := $(LOG_DIR)/coverage.log
+MUTATION_LOG := $(LOG_DIR)/mutation.log
+VALIDATE_LOG := $(LOG_DIR)/validate.log
+RUN_LOG := $(LOG_DIR)/run.log
 
 # Default target when `make` is run without arguments
 .PHONY: all
@@ -14,11 +21,13 @@ all: build
 # Configure and build the project
 .PHONY: build
 build:
-	@echo "Configuring and building BluePlayer..."
-	@mkdir -p $(BUILD_DIR)
-	@cd $(BUILD_DIR) && $(LOAD_ENV_SCRIPT) $(CMAKE_EXECUTABLE) .. -G Ninja -DCMAKE_PREFIX_PATH=$${QT6_DIR}
-	@cd $(BUILD_DIR) && $(LOAD_ENV_SCRIPT) $(CMAKE_EXECUTABLE) --build .
-	@echo "Build completed."
+	@mkdir -p $(BUILD_DIR) $(LOG_DIR)
+	@{ \
+		echo "== [$$(date '+%F %T')] Configuring and building BluePlayer =="; \
+		cd $(BUILD_DIR) && $(LOAD_ENV_SCRIPT) $(CMAKE_EXECUTABLE) .. -G Ninja -DCMAKE_PREFIX_PATH=$${QT6_DIR}; \
+		cd $(BUILD_DIR) && $(LOAD_ENV_SCRIPT) $(CMAKE_EXECUTABLE) --build .; \
+		echo "== [$$(date '+%F %T')] Build completed =="; \
+	} 2>&1 | tee -a $(BUILD_LOG)
 
 # Clean the build directory
 .PHONY: clean
@@ -30,21 +39,32 @@ clean:
 # Run the tests
 .PHONY: test
 test: build
-	@echo "Running tests..."
-	@cd $(BUILD_DIR) && $(LOAD_ENV_SCRIPT) ctest
-	@echo "Tests completed."
+	@mkdir -p $(LOG_DIR)
+	@{ \
+		echo "== [$$(date '+%F %T')] Running tests =="; \
+		cd $(BUILD_DIR) && $(LOAD_ENV_SCRIPT) ctest; \
+		echo "== [$$(date '+%F %T')] Tests completed =="; \
+	} 2>&1 | tee -a $(TEST_LOG)
 
 # Generate code coverage report
 .PHONY: coverage
 coverage:
-	@echo "Generating code coverage report..."
-	@$(SCRIPTS_DIR)/generate_coverage.sh
+	@mkdir -p $(LOG_DIR)
+	@{ \
+		echo "== [$$(date '+%F %T')] Generating code coverage report =="; \
+		$(SCRIPTS_DIR)/generate_coverage.sh; \
+		echo "== [$$(date '+%F %T')] Coverage completed =="; \
+	} 2>&1 | tee -a $(COVERAGE_LOG)
 
 # Run mutation tests
 .PHONY: mutation-test
 mutation-test: build
-	@echo "Running mutation tests..."
-	@$(SCRIPTS_DIR)/run_mutation_tests.sh
+	@mkdir -p $(LOG_DIR)
+	@{ \
+		echo "== [$$(date '+%F %T')] Running mutation tests =="; \
+		$(SCRIPTS_DIR)/run_mutation_tests.sh; \
+		echo "== [$$(date '+%F %T')] Mutation tests completed =="; \
+	} 2>&1 | tee -a $(MUTATION_LOG)
 
 # Run all tests including coverage and mutation testing
 .PHONY: test-all
@@ -54,15 +74,22 @@ test-all: test coverage mutation-test
 # Validate build: compile, test, and check coverage
 .PHONY: validate
 validate:
-	@echo "Validating build..."
-	@$(SCRIPTS_DIR)/validate_build.sh
+	@mkdir -p $(LOG_DIR)
+	@{ \
+		echo "== [$$(date '+%F %T')] Validating build =="; \
+		$(SCRIPTS_DIR)/validate_build.sh; \
+		echo "== [$$(date '+%F %T')] Validation completed =="; \
+	} 2>&1 | tee -a $(VALIDATE_LOG)
 
 # Run the application
 .PHONY: run
 run: build
-	@echo "Running BluePlayer..."
-	@$(LOAD_ENV_SCRIPT) $(BUILD_DIR)/src/BluePlayer.app/Contents/MacOS/BluePlayer
-	@echo "BluePlayer stopped."
+	@mkdir -p $(LOG_DIR)
+	@{ \
+		echo "== [$$(date '+%F %T')] Running BluePlayer =="; \
+		$(LOAD_ENV_SCRIPT) $(BUILD_DIR)/src/BluePlayer.app/Contents/MacOS/BluePlayer; \
+		echo "== [$$(date '+%F %T')] BluePlayer stopped =="; \
+	} 2>&1 | tee -a $(RUN_LOG)
 
 # Help target
 .PHONY: help

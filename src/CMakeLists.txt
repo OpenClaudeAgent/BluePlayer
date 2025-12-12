@@ -17,6 +17,10 @@ set(BLUEPLAYER_CORE_SOURCES
   core/WatchHistory.hpp
   core/InputValidator.cpp
   core/InputValidator.hpp
+  core/StateMachineLiveReplay.cpp
+  core/StateMachineLiveReplay.hpp
+  core/CacheManager.cpp
+  core/CacheManager.hpp
   core/network/HttpClient.cpp
   core/network/HttpClient.hpp
   core/network/ApiClientBase.cpp

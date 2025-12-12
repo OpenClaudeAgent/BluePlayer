@@ -21,7 +21,6 @@ Rectangle {
   property real duration: 0.0
   property real position: 0.0
   property real liveOffset: 0.0
-  property bool stickToLive: true
   property bool liveMode: true
   property real playbackRate: 1.0
   property bool hardwareDecoding: true
@@ -33,6 +32,9 @@ Rectangle {
   signal volumeRequested(real newVolume)
   signal muteClicked()
   signal seekRequested(real seconds)
+  signal seekDragStarted()
+  signal seekDragEnded(real seconds)
+  signal seekPreviewed(real seconds)
   signal liveRequested()
   signal liveClicked()
   signal fullscreenClicked()
@@ -195,7 +197,7 @@ Rectangle {
     // Spacer
     Item { Layout.fillWidth: true }
 
-    // Seek area
+    // Seek area - YouTube-style DVR behavior
     ColumnLayout {
       Layout.fillWidth: true
       spacing: 6
@@ -205,93 +207,252 @@ Rectangle {
         Layout.fillWidth: true
         spacing: 12
 
-        // Seek slider
+        // Seek slider - Live mode: sticks to right, Replay/VOD mode: free seek
         Slider {
           id: seekSlider
           Layout.fillWidth: true
-          enabled: (duration > 0) || (position > 0)
+          enabled: currentDuration > 0
+          hoverEnabled: true
           from: 0
-          to: duration > 0 ? duration : Math.max(position, 1)
-          // Coller à droite tant qu'on n'a pas volontairement reculé, ou si on est quasi live
-          readonly property bool atLiveEdge: liveOffset <= 3
+          to: currentDuration > 0 ? currentDuration : 1
+
+          // Property to track liveMode for easier access
+          property bool isLiveMode: controlBar.liveMode
+
+          // Property to track duration for easier access
+          property real currentDuration: controlBar.duration
+
+          // In live mode: at live edge if within 5 seconds OR if liveMode is true and not dragging
+          // In replay/VOD mode: at live edge if within 5 seconds
+          readonly property bool atLiveEdge: currentDuration > 0 && (
+            (isLiveMode && !userDragging && !pressed) || 
+            (currentDuration - controlBar.position) <= 5
+          )
           property bool userDragging: false
           property real seekTarget: 0
+          property bool seekStarted: false // Ajout pour suivre l'état du seek par l'utilisateur
 
-          // Mettre à jour la valeur affichée seulement si l'utilisateur ne drag pas
-          value: userDragging ? value : ((stickToLive || atLiveEdge)
-                   ? to
-                   : (duration > 0
-                        ? Math.max(0, duration - liveOffset)
-                        : (position > 0 ? position : 0)))
+          // Use a binding for value, conditional on userDragging
+          value: userDragging ? seekTarget : (isLiveMode ? currentDuration : controlBar.position)
+
+          // Connections pour mettre à jour la valeur du slider lorsque la position du lecteur change
+          // uniquement si le seek n'est pas initié par l'utilisateur.
+          Connections {
+              target: controlBar
+              function onPositionChanged() {
+                  if (!seekSlider.seekStarted && !seekSlider.isLiveMode) {
+                      seekSlider.value = controlBar.position;
+                  }
+              }
+              function onDurationChanged() {
+                  // Si la durée change en mode live et n'est pas un seek utilisateur, mettre à jour la valeur
+                  if (seekSlider.isLiveMode && !seekSlider.seekStarted) {
+                      seekSlider.value = seekSlider.currentDuration;
+                  }
+              }
+          }
 
           onPressedChanged: {
             if (pressed) {
               userDragging = true
-              controlBar.stickToLive = false  // l'utilisateur prend la main
-              console.log("[Seekbar] User started dragging, current value:", value, "to:", to)
+              seekStarted = true // Indiquer que le seek est initié par l'utilisateur
+              controlBar.seekDragStarted()
+              // Mettre en pause le lecteur pendant le dragging
+              if (controlBar.playing && !controlBar.paused) {
+                  controlBar.playPauseClicked() // Simule un clic pour mettre en pause
+              }
+              seekTarget = controlBar.position // Définir la cible de seek à la position actuelle
             } else if (userDragging) {
-              seekTarget = value
               userDragging = false
-              console.log("[Seekbar] User released at value:", seekTarget, "duration:", duration, "position:", position)
-              controlBar.seekRequested(seekTarget)
+              seekStarted = false // Le seek de l'utilisateur est terminé
+              controlBar.seekDragEnded(seekTarget)
+              // Reprendre la lecture si elle était en pause à cause du dragging
+              if (!controlBar.playing && controlBar.paused) {
+                  controlBar.playPauseClicked() // Simule un clic pour reprendre
+              }
+
+              // In live mode: if seeking close to live edge, go to live edge
+              // Otherwise, seek to the selected position
+              if (isLiveMode && (currentDuration - seekTarget) <= 5) {
+                controlBar.seekRequested(currentDuration)
+              } else {
+                controlBar.seekRequested(seekTarget)
+              }
             }
           }
+
           onMoved: {
-            if (userDragging) {
-              console.log("[Seekbar] Slider moved to:", value)
+            if (userDragging || pressed) {
+              seekTarget = value
+              controlBar.seekPreviewed(value)
             }
+          }
+
+          Component.onCompleted: {
+              // No special initialization needed, bindings will handle it
           }
 
           background: Rectangle {
             x: seekSlider.leftPadding
             y: seekSlider.topPadding + seekSlider.availableHeight / 2 - height / 2
             width: seekSlider.availableWidth
-            height: 4
-            radius: 2
-            color: "#33FFFFFF"
+            height: 6
+            radius: 3
+            color: "#26FFFFFF"
 
+            // Buffered/available area (full width = all cached content)
             Rectangle {
-              width: (seekSlider.visualPosition * parent.width)
+              width: parent.width
               height: parent.height
-              radius: 2
-              color: "#FFFFFF"
+              radius: parent.radius
+              color: "#44FFFFFF"
+            }
+
+            // Played progress
+            Rectangle {
+              width: seekSlider.visualPosition * parent.width
+              height: parent.height
+              radius: parent.radius
+              gradient: Gradient {
+                GradientStop { position: 0.0; color: AppleTheme.accent }
+                GradientStop { position: 1.0; color: AppleTheme.accentSubtle }
+              }
+              opacity: 0.9
+            }
+
+            // Hover highlight
+            Rectangle {
+              anchors.fill: parent
+              radius: parent.radius
+              color: AppleTheme.accent
+              opacity: (seekSlider.pressed || seekSlider.userDragging) ? 0.10 : (seekSlider.hovered ? 0.06 : 0.0)
+              Behavior on opacity { NumberAnimation { duration: 100 } }
             }
           }
 
-          handle: Rectangle {
+          handle: Item {
             x: seekSlider.leftPadding + seekSlider.visualPosition * (seekSlider.availableWidth - width)
             y: seekSlider.topPadding + seekSlider.availableHeight / 2 - height / 2
-            width: 14
-            height: 14
-            radius: 7
-            color: "#FFFFFF"
-            scale: seekSlider.pressed ? 1.2 : 1.0
-            Behavior on scale { NumberAnimation { duration: 100 } }
+            width: 18
+            height: 18
+
+            // Hover/drag halo
+            Rectangle {
+              anchors.centerIn: parent
+              width: parent.width + 8
+              height: parent.height + 8
+              radius: width / 2
+              color: AppleTheme.accent
+              opacity: (seekSlider.pressed || seekSlider.userDragging) ? 0.16 : (seekSlider.hovered ? 0.10 : 0.0)
+              visible: opacity > 0
+              antialiasing: true
+            }
+
+            // Handle
+            Rectangle {
+              anchors.centerIn: parent
+              width: parent.width
+              height: parent.height
+              radius: width / 2
+              color: "#FFFFFF"
+              border.color: seekSlider.hovered || seekSlider.pressed || seekSlider.userDragging ? AppleTheme.accent : "#B3FFFFFF"
+              border.width: 1
+              opacity: seekSlider.enabled ? 1.0 : 0.6
+              scale: seekSlider.pressed ? 1.15 : (seekSlider.hovered ? 1.08 : 1.0)
+              Behavior on scale { NumberAnimation { duration: 100; easing.type: Easing.OutCubic } }
+              Behavior on border.color { ColorAnimation { duration: 120 } }
+            }
+          }
+        }
+        
+        // LIVE indicator - Shows LIVE when at live edge, Go Live when behind
+        Rectangle {
+          id: livePill
+          width: seekSlider.atLiveEdge ? 52 : 90
+          height: 22
+          radius: 11
+          color: seekSlider.atLiveEdge ? "#FF3B30" : "#444444"
+          border.color: seekSlider.atLiveEdge ? "#FF7061" : "#666666"
+          opacity: seekSlider.enabled ? 1 : 0.5
+          visible: controlBar.liveMode || !seekSlider.atLiveEdge // Always visible in live mode, or when not at live edge
+          
+          Behavior on width { NumberAnimation { duration: 150 } }
+          Behavior on color { ColorAnimation { duration: 150 } }
+          
+          Row {
+            anchors.centerIn: parent
+            spacing: 6
+            
+            // Pulsing dot when live
+            Rectangle {
+              width: 8; height: 8; radius: 4
+              color: seekSlider.atLiveEdge ? "#FFFFFF" : "#AAAAAA"
+              
+              SequentialAnimation on opacity {
+                running: seekSlider.atLiveEdge && controlBar.liveMode
+                loops: Animation.Infinite
+                NumberAnimation { to: 0.4; duration: 500 }
+                NumberAnimation { to: 1.0; duration: 500 }
+              }
+            }
+            
+            Text {
+              text: seekSlider.atLiveEdge ? qsTr("LIVE") : qsTr("Go Live")
+              font.pixelSize: 10
+              font.bold: true
+              color: "#FFFFFF"
+            }
+          }
+          
+          MouseArea {
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+              controlBar.liveClicked()
+              // After clicking, seek to live edge
+              if (controlBar.liveMode) {
+                seekSlider.value = seekSlider.currentDuration;
+              }
+            }
+            
+            ToolTip.visible: containsMouse && !seekSlider.atLiveEdge
+            ToolTip.text: controlBar.liveMode ? qsTr("Retour au direct (L)") : qsTr("Aller au live")
+            ToolTip.delay: 500
           }
         }
       }
 
-      // Time labels
+      // Time labels - YouTube style
       RowLayout {
         Layout.fillWidth: true
         spacing: 8
 
+        // Current position
         Text {
           text: controlBar._formatTime(position)
           color: "#FFFFFF"
           font.pixelSize: 12
+          font.family: "SF Mono, Menlo, monospace"
         }
+        
         Item { Layout.fillWidth: true }
+        
+        // Live offset or LIVE badge - Show offset when not at live edge in live mode
         Text {
-          text: liveOffset > 3 ? qsTr("−%1").arg(controlBar._formatTime(liveOffset)) : qsTr("LIVE")
-          color: liveOffset > 3 ? "#FFEB3B" : "#FF5252"
+          visible: controlBar.liveMode && !seekSlider.atLiveEdge && liveOffset > 0
+          text: qsTr("-%1").arg(controlBar._formatTime(liveOffset))
+          color: "#FFEB3B"
           font.pixelSize: 12
-          font.bold: liveOffset <= 3
+          font.family: "SF Mono, Menlo, monospace"
         }
+        
+        // Duration (DVR buffer end)
         Text {
           text: "/ " + (duration > 0 ? controlBar._formatTime(duration) : "--:--")
-          color: "#DDFFFFFF"
+          color: "#99FFFFFF"
           font.pixelSize: 12
+          font.family: "SF Mono, Menlo, monospace"
         }
       }
     }
