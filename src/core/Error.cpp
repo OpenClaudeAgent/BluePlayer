@@ -1,5 +1,7 @@
 #include "core/Error.hpp"
 
+#include <QCoreApplication>
+
 namespace blueplayer::core {
 
 Error::Error() : m_code(ErrorCode::Unknown) {}
@@ -21,47 +23,47 @@ QString Error::toString() const {
 QString Error::localizedMessage(ErrorCode code) {
   switch (code) {
     case ErrorCode::Unknown:
-      return QStringLiteral("Erreur inconnue.");
+      return QCoreApplication::translate("Error", "Unknown error.");
     case ErrorCode::InvalidArgument:
-      return QStringLiteral("Argument invalide.");
+      return QCoreApplication::translate("Error", "Invalid argument.");
     case ErrorCode::InvalidState:
-      return QStringLiteral("État invalide.");
+      return QCoreApplication::translate("Error", "Invalid state.");
     case ErrorCode::NotInitialized:
-      return QStringLiteral("Non initialisé.");
+      return QCoreApplication::translate("Error", "Not initialized.");
 
     case ErrorCode::NetworkError:
-      return QStringLiteral("Erreur réseau.");
+      return QCoreApplication::translate("Error", "Network error.");
     case ErrorCode::NetworkTimeout:
-      return QStringLiteral("Délai d'attente réseau dépassé.");
+      return QCoreApplication::translate("Error", "Network timeout.");
     case ErrorCode::NetworkConnectionRefused:
-      return QStringLiteral("Connexion réseau refusée.");
+      return QCoreApplication::translate("Error", "Network connection refused.");
     case ErrorCode::InvalidResponse:
-      return QStringLiteral("Réponse invalide.");
+      return QCoreApplication::translate("Error", "Invalid response.");
 
     case ErrorCode::TwitchNotAuthenticated:
-      return QStringLiteral("Authentifiez-vous d'abord.");
+      return QCoreApplication::translate("Error", "Please authenticate first.");
     case ErrorCode::TwitchInvalidToken:
-      return QStringLiteral("Jeton d'accès Twitch invalide.");
+      return QCoreApplication::translate("Error", "Invalid Twitch access token.");
     case ErrorCode::TwitchApiError:
-      return QStringLiteral("Erreur de l'API Twitch.");
+      return QCoreApplication::translate("Error", "Twitch API error.");
     case ErrorCode::TwitchRateLimitExceeded:
-      return QStringLiteral("Limite de taux Twitch dépassée.");
+      return QCoreApplication::translate("Error", "Twitch rate limit exceeded.");
 
     case ErrorCode::MediaFileNotFound:
-      return QStringLiteral("Fichier média introuvable.");
+      return QCoreApplication::translate("Error", "Media file not found.");
     case ErrorCode::MediaFormatNotSupported:
-      return QStringLiteral("Format média non supporté.");
+      return QCoreApplication::translate("Error", "Media format not supported.");
     case ErrorCode::MediaDecodeError:
-      return QStringLiteral("Erreur de décodage média.");
+      return QCoreApplication::translate("Error", "Media decode error.");
     case ErrorCode::MediaDeviceError:
-      return QStringLiteral("Erreur de périphérique média.");
+      return QCoreApplication::translate("Error", "Media device error.");
 
     case ErrorCode::ConfigNotFound:
-      return QStringLiteral("Configuration introuvable.");
+      return QCoreApplication::translate("Error", "Configuration not found.");
     case ErrorCode::ConfigInvalid:
-      return QStringLiteral("Configuration invalide.");
+      return QCoreApplication::translate("Error", "Invalid configuration.");
   }
-  return QStringLiteral("Erreur inconnue.");
+  return QCoreApplication::translate("Error", "Unknown error.");
 }
 
 }  // namespace blueplayer::core

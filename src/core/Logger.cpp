@@ -1,10 +1,15 @@
 #include "core/Logger.hpp"
 
+#include <QDebug>
 #include <QLoggingCategory>
 #include <QString>
-#include <QDebug>
+#include <mutex>
 
 namespace blueplayer::core {
+
+namespace {
+std::once_flag s_initFlag;
+}
 
 // Définition des catégories de logging
 QLoggingCategory LogCategory::Media("blueplayer.media");
@@ -16,18 +21,16 @@ QLoggingCategory LogCategory::Network("blueplayer.network");
 bool Logger::s_initialized = false;
 
 void Logger::initialize() {
-  if (s_initialized) {
-    return;
-  }
+  std::call_once(s_initFlag, []() {
+    // Configurer les niveaux depuis les variables d'environnement
+    setLevel(LogCategory::Media, levelFromEnvironment("BLUEPLAYER_LOG_MEDIA", LogLevel::Info));
+    setLevel(LogCategory::Twitch, levelFromEnvironment("BLUEPLAYER_LOG_TWITCH", LogLevel::Info));
+    setLevel(LogCategory::UI, levelFromEnvironment("BLUEPLAYER_LOG_UI", LogLevel::Warning));
+    setLevel(LogCategory::Core, levelFromEnvironment("BLUEPLAYER_LOG_CORE", LogLevel::Info));
+    setLevel(LogCategory::Network, levelFromEnvironment("BLUEPLAYER_LOG_NETWORK", LogLevel::Info));
 
-  // Configurer les niveaux depuis les variables d'environnement
-  setLevel(LogCategory::Media, levelFromEnvironment("BLUEPLAYER_LOG_MEDIA", LogLevel::Info));
-  setLevel(LogCategory::Twitch, levelFromEnvironment("BLUEPLAYER_LOG_TWITCH", LogLevel::Info));
-  setLevel(LogCategory::UI, levelFromEnvironment("BLUEPLAYER_LOG_UI", LogLevel::Warning));
-  setLevel(LogCategory::Core, levelFromEnvironment("BLUEPLAYER_LOG_CORE", LogLevel::Info));
-  setLevel(LogCategory::Network, levelFromEnvironment("BLUEPLAYER_LOG_NETWORK", LogLevel::Info));
-
-  s_initialized = true;
+    s_initialized = true;
+  });
 }
 
 void Logger::setLevel(QLoggingCategory& category, LogLevel level) {
@@ -88,33 +91,23 @@ LogLevel Logger::levelFromEnvironment(const QString& envVar, LogLevel defaultLev
 }
 
 void Logger::debug(const QLoggingCategory& category, const QString& message) {
-  if (category.isDebugEnabled()) {
-    qDebug() << category.categoryName() << message;
-  }
+  qCDebug(category).noquote() << message;
 }
 
 void Logger::info(const QLoggingCategory& category, const QString& message) {
-  if (category.isInfoEnabled()) {
-    qInfo() << category.categoryName() << message;
-  }
+  qCInfo(category).noquote() << message;
 }
 
 void Logger::warning(const QLoggingCategory& category, const QString& message) {
-  if (category.isWarningEnabled()) {
-    qWarning() << category.categoryName() << message;
-  }
+  qCWarning(category).noquote() << message;
 }
 
 void Logger::error(const QLoggingCategory& category, const QString& message) {
-  if (category.isCriticalEnabled()) {
-    qCritical() << category.categoryName() << message;
-  }
+  qCWarning(category).noquote() << "[ERROR]" << message;
 }
 
 void Logger::critical(const QLoggingCategory& category, const QString& message) {
-  if (category.isCriticalEnabled()) {
-    qCritical() << category.categoryName() << message;
-  }
+  qCCritical(category).noquote() << message;
 }
 
 }  // namespace blueplayer::core

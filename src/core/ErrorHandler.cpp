@@ -1,40 +1,43 @@
 #include "core/ErrorHandler.hpp"
 
+#include <QCoreApplication>
+
 namespace blueplayer::core {
 
-Error ErrorHandler::networkError(const QString& context, const QString& details) {
+Error ErrorHandler::createError(ErrorCode code, const QString& baseMessage,
+                                const QString& context, const QString& details) {
   if (details.isEmpty()) {
-    return Error(ErrorCode::NetworkError, QStringLiteral("Erreur réseau"), context);
+    return Error(code, baseMessage, context);
   }
-  return Error(ErrorCode::NetworkError, QStringLiteral("Erreur réseau: %1").arg(details), context);
+  return Error(code, QStringLiteral("%1: %2").arg(baseMessage, details), context);
+}
+
+Error ErrorHandler::networkError(const QString& context, const QString& details) {
+  return createError(ErrorCode::NetworkError,
+                     QCoreApplication::translate("ErrorHandler", "Network error"),
+                     context, details);
 }
 
 Error ErrorHandler::twitchApiError(const QString& context, const QString& details) {
-  if (details.isEmpty()) {
-    return Error(ErrorCode::TwitchApiError, QStringLiteral("Erreur de l'API Twitch"), context);
-  }
-  return Error(ErrorCode::TwitchApiError, QStringLiteral("Erreur de l'API Twitch: %1").arg(details), context);
+  return createError(ErrorCode::TwitchApiError,
+                     QCoreApplication::translate("ErrorHandler", "Twitch API error"),
+                     context, details);
 }
 
 Error ErrorHandler::twitchAuthError(const QString& context, const QString& details) {
-  if (details.isEmpty()) {
-    return Error(ErrorCode::TwitchNotAuthenticated, QStringLiteral("Erreur d'authentification Twitch"), context);
-  }
-  return Error(ErrorCode::TwitchNotAuthenticated, QStringLiteral("Erreur d'authentification Twitch: %1").arg(details), context);
+  return createError(ErrorCode::TwitchNotAuthenticated,
+                     QCoreApplication::translate("ErrorHandler", "Twitch authentication error"),
+                     context, details);
 }
 
 Error ErrorHandler::mediaError(ErrorCode code, const QString& context, const QString& details) {
-  if (details.isEmpty()) {
-    return Error(code, Error::localizedMessage(code), context);
-  }
-  return Error(code, QStringLiteral("%1: %2").arg(Error::localizedMessage(code), details), context);
+  return createError(code, Error::localizedMessage(code), context, details);
 }
 
 Error ErrorHandler::validationError(const QString& context, const QString& details) {
-  if (details.isEmpty()) {
-    return Error(ErrorCode::InvalidArgument, QStringLiteral("Erreur de validation"), context);
-  }
-  return Error(ErrorCode::InvalidArgument, QStringLiteral("Erreur de validation: %1").arg(details), context);
+  return createError(ErrorCode::InvalidArgument,
+                     QCoreApplication::translate("ErrorHandler", "Validation error"),
+                     context, details);
 }
 
 }  // namespace blueplayer::core

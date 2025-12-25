@@ -19,7 +19,7 @@ public:
    * @param details Détails additionnels optionnels
    * @return L'erreur créée
    */
-  static Error networkError(const QString& context, const QString& details = {});
+  [[nodiscard]] static Error networkError(const QString& context, const QString& details = {});
 
   /**
    * @brief Crée une erreur Twitch API standardisée
@@ -27,7 +27,7 @@ public:
    * @param details Détails additionnels optionnels
    * @return L'erreur créée
    */
-  static Error twitchApiError(const QString& context, const QString& details = {});
+  [[nodiscard]] static Error twitchApiError(const QString& context, const QString& details = {});
 
   /**
    * @brief Crée une erreur Twitch authentification standardisée
@@ -35,7 +35,7 @@ public:
    * @param details Détails additionnels optionnels
    * @return L'erreur créée
    */
-  static Error twitchAuthError(const QString& context, const QString& details = {});
+  [[nodiscard]] static Error twitchAuthError(const QString& context, const QString& details = {});
 
   /**
    * @brief Crée une erreur média standardisée
@@ -44,7 +44,7 @@ public:
    * @param details Détails additionnels optionnels
    * @return L'erreur créée
    */
-  static Error mediaError(ErrorCode code, const QString& context, const QString& details = {});
+  [[nodiscard]] static Error mediaError(ErrorCode code, const QString& context, const QString& details = {});
 
   /**
    * @brief Crée une erreur de validation standardisée
@@ -52,14 +52,19 @@ public:
    * @param details Détails additionnels optionnels
    * @return L'erreur créée
    */
-  static Error validationError(const QString& context, const QString& details = {});
+  [[nodiscard]] static Error validationError(const QString& context, const QString& details = {});
 
+private:
   /**
-   * @brief Convertit une Error en QString pour compatibilité avec les signaux QML existants
-   * @param error L'erreur à convertir
-   * @return Le message d'erreur sous forme de QString
+   * @brief Helper pour créer une erreur avec message optionnel
+   * @param code Le code d'erreur
+   * @param baseMessage Le message de base
+   * @param context Le contexte de l'erreur
+   * @param details Détails additionnels optionnels
+   * @return L'erreur créée
    */
-  static QString toString(const Error& error) { return error.toString(); }
+  [[nodiscard]] static Error createError(ErrorCode code, const QString& baseMessage,
+                                         const QString& context, const QString& details);
 };
 
 }  // namespace blueplayer::core

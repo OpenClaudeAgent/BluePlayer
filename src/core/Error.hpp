@@ -95,17 +95,31 @@ public:
   [[nodiscard]] QString toString() const;
 
   /**
-   * @brief Vérifie si l'erreur est valide (non vide)
-   * @return true si l'erreur est valide
+   * @brief Vérifie si l'objet représente une erreur
+   * @return true si une erreur est présente
    */
-  [[nodiscard]] bool isValid() const { return m_code != ErrorCode::Unknown || !m_message.isEmpty(); }
+  [[nodiscard]] bool hasError() const { return m_code != ErrorCode::Unknown || !m_message.isEmpty(); }
+
+  /**
+   * @brief Compare deux erreurs par leur code
+   * @param other L'autre erreur à comparer
+   * @return true si les codes sont identiques
+   */
+  [[nodiscard]] bool operator==(const Error& other) const { return m_code == other.m_code; }
+
+  /**
+   * @brief Vérifie si l'erreur correspond à un code spécifique
+   * @param code Le code à vérifier
+   * @return true si le code correspond
+   */
+  [[nodiscard]] bool isCode(ErrorCode code) const { return m_code == code; }
 
   /**
    * @brief Obtient le message d'erreur localisé pour un code donné
    * @param code Le code d'erreur
    * @return Le message localisé
    */
-  static QString localizedMessage(ErrorCode code);
+  [[nodiscard]] static QString localizedMessage(ErrorCode code);
 
   /**
    * @brief Convertit l'erreur en QString pour compatibilité QML
@@ -114,10 +128,10 @@ public:
   [[nodiscard]] QString toQString() const { return toString(); }
 
   /**
-   * @brief Opérateur de conversion implicite vers QString pour compatibilité QML
+   * @brief Opérateur de conversion explicite vers QString pour compatibilité QML
    * @return Le message d'erreur sous forme de QString
    */
-  operator QString() const { return toString(); }
+  explicit operator QString() const { return toString(); }
 
 private:
   ErrorCode m_code = ErrorCode::Unknown;

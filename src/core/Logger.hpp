@@ -98,23 +98,23 @@ private:
   static bool s_initialized;
 };
 
-// Macros de commodité pour simplifier l'utilisation
-#define LOG_DEBUG(category, message) \
+}  // namespace blueplayer::core
+
+// Macros de commodité pour simplifier l'utilisation (hors namespace)
+#define BLUEPLAYER_LOG_DEBUG(category, message) \
   blueplayer::core::Logger::debug(blueplayer::core::LogCategory::category, message)
 
-#define LOG_INFO(category, message) \
+#define BLUEPLAYER_LOG_INFO(category, message) \
   blueplayer::core::Logger::info(blueplayer::core::LogCategory::category, message)
 
-#define LOG_WARNING(category, message) \
+#define BLUEPLAYER_LOG_WARNING(category, message) \
   blueplayer::core::Logger::warning(blueplayer::core::LogCategory::category, message)
 
-#define LOG_ERROR(category, message) \
+#define BLUEPLAYER_LOG_ERROR(category, message) \
   blueplayer::core::Logger::error(blueplayer::core::LogCategory::category, message)
 
-#define LOG_CRITICAL(category, message) \
+#define BLUEPLAYER_LOG_CRITICAL(category, message) \
   blueplayer::core::Logger::critical(blueplayer::core::LogCategory::category, message)
-
-}  // namespace blueplayer::core
 
 
 
