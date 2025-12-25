@@ -19,7 +19,7 @@ public:
    * @param details Détails additionnels optionnels
    * @return L'erreur créée
    */
-  [[nodiscard]] static Error networkError(const QString& context, const QString& details = {});
+  [[nodiscard]] static Error networkError(const QString& context, const QString& details = QString());
 
   /**
    * @brief Crée une erreur Twitch API standardisée
@@ -27,7 +27,7 @@ public:
    * @param details Détails additionnels optionnels
    * @return L'erreur créée
    */
-  [[nodiscard]] static Error twitchApiError(const QString& context, const QString& details = {});
+  [[nodiscard]] static Error twitchApiError(const QString& context, const QString& details = QString());
 
   /**
    * @brief Crée une erreur Twitch authentification standardisée
@@ -35,7 +35,7 @@ public:
    * @param details Détails additionnels optionnels
    * @return L'erreur créée
    */
-  [[nodiscard]] static Error twitchAuthError(const QString& context, const QString& details = {});
+  [[nodiscard]] static Error twitchAuthError(const QString& context, const QString& details = QString());
 
   /**
    * @brief Crée une erreur média standardisée
@@ -44,7 +44,7 @@ public:
    * @param details Détails additionnels optionnels
    * @return L'erreur créée
    */
-  [[nodiscard]] static Error mediaError(ErrorCode code, const QString& context, const QString& details = {});
+  [[nodiscard]] static Error mediaError(ErrorCode code, const QString& context, const QString& details = QString());
 
   /**
    * @brief Crée une erreur de validation standardisée
@@ -52,7 +52,7 @@ public:
    * @param details Détails additionnels optionnels
    * @return L'erreur créée
    */
-  [[nodiscard]] static Error validationError(const QString& context, const QString& details = {});
+  [[nodiscard]] static Error validationError(const QString& context, const QString& details = QString());
 
 private:
   /**
