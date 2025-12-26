@@ -1,4 +1,4 @@
-# Plan 04 - Harmonisation largeur des boutons
+# Plan 03 - Harmonisation largeur des boutons
 
 ## Contexte
 Les boutons de la barre de contrôle n'ont pas des largeurs cohérentes :

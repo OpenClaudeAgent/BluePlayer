@@ -1,4 +1,4 @@
-# Plan - Gestion du Cache et des VOD
+# Plan 05 - Gestion du Cache et des VOD
 
 ## Vue d'ensemble
 
@@ -18,7 +18,7 @@ Cette fonctionnalité permet de gérer les vidéos enregistrées dans le cache l
 
 ## Sous-tâches
 
-### 6.1 - Bouton d'accès aux Replays (Home Page)
+### 5.1 - Bouton d'accès aux Replays (Home Page)
 
 **Description :**
 Ajouter un bouton/section sur la page d'accueil permettant d'accéder à l'écran de gestion des replays.
@@ -34,7 +34,7 @@ Ajouter un bouton/section sur la page d'accueil permettant d'accéder à l'écra
 
 ---
 
-### 6.2 - Écran de gestion des VOD (Cache Manager UI)
+### 5.2 - Écran de gestion des VOD (Cache Manager UI)
 
 **Description :**
 Nouvel écran dédié à la visualisation et gestion des VOD en cache.
@@ -59,7 +59,7 @@ Nouvel écran dédié à la visualisation et gestion des VOD en cache.
 
 ---
 
-### 6.3 - Stockage des métadonnées VOD
+### 5.3 - Stockage des métadonnées VOD
 
 **Description :**
 Définir un format de stockage pour les métadonnées des VOD enregistrées.
@@ -87,7 +87,7 @@ Définir un format de stockage pour les métadonnées des VOD enregistrées.
 
 ---
 
-### 6.4 - Lecture des VOD en cache
+### 5.4 - Lecture des VOD en cache
 
 **Description :**
 Permettre de lancer la lecture d'une VOD depuis l'écran de gestion du cache.
@@ -105,7 +105,7 @@ Permettre de lancer la lecture d'une VOD depuis l'écran de gestion du cache.
 
 ---
 
-### 6.5 - Configuration de la taille maximale du cache
+### 5.5 - Configuration de la taille maximale du cache
 
 **Description :**
 Permettre à l'utilisateur de définir la taille maximale du cache.
@@ -123,7 +123,7 @@ Permettre à l'utilisateur de définir la taille maximale du cache.
 
 ---
 
-### 6.6 - Stratégie de nettoyage automatique du cache
+### 5.6 - Stratégie de nettoyage automatique du cache
 
 **Description :**
 Implémenter un service de nettoyage automatique qui tourne en arrière-plan pendant toute la durée de vie de l'application.
@@ -161,7 +161,7 @@ Implémenter un service de nettoyage automatique qui tourne en arrière-plan pen
 
 ---
 
-### 6.7 - Suppression manuelle des VOD
+### 5.7 - Suppression manuelle des VOD
 
 **Description :**
 Permettre la suppression manuelle des VOD.
@@ -181,7 +181,7 @@ Permettre la suppression manuelle des VOD.
 
 ---
 
-### 6.8 - Enregistrement automatique pendant le visionnage live
+### 5.8 - Enregistrement automatique pendant le visionnage live
 
 **Description :**
 S'assurer que le cache DVR existant est correctement sauvegardé avec ses métadonnées pour pouvoir être relu plus tard.
@@ -243,26 +243,26 @@ S'assurer que le cache DVR existant est correctement sauvegardé avec ses métad
 
 | Priorité | Sous-tâche | Dépendances |
 |----------|------------|-------------|
-| 1 | 6.3 - Stockage métadonnées | Aucune |
-| 2 | 6.8 - Enregistrement auto | 6.3 |
-| 3 | 6.2 - UI Cache Manager | 6.3 |
-| 4 | 6.1 - Bouton Home | 6.2 |
-| 5 | 6.4 - Lecture VOD | 6.2, 6.3 |
-| 6 | 6.7 - Suppression manuelle | 6.2 |
-| 7 | 6.5 - Config taille max | 6.2 |
-| 8 | 6.6 - Nettoyage auto | 6.5, 6.3 |
+| 1 | 5.3 - Stockage métadonnées | Aucune |
+| 2 | 5.8 - Enregistrement auto | 5.3 |
+| 3 | 5.2 - UI Cache Manager | 5.3 |
+| 4 | 5.1 - Bouton Home | 5.2 |
+| 5 | 5.4 - Lecture VOD | 5.2, 5.3 |
+| 6 | 5.7 - Suppression manuelle | 5.2 |
+| 7 | 5.5 - Config taille max | 5.2 |
+| 8 | 5.6 - Nettoyage auto | 5.5, 5.3 |
 
 ---
 
 ## Checklist de validation
 
-### 6.1 - Bouton d'accès aux Replays
+### 5.1 - Bouton d'accès aux Replays
 - [ ] Bouton/carte visible sur la Home Page
 - [ ] Affiche le nombre de VOD en cache
 - [ ] Affiche l'espace utilisé
 - [ ] Clic ouvre l'écran de gestion du cache
 
-### 6.2 - Écran de gestion des VOD
+### 5.2 - Écran de gestion des VOD
 - [ ] Liste des VOD affichée correctement
 - [ ] Thumbnails affichés (si disponibles)
 - [ ] Métadonnées visibles (streamer, titre, date, durée, taille)
@@ -272,26 +272,26 @@ S'assurer que le cache DVR existant est correctement sauvegardé avec ses métad
 - [ ] Filtrage par streamer fonctionne
 - [ ] UI responsive et fluide
 
-### 6.3 - Stockage des métadonnées
+### 5.3 - Stockage des métadonnées
 - [ ] Structure de données définie
 - [ ] Métadonnées sauvegardées correctement
 - [ ] Métadonnées chargées au démarrage
 - [ ] Pas de perte de données entre les sessions
 
-### 6.4 - Lecture des VOD
+### 5.4 - Lecture des VOD
 - [ ] Clic sur une VOD lance le player
 - [ ] Player en mode VOD (pas live)
 - [ ] Seekbar fonctionne sur toute la durée
 - [ ] Métadonnées affichées dans le player
 - [ ] Retour à l'écran de gestion après fermeture
 
-### 6.5 - Configuration taille max
+### 5.5 - Configuration taille max
 - [ ] UI pour définir la taille max
 - [ ] Valeur sauvegardée dans les préférences
 - [ ] Valeur chargée au démarrage
 - [ ] Barre de progression espace utilisé/max
 
-### 6.6 - Nettoyage automatique
+### 5.6 - Nettoyage automatique
 - [ ] Service de nettoyage initialisé au démarrage de l'application
 - [ ] Service tourne en arrière-plan pendant toute la durée de vie de l'app
 - [ ] Vérification périodique de la taille du cache (intervalle configurable)
@@ -303,7 +303,7 @@ S'assurer que le cache DVR existant est correctement sauvegardé avec ses métad
 - [ ] Espace libéré correctement
 - [ ] Pas d'impact sur les performances de l'application
 
-### 6.7 - Suppression manuelle
+### 5.7 - Suppression manuelle
 - [ ] Suppression individuelle fonctionne
 - [ ] Suppression multiple fonctionne
 - [ ] "Tout supprimer" fonctionne
@@ -311,7 +311,7 @@ S'assurer que le cache DVR existant est correctement sauvegardé avec ses métad
 - [ ] Espace disque libéré correctement
 - [ ] Liste mise à jour après suppression
 
-### 6.8 - Enregistrement automatique
+### 5.8 - Enregistrement automatique
 - [ ] Métadonnées sauvegardées à la fermeture du player
 - [ ] Buffer DVR conservé après fermeture
 - [ ] VOD apparaît dans la liste du cache manager

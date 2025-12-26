@@ -1,4 +1,4 @@
-# Plan 10 - Amélioration du Panel de Préférences
+# Plan 09 - Amélioration du Panel de Préférences
 
 ## Contexte
 Le panel de préférences accessible depuis la Home Page présente plusieurs problèmes :
@@ -18,7 +18,7 @@ Le panel de préférences accessible depuis la Home Page présente plusieurs pro
 - Améliorer la lisibilité et l'organisation
 
 ### Nouvelles fonctionnalités (à définir lors de l'idéation)
-- **Paramètres de cache** : Taille maximale du cache VOD (lié au plan-06)
+- **Paramètres de cache** : Taille maximale du cache VOD (lié au plan-05)
 - Autres paramètres à définir pendant la session d'idéation
 
 ## Spécifications

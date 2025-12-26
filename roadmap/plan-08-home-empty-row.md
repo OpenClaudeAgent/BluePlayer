@@ -1,4 +1,4 @@
-# Plan 09 - Fix ligne vide Home Page
+# Plan 08 - Fix ligne vide Home Page
 
 ## Contexte
 Dans la page d'accueil (Home), une ligne est vide :

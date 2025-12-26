@@ -1,4 +1,4 @@
-# Plan 05 - Layout barre de contrôle
+# Plan 04 - Layout barre de contrôle
 
 ## Contexte
 - La seekbar est plus haute que les boutons

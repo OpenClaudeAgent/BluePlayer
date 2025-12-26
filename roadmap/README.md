@@ -68,20 +68,28 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 
 ---
 
+## Dépendances entre tâches
+
+| Tâche | Dépend de |
+|-------|-----------|
+| 10 (Vitesse lecture) | 5 (Cache/VOD) |
+
+---
+
 ## Suivi des tâches
 
 | # | Tâche | Plan | Branche | Statut |
 |---|-------|------|---------|--------|
 | 1 | Bouton Volume | [plan-01](./plan-01-volume-button.md) | `feature/volume-button` | 🟢 Terminé |
-| 2 | Vitesse lecture auto-reset | [plan-02](./plan-02-playback-speed.md) | `feature/playback-speed` | 🔴 En attente |
-| 3 | Fullscreen harmonisé | [plan-03](./plan-03-fullscreen.md) | `feature/fullscreen` | 🔴 En attente |
-| 4 | Largeur boutons | [plan-04](./plan-04-buttons-width.md) | `feature/buttons-width` | 🔴 En attente |
-| 5 | Layout barre de contrôle | [plan-05](./plan-05-controlbar-layout.md) | `feature/controlbar-layout` | 🔴 En attente |
-| 6 | Gestion Cache/VOD | [plan-06](./plan-06-cache-vod.md) | `feature/cache-vod` | 🔴 En attente |
-| 7 | Barre de recherche Twitch | [plan-07](./plan-07-search.md) | `feature/search` | 🔴 En attente |
-| 8 | Chat Twitch intégré | [plan-08](./plan-08-chat.md) | `feature/chat` | 🔴 En attente |
-| 9 | Fix ligne vide Home | [plan-09](./plan-09-home-empty-row.md) | `feature/fix-home-row` | 🔴 En attente |
-| 10 | Panel Préférences | [plan-10](./plan-10-preferences.md) | `feature/preferences` | 🔴 En attente |
+| 2 | Fullscreen harmonisé | [plan-02](./plan-02-fullscreen.md) | `feature/fullscreen` | 🔴 En attente |
+| 3 | Largeur boutons | [plan-03](./plan-03-buttons-width.md) | `feature/buttons-width` | 🔴 En attente |
+| 4 | Layout barre de contrôle | [plan-04](./plan-04-controlbar-layout.md) | `feature/controlbar-layout` | 🔴 En attente |
+| 5 | Gestion Cache/VOD | [plan-05](./plan-05-cache-vod.md) | `feature/cache-vod` | 🔴 En attente |
+| 6 | Barre de recherche Twitch | [plan-06](./plan-06-search.md) | `feature/search` | 🔴 En attente |
+| 7 | Chat Twitch intégré | [plan-07](./plan-07-chat.md) | `feature/chat` | 🔴 En attente |
+| 8 | Fix ligne vide Home | [plan-08](./plan-08-home-empty-row.md) | `feature/fix-home-row` | 🔴 En attente |
+| 9 | Panel Préférences | [plan-09](./plan-09-preferences.md) | `feature/preferences` | 🔴 En attente |
+| 10 | Vitesse lecture intelligente | [plan-10](./plan-10-playback-speed.md) | `feature/playback-speed` | 🔴 En attente |
 
 ### Légende des statuts
 
@@ -97,6 +105,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 
 | Date | Changement |
 |------|------------|
-| 2024-XX-XX | Création de la roadmap, tâches 1-9 définies |
-| 2024-12-26 | Ajout tâche 10 - Panel Préférences |
-| 2024-12-26 | Tâche 1 terminée - Bouton Volume (slider vertical + hover) |
+| 2025-12-XX | Création de la roadmap, tâches 1-9 définies |
+| 2025-12-26 | Ajout tâche 10 - Panel Préférences |
+| 2025-12-26 | Tâche 1 terminée - Bouton Volume (slider vertical + hover) |
+| 2025-12-26 | Réorganisation roadmap : vitesse lecture (ex plan-02) devient plan-10, dépend de plan-05 (Cache/VOD) |

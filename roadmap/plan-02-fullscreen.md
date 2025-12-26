@@ -1,4 +1,4 @@
-# Plan 03 - Fullscreen harmonisé
+# Plan 02 - Fullscreen harmonisé
 
 ## Contexte
 - **Double-clic sur la vidéo** : Fonctionne correctement, affiche la UI en plein écran

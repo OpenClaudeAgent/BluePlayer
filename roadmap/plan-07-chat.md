@@ -1,4 +1,4 @@
-# Plan - Chat Twitch intégré au Player
+# Plan 07 - Chat Twitch intégré au Player
 
 ## Vue d'ensemble
 
@@ -30,7 +30,7 @@ Les streams populaires peuvent avoir des milliers de messages par minute dans le
 
 ## Sous-tâches
 
-### 8.1 - Bouton d'affichage du chat (UI)
+### 7.1 - Bouton d'affichage du chat (UI)
 
 **Description :**
 Ajouter un bouton dans la barre de contrôle du player pour afficher/masquer le chat.
@@ -50,7 +50,7 @@ Ajouter un bouton dans la barre de contrôle du player pour afficher/masquer le 
 
 ---
 
-### 8.2 - Panneau de chat (UI)
+### 7.2 - Panneau de chat (UI)
 
 **Description :**
 Créer le composant UI qui affiche les messages du chat.
@@ -82,7 +82,7 @@ Créer le composant UI qui affiche les messages du chat.
 
 ---
 
-### 8.3 - Connexion au chat Twitch (Backend)
+### 7.3 - Connexion au chat Twitch (Backend)
 
 **Description :**
 Implémenter la connexion au chat Twitch via IRC ou WebSocket.
@@ -109,7 +109,7 @@ Implémenter la connexion au chat Twitch via IRC ou WebSocket.
 
 ---
 
-### 8.4 - Parsing des messages IRC
+### 7.4 - Parsing des messages IRC
 
 **Description :**
 Parser les messages IRC Twitch pour extraire les informations utiles.
@@ -133,7 +133,7 @@ Parser les messages IRC Twitch pour extraire les informations utiles.
 
 ---
 
-### 8.5 - Gestion du mode VOD
+### 7.5 - Gestion du mode VOD
 
 **Description :**
 Définir le comportement du chat quand on est en mode VOD (pas en live).
@@ -161,7 +161,7 @@ Définir le comportement du chat quand on est en mode VOD (pas en live).
 
 ---
 
-### 8.6 - Optimisations de performance
+### 7.6 - Optimisations de performance
 
 **Description :**
 Implémenter des optimisations pour gérer les chats très actifs.
@@ -219,24 +219,24 @@ Implémenter des optimisations pour gérer les chats très actifs.
 
 | Priorité | Sous-tâche | Dépendances |
 |----------|------------|-------------|
-| 1 | 8.3 - Connexion chat | Aucune |
-| 2 | 8.4 - Parsing IRC | 8.3 |
-| 3 | 8.2 - Panneau chat UI | Aucune |
-| 4 | 8.1 - Bouton chat | 8.2 |
-| 5 | 8.5 - Mode VOD | 8.1, 8.3 |
-| 6 | 8.6 - Optimisations | 8.2, 8.3 |
+| 1 | 7.3 - Connexion chat | Aucune |
+| 2 | 7.4 - Parsing IRC | 7.3 |
+| 3 | 7.2 - Panneau chat UI | Aucune |
+| 4 | 7.1 - Bouton chat | 7.2 |
+| 5 | 7.5 - Mode VOD | 7.1, 7.3 |
+| 6 | 7.6 - Optimisations | 7.2, 7.3 |
 
 ---
 
 ## Checklist de validation
 
-### 8.1 - Bouton chat
+### 7.1 - Bouton chat
 - [ ] Bouton visible dans la PlayerControlBar
 - [ ] Icône appropriée (bulle de dialogue)
 - [ ] État actif/inactif clairement visible
 - [ ] Clic ouvre/ferme le panneau de chat
 
-### 8.2 - Panneau chat UI
+### 7.2 - Panneau chat UI
 - [ ] Panneau s'affiche à droite de la vidéo
 - [ ] Liste de messages scrollable
 - [ ] Username affiché avec couleur
@@ -244,26 +244,26 @@ Implémenter des optimisations pour gérer les chats très actifs.
 - [ ] Auto-scroll vers les nouveaux messages
 - [ ] Possibilité de remonter dans l'historique
 
-### 8.3 - Connexion chat
+### 7.3 - Connexion chat
 - [ ] Connexion établie uniquement quand le chat est ouvert
 - [ ] Déconnexion immédiate quand le chat est fermé
 - [ ] Connexion en mode anonyme (lecture seule)
 - [ ] Reconnexion automatique en cas de perte
 - [ ] Pas de connexion au lancement du player
 
-### 8.4 - Parsing messages
+### 7.4 - Parsing messages
 - [ ] Username correctement extrait
 - [ ] Couleur du username appliquée
 - [ ] Message correctement affiché
 - [ ] Badges reconnus (sub, mod, vip)
 - [ ] Caractères spéciaux gérés
 
-### 8.5 - Mode VOD
+### 7.5 - Mode VOD
 - [ ] Bouton chat grisé/masqué en mode VOD
 - [ ] Message explicatif affiché
 - [ ] Pas de tentative de connexion en VOD
 
-### 8.6 - Performance
+### 7.6 - Performance
 - [ ] Pas de lag avec un chat actif (1000+ msg/min)
 - [ ] Mémoire stable (pas de fuite avec beaucoup de messages)
 - [ ] UI fluide pendant le scroll

@@ -1,4 +1,4 @@
-# Plan 07 - Barre de recherche Twitch
+# Plan 06 - Barre de recherche Twitch
 
 ## Contexte
 La barre de recherche est implémentée au niveau UI uniquement. Elle n'est pas connectée à l'API Twitch et ne retourne aucun résultat.
