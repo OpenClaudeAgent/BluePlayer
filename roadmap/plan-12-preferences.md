@@ -1,4 +1,4 @@
-# Plan 09 - Amélioration du Panel de Préférences
+# Plan 12 - Amélioration du Panel de Préférences
 
 ## Contexte
 Le panel de préférences accessible depuis la Home Page présente plusieurs problèmes :
@@ -70,10 +70,36 @@ Rectangle {
 
 ### Idées potentielles
 - [ ] Paramètres de cache (taille max, vider le cache)
-- [ ] Qualité vidéo par défaut
+- [ ] **Qualité vidéo par défaut** ⚠️ *Dépend de plan-11 (Sélection Qualité)*
 - [ ] Comportement de l'auto-play
 - [ ] Notifications
 - [ ] À compléter pendant l'implémentation...
+
+### Note sur la qualité par défaut
+
+Cette fonctionnalité ne peut être implémentée qu'APRÈS le plan-11 (Sélection de la Qualité du Stream).
+
+**Workflow prévu :**
+1. Plan-11 implémente le sélecteur de qualité dans le player
+2. Plan-12 peut ensuite ajouter un paramètre "Qualité par défaut" dans les préférences
+3. Ce paramètre sera automatiquement appliqué au démarrage de chaque stream
+
+**UI envisagée :**
+```
+┌─────────────────────────────────────────────┐
+│  Lecture                                    │
+│  ─────────────────────────────────────────  │
+│                                             │
+│  Qualité par défaut                         │
+│  [Auto ▼]                                   │
+│  ├─ Auto (recommandé)                       │
+│  ├─ 1080p60                                 │
+│  ├─ 1080p                                   │
+│  ├─ 720p60                                  │
+│  └─ ...                                     │
+│                                             │
+└─────────────────────────────────────────────┘
+```
 
 ## Fichiers concernés
 - `src/ui/PreferencesView.qml`

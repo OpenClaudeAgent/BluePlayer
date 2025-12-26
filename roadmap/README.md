@@ -70,9 +70,17 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 
 ## Dépendances entre tâches
 
-| Tâche | Dépend de |
-|-------|-----------|
-| 10 (Vitesse lecture) | 5 (Cache/VOD) |
+| Tâche | Dépend de | Notes |
+|-------|-----------|-------|
+| 9 (Vitesse lecture) | 5 (Cache/VOD) | La vitesse variable n'a de sens que pour les VOD |
+| 12 (Préférences) | 11 (Qualité selector) | Pour implémenter "qualité par défaut" |
+
+### Ordre d'implémentation recommandé
+
+Pour les features liées à la qualité :
+```
+Plan 11 (Sélection qualité) → Plan 12 (Préférences avec qualité par défaut)
+```
 
 ---
 
@@ -88,8 +96,10 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 6 | Barre de recherche Twitch | [plan-06](./plan-06-search.md) | `feature/search` | 🔴 En attente |
 | 7 | Chat Twitch intégré | [plan-07](./plan-07-chat.md) | `feature/chat` | 🔴 En attente |
 | 8 | Fix ligne vide Home | [plan-08](./plan-08-home-empty-row.md) | `feature/fix-home-row` | 🔴 En attente |
-| 9 | Panel Préférences | [plan-09](./plan-09-preferences.md) | `feature/preferences` | 🔴 En attente |
-| 10 | Vitesse lecture intelligente | [plan-10](./plan-10-playback-speed.md) | `feature/playback-speed` | 🔴 En attente |
+| 9 | Vitesse lecture intelligente | [plan-09](./plan-09-playback-speed.md) | `feature/playback-speed` | 🔴 En attente |
+| 10 | Stratégie animations globales | [plan-10](./plan-10-animations.md) | `feature/animations` | 🔴 En attente |
+| 11 | Sélection qualité stream | [plan-11](./plan-11-quality-selector.md) | `feature/quality-selector` | 🔴 En attente |
+| 12 | Panel Préférences | [plan-12](./plan-12-preferences.md) | `feature/preferences` | 🔴 En attente |
 
 ### Légende des statuts
 
@@ -108,4 +118,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 2025-12-XX | Création de la roadmap, tâches 1-9 définies |
 | 2025-12-26 | Ajout tâche 10 - Panel Préférences |
 | 2025-12-26 | Tâche 1 terminée - Bouton Volume (slider vertical + hover) |
-| 2025-12-26 | Réorganisation roadmap : vitesse lecture (ex plan-02) devient plan-10, dépend de plan-05 (Cache/VOD) |
+| 2025-12-26 | Réorganisation : vitesse lecture déplacée, dépend de plan-05 (Cache/VOD) |
+| 2025-12-26 | Ajout plan-10 (Animations) et plan-11 (Qualité stream) |
+| 2025-12-26 | Renumérotation finale : 9=Vitesse, 10=Animations, 11=Qualité, 12=Préférences |
+| 2025-12-26 | Dépendance ajoutée : Plan 12 (Préférences) dépend de Plan 11 (Qualité) |
