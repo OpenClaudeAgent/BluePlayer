@@ -291,57 +291,59 @@ Rectangle {
           }
         }
         
-        // LIVE indicator - Shows LIVE when at live edge, Go Live when behind
+        // LIVE/VOD indicator - Fixed size, only color changes
         Rectangle {
           id: livePill
-          width: seekSlider.atLiveEdge ? 52 : 90
-          height: 22
-          radius: 11
-          color: seekSlider.atLiveEdge ? "#FF3B30" : "#444444"
-          border.color: seekSlider.atLiveEdge ? "#FF7061" : "#666666"
-          opacity: seekSlider.enabled ? 1 : 0.5
-          visible: controlBar.liveMode || !seekSlider.atLiveEdge // Always visible in live mode, or when not at live edge
+          width: 56
+          height: 24
+          radius: 12
+          color: seekSlider.atLiveEdge ? "#FF3B30" : "#2C2C2E"
+          border.color: seekSlider.atLiveEdge ? "#FF6961" : "#48484A"
+          border.width: 1
           
-          Behavior on width { NumberAnimation { duration: 150 } }
-          Behavior on color { ColorAnimation { duration: 150 } }
+          Behavior on color { ColorAnimation { duration: 200 } }
+          Behavior on border.color { ColorAnimation { duration: 200 } }
           
           Row {
             anchors.centerIn: parent
             spacing: 6
             
-            // Pulsing dot when live
+            // Pulsing dot
             Rectangle {
               width: 8; height: 8; radius: 4
-              color: seekSlider.atLiveEdge ? "#FFFFFF" : "#AAAAAA"
+              anchors.verticalCenter: parent.verticalCenter
+              color: seekSlider.atLiveEdge ? "#FFFFFF" : "#8E8E93"
               
               SequentialAnimation on opacity {
-                running: seekSlider.atLiveEdge && controlBar.liveMode
+                running: seekSlider.atLiveEdge
                 loops: Animation.Infinite
-                NumberAnimation { to: 0.4; duration: 500 }
-                NumberAnimation { to: 1.0; duration: 500 }
+                NumberAnimation { to: 0.5; duration: 600 }
+                NumberAnimation { to: 1.0; duration: 600 }
               }
             }
             
             Text {
-              text: seekSlider.atLiveEdge ? qsTr("LIVE") : qsTr("Go Live")
-              font.pixelSize: 10
-              font.bold: true
+              text: seekSlider.atLiveEdge ? qsTr("LIVE") : qsTr("VOD")
+              font.pixelSize: 11
+              font.weight: Font.DemiBold
               color: "#FFFFFF"
+              anchors.verticalCenter: parent.verticalCenter
             }
           }
           
           MouseArea {
             anchors.fill: parent
             hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
+            cursorShape: seekSlider.atLiveEdge ? Qt.ArrowCursor : Qt.PointingHandCursor
             onClicked: {
-              controlBar.liveClicked()
-              // Removed manual seekSlider.value assignment as it's now handled by a robust Binding element
+              if (!seekSlider.atLiveEdge) {
+                controlBar.liveClicked()
+              }
             }
             
             ToolTip.visible: containsMouse && !seekSlider.atLiveEdge
-            ToolTip.text: controlBar.liveMode ? qsTr("Retour au direct (L)") : qsTr("Aller au live")
-            ToolTip.delay: 500
+            ToolTip.text: qsTr("Retour au direct")
+            ToolTip.delay: 400
           }
         }
       }
