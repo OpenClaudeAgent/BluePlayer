@@ -1,12 +1,12 @@
 #include "media/MpvQuickItem.hpp"
 
+#include <QByteArray>
 #include <QDebug>
 #include <QDir>
 #include <QPainter>
-#include <QByteArray>
-#include <QtGlobal>
 #include <QStandardPaths>
 #include <QTimer>
+#include <QtGlobal>
 #include <cstring>
 
 namespace blueplayer::media {
@@ -43,10 +43,8 @@ void MpvQuickItem::initMpv() {
   // Basic configuration
   mpv_set_option_string(m_mpv, "vo", "libmpv");
   mpv_set_option_string(m_mpv, "keep-open", "yes");
-  mpv_set_option_string(m_mpv, "terminal", "yes");
-
-  // Enable log messages
-  mpv_request_log_messages(m_mpv, "debug");
+  mpv_set_option_string(m_mpv, "terminal", "no");  // Disable terminal output
+  mpv_set_option_string(m_mpv, "msg-level", "all=error");  // Only show errors
 
   // Hardware decoding - Enable videotoolbox-copy for optimization
   // With QQuickPaintedItem (Software Rendering), 'copy' mode is ideal as it
@@ -91,6 +89,7 @@ void MpvQuickItem::initMpv() {
   mpv_observe_property(m_mpv, 0, "duration", MPV_FORMAT_DOUBLE);
   mpv_observe_property(m_mpv, 0, "pause", MPV_FORMAT_FLAG);
   mpv_observe_property(m_mpv, 0, "paused-for-cache", MPV_FORMAT_FLAG);
+  mpv_observe_property(m_mpv, 0, "stream-start", MPV_FORMAT_DOUBLE);
 
   if (mpv_initialize(m_mpv) < 0) {
     qCritical() << "[MpvQuickItem] Failed to initialize mpv";
@@ -274,16 +273,27 @@ void MpvQuickItem::processPropertyChange(const char *name, void *data,
       emit liveOffsetChanged(liveOffset());
     }
 
-    // Update live mode based on proximity to live edge or stream-start property
+    // Live mode logic - SIMPLIFIED:
+    // - Live mode: slider stays at 100% in UI, only exit if user seeks backward
+    // - VOD mode: return to live if user seeks close to live edge
     double dur = m_duration.load();
-    bool shouldBeLiveByPosition = dur > 0 && (dur - pos) < 5.0;
-    bool shouldBeLiveByStreamStart = m_streamStart.load() >= 0; // if stream-start is defined, it's a live stream
-    
-    bool newLiveModeState = shouldBeLiveByStreamStart || shouldBeLiveByPosition;
-
-    if (newLiveModeState != m_isLiveMode.load()) {
-      m_isLiveMode = newLiveModeState;
-      emit isLiveModeChanged(newLiveModeState);
+    if (dur > 1.0) {
+      bool isCloseToLive = (dur - pos) < 5.0;
+      
+      if (m_isLiveMode.load()) {
+        // Exit live mode only if user explicitly seeked AND is far from live edge
+        if (m_userInitiatedSeek && (dur - pos) > 5.0) {
+          m_isLiveMode = false;
+          emit isLiveModeChanged(false);
+          m_userInitiatedSeek = false;
+        }
+      } else {
+        // Return to live mode if close to live edge
+        if (isCloseToLive) {
+          m_isLiveMode = true;
+          emit isLiveModeChanged(true);
+        }
+      }
     }
   } else if (strcmp(name, "duration") == 0 && format == MPV_FORMAT_DOUBLE) {
     double dur = *static_cast<double *>(data);
@@ -304,7 +314,8 @@ void MpvQuickItem::processPropertyChange(const char *name, void *data,
     emit bufferingChanged(buffering);
   } else if (strcmp(name, "stream-start") == 0 && format == MPV_FORMAT_DOUBLE) {
     m_streamStart = *static_cast<double *>(data);
-    // The live mode state will be re-evaluated in the next positionChanged update
+    // The live mode state will be re-evaluated in the next positionChanged
+    // update
   }
 }
 
@@ -332,6 +343,13 @@ void MpvQuickItem::play(const QString &url) {
     m_source = url;
     emit sourceChanged(url);
   }
+
+  m_streamStart = -1.0;
+  m_duration = 0.0;
+  m_position = 0.0;
+  m_isLiveMode = true; // Default to live for new stream
+  m_userInitiatedSeek = false; // Reset user seek flag
+  emit isLiveModeChanged(true);
 
   // Store QByteArray to keep it alive during mpv_command
   QByteArray urlBytes = url.toUtf8();
@@ -380,10 +398,8 @@ void MpvQuickItem::seek(double seconds) {
   if (!m_mpv)
     return;
 
-  if (m_isLiveMode.load()) {
-    m_isLiveMode = false;
-    emit isLiveModeChanged(false);
-  }
+  // Mark that user initiated a seek - live mode will be updated based on position
+  m_userInitiatedSeek = true;
 
   char seekVal[32];
   snprintf(seekVal, sizeof(seekVal), "%.3f", seconds);
@@ -394,9 +410,12 @@ void MpvQuickItem::seek(double seconds) {
 void MpvQuickItem::seekToLive() {
   if (!m_mpv)
     return;
+  
+  m_userInitiatedSeek = false; // Reset user seek flag when going to live
+  
   const char *cmd[] = {"seek", "100", "absolute-percent", nullptr};
   mpv_command_async(m_mpv, 0, cmd);
-  m_isLiveMode = true; // Assume live mode when seeking to live edge
+  m_isLiveMode = true;
   emit isLiveModeChanged(true);
 }
 
@@ -467,8 +486,7 @@ void MpvQuickItem::setHardwareDecoding(bool enabled) {
   if (m_hwDecoding == enabled)
     return;
   m_hwDecoding = enabled;
-  mpv_set_property_string(m_mpv, "hwdec",
-                          enabled ? "videotoolbox-copy" : "no");
+  mpv_set_property_string(m_mpv, "hwdec", enabled ? "videotoolbox-copy" : "no");
   emit hardwareDecodingChanged(enabled);
 }
 

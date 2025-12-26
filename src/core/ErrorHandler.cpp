@@ -1,7 +1,5 @@
 #include "core/ErrorHandler.hpp"
 
-#include <QCoreApplication>
-
 namespace blueplayer::core {
 
 Error ErrorHandler::createError(ErrorCode code, const QString& baseMessage,
@@ -14,19 +12,19 @@ Error ErrorHandler::createError(ErrorCode code, const QString& baseMessage,
 
 Error ErrorHandler::networkError(const QString& context, const QString& details) {
   return createError(ErrorCode::NetworkError,
-                     QCoreApplication::translate("ErrorHandler", "Network error"),
+                     QStringLiteral("Erreur réseau"),
                      context, details);
 }
 
 Error ErrorHandler::twitchApiError(const QString& context, const QString& details) {
   return createError(ErrorCode::TwitchApiError,
-                     QCoreApplication::translate("ErrorHandler", "Twitch API error"),
+                     QStringLiteral("Erreur de l'API Twitch"),
                      context, details);
 }
 
 Error ErrorHandler::twitchAuthError(const QString& context, const QString& details) {
   return createError(ErrorCode::TwitchNotAuthenticated,
-                     QCoreApplication::translate("ErrorHandler", "Twitch authentication error"),
+                     QStringLiteral("Erreur d'authentification Twitch"),
                      context, details);
 }
 
@@ -36,7 +34,7 @@ Error ErrorHandler::mediaError(ErrorCode code, const QString& context, const QSt
 
 Error ErrorHandler::validationError(const QString& context, const QString& details) {
   return createError(ErrorCode::InvalidArgument,
-                     QCoreApplication::translate("ErrorHandler", "Validation error"),
+                     QStringLiteral("Erreur de validation"),
                      context, details);
 }
 

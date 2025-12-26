@@ -1051,7 +1051,7 @@ void TwitchApiClient::handlePlaybackAccessTokenReply() {
   handlePlaybackAccessTokenResponse(document, streamerLogin);
 }
 
-void TwitchApiClient::handlePlaybackAccessTokenResponse(const QJsonDocument& document, const QString& streamerLogin) {
+void TwitchApiClient::handlePlaybackAccessTokenResponse(const QJsonDocument& document, [[maybe_unused]] const QString& streamerLogin) {
   if (document.isNull() || !document.isObject()) {
     core::Logger::error(core::LogCategory::Twitch, QStringLiteral("[ERROR] Invalid JSON response for PlaybackAccessToken"));
     emit errorOccurred(QStringLiteral("Réponse invalide de l'API Twitch"));

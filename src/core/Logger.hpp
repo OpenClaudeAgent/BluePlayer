@@ -116,6 +116,22 @@ private:
 #define BLUEPLAYER_LOG_CRITICAL(category, message) \
   blueplayer::core::Logger::critical(blueplayer::core::LogCategory::category, message)
 
+// Macros courtes pour usage interne (dans le namespace blueplayer::core)
+#define LOG_DEBUG(category, message) \
+  Logger::debug(LogCategory::category, message)
+
+#define LOG_INFO(category, message) \
+  Logger::info(LogCategory::category, message)
+
+#define LOG_WARNING(category, message) \
+  Logger::warning(LogCategory::category, message)
+
+#define LOG_ERROR(category, message) \
+  Logger::error(LogCategory::category, message)
+
+#define LOG_CRITICAL(category, message) \
+  Logger::critical(LogCategory::category, message)
+
 
 
 

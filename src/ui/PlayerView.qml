@@ -251,7 +251,7 @@ Item {
       }
       
       onClicked: {
-          togglePlayPause()
+          // Ne pas mettre en pause au clic - uniquement montrer les contrôles
           playerRoot.controlsVisible = true
           hideControlsTimer.restart()
       }
@@ -703,11 +703,7 @@ Item {
         controlsVisible = true
         // Force live mode and seek to live edge when a new stream is loaded
         mpvPlayer.seekToLive()
-        // #region agent log
-        console.log(JSON.stringify({sessionId:'debug-session', runId:'run1', hypothesisId:'H3'
-, location:'PlayerView.qml:706', message:'seekToLive called', data:{playerRootLiveMode: playerRoot.liveMode}, timestamp:Date.now()}));
         // #endregion
-        liveModeEnforcementTimer.start()
       } else {
         console.log("[PlayerView] ERROR: Empty or invalid HLS URL")
         updateStatus(qsTr("Impossible de recuperer l'URL du flux"))
@@ -736,6 +732,7 @@ Item {
   onStreamerLoginChanged: {
     console.log("[PlayerView] onStreamerLoginChanged called, streamerLogin:", streamerLogin)
     if (streamerLogin && streamerLogin.length > 0) {
+      playerRoot.liveMode = true // Force live mode for new streams
       loadStream()
     }
   }

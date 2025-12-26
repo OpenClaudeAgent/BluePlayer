@@ -26,6 +26,10 @@ namespace twitch {
   constexpr const char* kDefaultScope = "user:read:email user:read:follows";
   constexpr int kThumbnailWidth = 320;
   constexpr int kThumbnailHeight = 180;
+  constexpr int kDefaultClipsCount = 20;
+  constexpr int kDefaultVideosCount = 20;
+  constexpr int kDefaultCategoriesCount = 20;
+  constexpr int kDefaultFollowedClipsPerBroadcaster = 5;
 }
 
 // Media

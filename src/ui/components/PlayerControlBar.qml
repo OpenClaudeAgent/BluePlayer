@@ -157,46 +157,6 @@ Rectangle {
     // Spacer
     Item { Layout.fillWidth: true }
 
-    // Live/VOD toggle harmonized with other chips
-    Rectangle {
-      id: liveToggle
-      Layout.preferredWidth: 70
-      Layout.preferredHeight: 32
-      radius: 16
-      color: "#26FFFFFF"
-      border.color: controlBar.liveMode ? "#FF7061" : "#4DFFFFFF"
-      border.width: 1
-
-      Row {
-        anchors.centerIn: parent
-        spacing: 8
-
-        Rectangle {
-          width: 10; height: 10; radius: 5
-          color: controlBar.liveMode ? "#FF3B30" : "#8BC34A"
-          anchors.verticalCenter: parent.verticalCenter
-        }
-
-        Text {
-          anchors.verticalCenter: parent.verticalCenter
-          text: controlBar.liveMode ? qsTr("LIVE") : qsTr("VOD")
-          font.pixelSize: 12
-          font.bold: true
-          color: "#FFFFFF"
-        }
-      }
-
-      MouseArea {
-        anchors.fill: parent
-        hoverEnabled: true
-        cursorShape: Qt.PointingHandCursor
-        onClicked: controlBar.liveClicked()
-      }
-    }
-
-    // Spacer
-    Item { Layout.fillWidth: true }
-
     // Seek area - YouTube-style DVR behavior
     ColumnLayout {
       Layout.fillWidth: true
@@ -207,7 +167,7 @@ Rectangle {
         Layout.fillWidth: true
         spacing: 12
 
-        // Seek slider - Live mode: sticks to right, Replay/VOD mode: free seek
+        // Seek slider - Live mode: ALWAYS at 100%, VOD mode: follows position
         Slider {
           id: seekSlider
           Layout.fillWidth: true
@@ -216,68 +176,38 @@ Rectangle {
           from: 0
           to: currentDuration > 0 ? currentDuration : 1
 
-          // Property to track liveMode for easier access
+          // Properties for easier access
           property bool isLiveMode: controlBar.liveMode
-
-          // Property to track duration for easier access
           property real currentDuration: controlBar.duration
-
-          // In live mode: at live edge if within 5 seconds OR if liveMode is true and not dragging
-          // In replay/VOD mode: at live edge if within 5 seconds
-          readonly property bool atLiveEdge: currentDuration > 0 && (
-            (isLiveMode && !userDragging && !pressed) || 
-            (currentDuration - controlBar.position) <= 5
-          )
           property bool userDragging: false
           property real seekTarget: 0
-          property bool seekStarted: false // Ajout pour suivre l'état du seek par l'utilisateur
 
-          // Use a binding for value, conditional on userDragging
-          value: userDragging ? seekTarget : (isLiveMode ? currentDuration : controlBar.position)
+          // In live mode: always at live edge (UI only)
+          readonly property bool atLiveEdge: isLiveMode || (currentDuration > 0 && (currentDuration - controlBar.position) <= 5)
 
-          // Connections pour mettre à jour la valeur du slider lorsque la position du lecteur change
-          // uniquement si le seek n'est pas initié par l'utilisateur.
-          Connections {
-              target: controlBar
-              function onPositionChanged() {
-                  if (!seekSlider.seekStarted && !seekSlider.isLiveMode) {
-                      seekSlider.value = controlBar.position;
-                  }
-              }
-              function onDurationChanged() {
-                  // Si la durée change en mode live et n'est pas un seek utilisateur, mettre à jour la valeur
-                  if (seekSlider.isLiveMode && !seekSlider.seekStarted) {
-                      seekSlider.value = seekSlider.currentDuration;
-                  }
-              }
+          // SIMPLE LOGIC:
+          // - Live mode: slider always at 100% (right edge)
+          // - VOD mode: slider follows actual position
+          Binding {
+              target: seekSlider
+              property: "value"
+              value: seekSlider.isLiveMode ? seekSlider.to : controlBar.position
+              when: !seekSlider.userDragging && !seekSlider.pressed
           }
 
           onPressedChanged: {
             if (pressed) {
               userDragging = true
-              seekStarted = true // Indiquer que le seek est initié par l'utilisateur
               controlBar.seekDragStarted()
-              // Mettre en pause le lecteur pendant le dragging
-              if (controlBar.playing && !controlBar.paused) {
-                  controlBar.playPauseClicked() // Simule un clic pour mettre en pause
-              }
-              seekTarget = controlBar.position // Définir la cible de seek à la position actuelle
+              // In live mode, start seek from current position
+              seekTarget = isLiveMode ? currentDuration : controlBar.position
             } else if (userDragging) {
               userDragging = false
-              seekStarted = false // Le seek de l'utilisateur est terminé
               controlBar.seekDragEnded(seekTarget)
-              // Reprendre la lecture si elle était en pause à cause du dragging
-              if (!controlBar.playing && controlBar.paused) {
-                  controlBar.playPauseClicked() // Simule un clic pour reprendre
-              }
-
-              // In live mode: if seeking close to live edge, go to live edge
-              // Otherwise, seek to the selected position
-              if (isLiveMode && (currentDuration - seekTarget) <= 5) {
-                controlBar.seekRequested(currentDuration)
-              } else {
-                controlBar.seekRequested(seekTarget)
-              }
+              
+              // If user seeked to a position (not at the very end), do the seek
+              // The backend will handle switching to VOD mode if needed
+              controlBar.seekRequested(seekTarget)
             }
           }
 
@@ -286,10 +216,6 @@ Rectangle {
               seekTarget = value
               controlBar.seekPreviewed(value)
             }
-          }
-
-          Component.onCompleted: {
-              // No special initialization needed, bindings will handle it
           }
 
           background: Rectangle {
@@ -410,10 +336,7 @@ Rectangle {
             cursorShape: Qt.PointingHandCursor
             onClicked: {
               controlBar.liveClicked()
-              // After clicking, seek to live edge
-              if (controlBar.liveMode) {
-                seekSlider.value = seekSlider.currentDuration;
-              }
+              // Removed manual seekSlider.value assignment as it's now handled by a robust Binding element
             }
             
             ToolTip.visible: containsMouse && !seekSlider.atLiveEdge

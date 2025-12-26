@@ -103,7 +103,7 @@ void TestErrorHandler::testValidationErrorWithDetails() {
 
 void TestErrorHandler::testToString() {
   Error error = ErrorHandler::networkError("TestContext", "Test details");
-  QString str = ErrorHandler::toString(error);
+  QString str = error.toString();
   
   QVERIFY(str.contains("TestContext"));
   QVERIFY(str.contains("Test details") || str.contains("Erreur réseau"));

@@ -60,15 +60,15 @@ void HomeViewModel::updateSectionsData() {
   // Section 6: Recommandations par catégorie
   if (sections.size() > 5) {
     QVariantMap categoryStreamsSection = sections[5].toMap();
-    Logger::debug(LogCategory::UI, QStringLiteral("[DEBUG] Updating section 6 (Recommandations par catégorie), m_categoryStreams.size(): %1").arg(m_categoryStreams.size()));
+    Logger::debug(LogCategory::UI, QStringLiteral("Updating section 6: %1 category streams").arg(m_categoryStreams.size()));
     QVariantList categoryStreamsCards = m_categoryStreams.isEmpty() 
       ? categoryStreamsSection["cards"].toList() 
       : m_categoryStreams;
-    Logger::debug(LogCategory::UI, QStringLiteral("[DEBUG] Section 6 cards count: %1").arg(categoryStreamsCards.size()));
+    Logger::debug(LogCategory::UI, QStringLiteral("Section 6 cards: %1").arg(categoryStreamsCards.size()));
     categoryStreamsSection["cards"] = categoryStreamsCards;
     sections[5] = categoryStreamsSection;
   } else {
-    Logger::warning(LogCategory::UI, QStringLiteral("[DEBUG] Sections size is %1, cannot update section 6").arg(sections.size()));
+    Logger::warning(LogCategory::UI, QStringLiteral("Sections size is %1, cannot update section 6").arg(sections.size()));
   }
   
   m_sectionsData = sections;
@@ -257,33 +257,29 @@ QVariantList HomeViewModel::transformChannels(const QVariantList& twitchChannels
 }
 
 void HomeViewModel::updatePopularClips(const QVariantList& twitchClips) {
-  Logger::debug(LogCategory::UI, QStringLiteral("[DEBUG] updatePopularClips() called with %1 clips").arg(twitchClips.size()));
   m_popularClips = transformClips(twitchClips);
-  Logger::debug(LogCategory::UI, QStringLiteral("[DEBUG] Transformed clips: %1").arg(m_popularClips.size()));
+  Logger::debug(LogCategory::UI, QStringLiteral("Popular clips updated: %1").arg(m_popularClips.size()));
   emit popularClipsChanged();
   updateSectionsData();
 }
 
 void HomeViewModel::updateFollowedClips(const QVariantList& twitchClips) {
-  Logger::debug(LogCategory::UI, QStringLiteral("[DEBUG] updateFollowedClips() called with %1 clips").arg(twitchClips.size()));
   m_followedClips = transformClips(twitchClips);
-  Logger::debug(LogCategory::UI, QStringLiteral("[DEBUG] Transformed clips: %1").arg(m_followedClips.size()));
+  Logger::debug(LogCategory::UI, QStringLiteral("Followed clips updated: %1").arg(m_followedClips.size()));
   emit followedClipsChanged();
   updateSectionsData();
 }
 
 void HomeViewModel::updateVideos(const QVariantList& twitchVideos) {
-  Logger::debug(LogCategory::UI, QStringLiteral("[DEBUG] updateVideos() called with %1 videos").arg(twitchVideos.size()));
   m_videos = transformVideos(twitchVideos);
-  Logger::debug(LogCategory::UI, QStringLiteral("[DEBUG] Transformed videos: %1").arg(m_videos.size()));
+  Logger::debug(LogCategory::UI, QStringLiteral("Videos updated: %1").arg(m_videos.size()));
   emit videosChanged();
   updateSectionsData();
 }
 
 void HomeViewModel::updateFollowedChannels(const QVariantList& twitchChannels) {
-  Logger::debug(LogCategory::UI, QStringLiteral("[DEBUG] updateFollowedChannels() called with %1 channels").arg(twitchChannels.size()));
   m_followedChannels = transformChannels(twitchChannels);
-  Logger::debug(LogCategory::UI, QStringLiteral("[DEBUG] Transformed channels: %1").arg(m_followedChannels.size()));
+  Logger::debug(LogCategory::UI, QStringLiteral("Followed channels updated: %1").arg(m_followedChannels.size()));
   emit followedChannelsChanged();
   updateSectionsData();
 }
@@ -312,25 +308,10 @@ void HomeViewModel::updateNewStreamers(const QVariantList& twitchStreamers) {
 }
 
 void HomeViewModel::updateCategoryStreams(const QVariantList& twitchStreams) {
-  Logger::debug(LogCategory::UI, QStringLiteral("[DEBUG] updateCategoryStreams() called with %1 streams").arg(twitchStreams.size()));
-  
-  if (!twitchStreams.isEmpty()) {
-    const QVariantMap firstStream = twitchStreams.first().toMap();
-    Logger::debug(LogCategory::UI, QStringLiteral("[DEBUG] First stream keys: %1").arg(firstStream.keys().join(", ")));
-    Logger::debug(LogCategory::UI, QStringLiteral("[DEBUG] First stream user_name: %1").arg(firstStream.value(QStringLiteral("user_name")).toString()));
-  }
-  
   m_categoryStreams = transformTwitchStreams(twitchStreams);
-  Logger::debug(LogCategory::UI, QStringLiteral("[DEBUG] Transformed streams: %1").arg(m_categoryStreams.size()));
-  
-  if (!m_categoryStreams.isEmpty()) {
-    const QVariantMap firstTransformed = m_categoryStreams.first().toMap();
-    Logger::debug(LogCategory::UI, QStringLiteral("[DEBUG] First transformed stream name: %1, isPlaceholder: %2").arg(firstTransformed.value(QStringLiteral("name")).toString()).arg(firstTransformed.value(QStringLiteral("isPlaceholder")).toBool()));
-  }
-  
+  Logger::debug(LogCategory::UI, QStringLiteral("Category streams updated: %1").arg(m_categoryStreams.size()));
   emit categoryStreamsChanged();
   updateSectionsData();
-  Logger::debug(LogCategory::UI, QStringLiteral("[DEBUG] Sections data updated, m_categoryStreams.size() = %1").arg(m_categoryStreams.size()));
 }
 
 void HomeViewModel::generatePlaceholderCards() {

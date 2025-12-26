@@ -444,7 +444,7 @@ void TwitchAuthManager::handleTokenReply() {
   const blueplayer::core::Error networkError =
       blueplayer::core::network::HttpClient::checkNetworkError(
           reply, QStringLiteral("requête OAuth"));
-  if (networkError.isValid()) {
+  if (networkError.hasError()) {
     // #region agent log
     QFile logFile(QStringLiteral("/Users/user/Projects/BluePlayer/.cursor/debug.log"));
     if (logFile.open(QIODevice::WriteOnly | QIODevice::Append)) {
@@ -510,10 +510,10 @@ void TwitchAuthManager::handleTokenReply() {
     logEntry[QStringLiteral("hypothesisId")] = QStringLiteral("D");
     logEntry[QStringLiteral("location")] = QStringLiteral("TwitchAuthManager.cpp:394");
     logEntry[QStringLiteral("message")] = QStringLiteral("handleTokenReply() - new token received");
-    QJsonObject data;
-    data[QStringLiteral("newTokenLength")] = m_accessToken.length();
-    data[QStringLiteral("newTokenPreview")] = m_accessToken.isEmpty() ? QStringLiteral("EMPTY") : m_accessToken.left(8) + QStringLiteral("...");
-    logEntry[QStringLiteral("data")] = data;
+    QJsonObject logData;
+    logData[QStringLiteral("newTokenLength")] = m_accessToken.length();
+    logData[QStringLiteral("newTokenPreview")] = m_accessToken.isEmpty() ? QStringLiteral("EMPTY") : m_accessToken.left(8) + QStringLiteral("...");
+    logEntry[QStringLiteral("data")] = logData;
     logEntry[QStringLiteral("timestamp")] = QDateTime::currentMSecsSinceEpoch();
     QTextStream stream(&logFile);
     stream << QJsonDocument(logEntry).toJson(QJsonDocument::Compact) << "\n";
@@ -550,9 +550,9 @@ void TwitchAuthManager::handleTokenReply() {
     logEntry[QStringLiteral("hypothesisId")] = QStringLiteral("C");
     logEntry[QStringLiteral("location")] = QStringLiteral("TwitchAuthManager.cpp:417");
     logEntry[QStringLiteral("message")] = QStringLiteral("handleTokenReply() - about to emit signals");
-    QJsonObject data;
-    data[QStringLiteral("tokenLength")] = m_accessToken.length();
-    logEntry[QStringLiteral("data")] = data;
+    QJsonObject logData;
+    logData[QStringLiteral("tokenLength")] = m_accessToken.length();
+    logEntry[QStringLiteral("data")] = logData;
     logEntry[QStringLiteral("timestamp")] = QDateTime::currentMSecsSinceEpoch();
     QTextStream stream(&logFile);
     stream << QJsonDocument(logEntry).toJson(QJsonDocument::Compact) << "\n";

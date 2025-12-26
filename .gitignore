@@ -53,3 +53,6 @@ usr/
 # Mull compilation artifacts
 *.bc
 *.ll
+.aider*
+.env
+.env

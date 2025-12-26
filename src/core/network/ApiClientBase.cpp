@@ -104,7 +104,7 @@ QJsonDocument ApiClientBase::parseJsonResponse(QNetworkReply* reply, const QStri
 
 bool ApiClientBase::handleNetworkError(QNetworkReply* reply, const QString& errorContext) {
   const Error error = HttpClient::checkNetworkError(reply, errorContext);
-  if (error.isValid()) {
+  if (error.hasError()) {
     emit errorOccurred(error);
     return true;
   }

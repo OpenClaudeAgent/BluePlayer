@@ -5,9 +5,28 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Définir les chemins pour Vulkan via Homebrew
-set(Vulkan_INCLUDE_DIR "/opt/homebrew/include")
-set(Vulkan_LIBRARY "/opt/homebrew/lib/libvulkan.dylib") # Ou libvulkan.a si statique
+# Détection automatique du chemin Homebrew (portable entre architectures Mac)
+if(APPLE)
+    execute_process(
+        COMMAND brew --prefix
+        OUTPUT_VARIABLE HOMEBREW_PREFIX
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+    if(NOT HOMEBREW_PREFIX)
+        # Fallback pour les Mac ARM et Intel
+        if(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
+            set(HOMEBREW_PREFIX "/opt/homebrew")
+        else()
+            set(HOMEBREW_PREFIX "/usr/local")
+        endif()
+    endif()
+    message(STATUS "Homebrew prefix: ${HOMEBREW_PREFIX}")
+endif()
+
+# Définir les chemins pour Vulkan
+set(Vulkan_INCLUDE_DIR "${HOMEBREW_PREFIX}/include")
+set(Vulkan_LIBRARY "${HOMEBREW_PREFIX}/lib/libvulkan.dylib")
 set(Vulkan_FOUND TRUE)
 
 # Activer AUTOMOC, AUTORCC, AUTOUIC pour une meilleure gestion des fichiers Qt

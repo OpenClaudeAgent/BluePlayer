@@ -5,7 +5,7 @@ BLUEPLAYER_ROOT := $(shell pwd)
 BUILD_DIR := $(BLUEPLAYER_ROOT)/build
 SCRIPTS_DIR := $(BLUEPLAYER_ROOT)/scripts
 LOAD_ENV_SCRIPT := $(SCRIPTS_DIR)/load_env.sh
-CMAKE_EXECUTABLE := /opt/homebrew/bin/cmake
+CMAKE_EXECUTABLE := $(shell which cmake)
 LOG_DIR := $(BUILD_DIR)/logs
 BUILD_LOG := $(LOG_DIR)/build.log
 TEST_LOG := $(LOG_DIR)/test.log
@@ -91,6 +91,27 @@ run: build
 		echo "== [$$(date '+%F %T')] BluePlayer stopped =="; \
 	} 2>&1 | tee -a $(RUN_LOG)
 
+# Format source code
+.PHONY: format
+format:
+	@echo "Formatting source code..."
+	@find src tests -type f \( -name "*.cpp" -o -name "*.hpp" \) -exec clang-format -i {} +
+	@echo "Formatting complete."
+
+# Check formatting (dry run)
+.PHONY: format-check
+format-check:
+	@echo "Checking code formatting..."
+	@find src tests -type f \( -name "*.cpp" -o -name "*.hpp" \) -exec clang-format --dry-run --Werror {} +
+	@echo "Formatting check passed."
+
+# Run static analysis
+.PHONY: lint
+lint:
+	@echo "Running clang-tidy..."
+	@$(SCRIPTS_DIR)/analyze.sh
+	@echo "Static analysis complete."
+
 # Help target
 .PHONY: help
 help:
@@ -104,4 +125,7 @@ help:
 	@echo "  make test-all     - Run tests, coverage, and mutation tests"
 	@echo "  make validate     - Validate build (compile, test, coverage check)"
 	@echo "  make run          - Build and run the application"
+	@echo "  make format       - Format source code with clang-format"
+	@echo "  make format-check - Check code formatting (dry run)"
+	@echo "  make lint         - Run clang-tidy static analysis"
 	@echo "  make help         - Display this help message"

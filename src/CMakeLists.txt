@@ -72,8 +72,7 @@ setup_compiler_warnings(blueplayer_core)
 add_library(blueplayer_media STATIC ${BLUEPLAYER_MEDIA_SOURCES})
 target_include_directories(blueplayer_media PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}
-
-  /opt/homebrew/include  # For libmpv
+  ${HOMEBREW_PREFIX}/include  # For libmpv
 )
 target_link_libraries(blueplayer_media
   PUBLIC
@@ -81,12 +80,11 @@ target_link_libraries(blueplayer_media
     Qt6::Quick
     Qt6::Multimedia
     Qt6::OpenGL
-
     mpv  # libmpv for video playback
   PRIVATE
     blueplayer_core  # Nécessaire pour Logger, LogCategory, InputValidator
 )
-target_link_directories(blueplayer_media PRIVATE /opt/homebrew/lib)
+target_link_directories(blueplayer_media PRIVATE ${HOMEBREW_PREFIX}/lib)
 # Appliquer les flags de couverture si activés
 if(BLUEPLAYER_COVERAGE_ENABLED)
     target_compile_options(blueplayer_media PRIVATE ${BLUEPLAYER_COVERAGE_FLAGS})
@@ -142,7 +140,7 @@ target_link_libraries(BluePlayer
     blueplayer_media  # Nécessaire car blueplayer_core ne lie plus blueplayer_media
 
 )
-target_link_directories(BluePlayer PRIVATE /opt/homebrew/lib)
+target_link_directories(BluePlayer PRIVATE ${HOMEBREW_PREFIX}/lib)
 
 set_target_properties(BluePlayer PROPERTIES
   MACOSX_BUNDLE TRUE

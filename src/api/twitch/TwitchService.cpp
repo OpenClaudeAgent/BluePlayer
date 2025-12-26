@@ -149,69 +149,30 @@ void TwitchService::onCategoriesReady(const QVariantList &categories) {
 }
 
 void TwitchService::onPopularClipsReady(const QVariantList &clips) {
-  Logger::debug(
-      LogCategory::Twitch,
-      QStringLiteral("[DEBUG] onPopularClipsReady() called with %1 clips")
-          .arg(clips.size()));
   m_popularClips = clips;
-  Logger::debug(
-      LogCategory::Twitch,
-      QStringLiteral(
-          "[DEBUG] Emitting popularClipsChanged(), m_popularClips.size() = %1")
-          .arg(m_popularClips.size()));
+  Logger::debug(LogCategory::Twitch, QStringLiteral("Popular clips ready: %1").arg(clips.size()));
   emit popularClipsChanged();
 }
 
 void TwitchService::onFollowedClipsReady(const QVariantList &clips) {
-  Logger::debug(
-      LogCategory::Twitch,
-      QStringLiteral("[DEBUG] onFollowedClipsReady() called with %1 clips")
-          .arg(clips.size()));
   m_followedClips = clips;
-  Logger::debug(LogCategory::Twitch,
-                QStringLiteral("[DEBUG] Emitting followedClipsChanged(), "
-                               "m_followedClips.size() = %1")
-                    .arg(m_followedClips.size()));
+  Logger::debug(LogCategory::Twitch, QStringLiteral("Followed clips ready: %1").arg(clips.size()));
   emit followedClipsChanged();
 }
 
 void TwitchService::onVideosReady(const QVariantList &videos) {
-  Logger::debug(LogCategory::Twitch,
-                QStringLiteral("[DEBUG] onVideosReady() called with %1 videos")
-                    .arg(videos.size()));
   m_videos = videos;
-  Logger::debug(
-      LogCategory::Twitch,
-      QStringLiteral("[DEBUG] Emitting videosChanged(), m_videos.size() = %1")
-          .arg(m_videos.size()));
+  Logger::debug(LogCategory::Twitch, QStringLiteral("Videos ready: %1").arg(videos.size()));
   emit videosChanged();
 }
 
 void TwitchService::onFollowedChannelsReady(const QVariantList &channels) {
-  Logger::debug(LogCategory::Twitch,
-                QStringLiteral(
-                    "[DEBUG] onFollowedChannelsReady() called with %1 channels")
-                    .arg(channels.size()));
   m_followedChannels = channels;
-  Logger::debug(LogCategory::Twitch,
-                QStringLiteral("[DEBUG] Emitting followedChannelsChanged(), "
-                               "m_followedChannels.size() = %1")
-                    .arg(m_followedChannels.size()));
+  Logger::debug(LogCategory::Twitch, QStringLiteral("Followed channels ready: %1").arg(channels.size()));
   emit followedChannelsChanged();
 
-  // Maintenant que les chaînes suivies sont chargées, on peut charger les clips
-  // suivis
   if (!channels.isEmpty()) {
-    Logger::debug(LogCategory::Twitch,
-                  QStringLiteral("[DEBUG] Followed channels loaded (%1 "
-                                 "channels), refreshing followed clips")
-                      .arg(channels.size()));
     refreshFollowedClips();
-  } else {
-    Logger::debug(
-        LogCategory::Twitch,
-        QStringLiteral(
-            "[DEBUG] No followed channels - cannot fetch followed clips"));
   }
 }
 
@@ -224,28 +185,8 @@ void TwitchService::onNewStreamersReady(const QVariantList &streamers) {
 }
 
 void TwitchService::onCategoryStreamsReady(const QVariantList &streams) {
-  Logger::debug(
-      LogCategory::Twitch,
-      QStringLiteral("[DEBUG] onCategoryStreamsReady() called with %1 streams")
-          .arg(streams.size()));
   m_categoryStreams = streams;
-  Logger::debug(LogCategory::Twitch,
-                QStringLiteral("[DEBUG] Emitting categoryStreamsChanged(), "
-                               "m_categoryStreams.size() = %1")
-                    .arg(m_categoryStreams.size()));
-
-  if (streams.isEmpty()) {
-    Logger::warning(LogCategory::Twitch,
-                    QStringLiteral("[DEBUG] No category streams received"));
-  } else {
-    const QVariantMap firstStream = streams.first().toMap();
-    Logger::debug(
-        LogCategory::Twitch,
-        QStringLiteral("[DEBUG] First stream: name=%1, viewers=%2")
-            .arg(firstStream.value(QStringLiteral("name")).toString())
-            .arg(firstStream.value(QStringLiteral("viewers")).toString()));
-  }
-
+  Logger::debug(LogCategory::Twitch, QStringLiteral("Category streams ready: %1").arg(streams.size()));
   emit categoryStreamsChanged();
 }
 
@@ -260,10 +201,7 @@ void TwitchService::onUserInfoReady(const QString &userId) {
 
 void TwitchService::onUserInfoReadyWithName(const QString &userId,
                                             const QString &userName) {
-  Logger::debug(LogCategory::Twitch,
-                QStringLiteral("[DEBUG] onUserInfoReadyWithName() called with "
-                               "userId: %1, userName: %2")
-                    .arg(userId, userName));
+  Logger::debug(LogCategory::Twitch, QStringLiteral("User info ready: %1 (%2)").arg(userName, userId));
   if (m_userId != userId) {
     m_userId = userId;
     emit userIdChanged();
@@ -271,24 +209,9 @@ void TwitchService::onUserInfoReadyWithName(const QString &userId,
   if (m_userName != userName) {
     m_userName = userName;
     emit userNameChanged();
-    Logger::debug(
-        LogCategory::Twitch,
-        QStringLiteral("[DEBUG] User name changed, emitted userNameChanged()"));
   }
-  // Maintenant qu'on a l'ID utilisateur, on peut récupérer les streams suivis
-  // et autres données
   if (m_apiClient) {
-    Logger::debug(
-        LogCategory::Twitch,
-        QStringLiteral("[DEBUG] Requesting followed streams for userId: %1")
-            .arg(userId));
     m_apiClient->listFollowedStreams(userId);
-    // Charger les données qui nécessitent userId
-    // refreshFollowedClips() sera appelé après que les streams suivis soient
-    // chargés (dans onStreamsReady)
-    Logger::debug(LogCategory::Twitch,
-                  QStringLiteral(
-                      "[DEBUG] Loading user-specific data after userId ready"));
     refreshVideos();
     refreshFollowedChannels();
     refreshNewStreamers();
@@ -298,43 +221,15 @@ void TwitchService::onUserInfoReadyWithName(const QString &userId,
 }
 
 void TwitchService::onAuthStateChanged(bool authenticated) {
-  Logger::debug(
-      LogCategory::Twitch,
-      QStringLiteral("[DEBUG] onAuthStateChanged() called, authenticated: %1")
-          .arg(authenticated));
+  Logger::debug(LogCategory::Twitch, QStringLiteral("Auth state changed: %1").arg(authenticated));
   emit authenticatedChanged(authenticated);
   if (authenticated && m_apiClient) {
     QString token = m_authManager->accessToken();
-    Logger::debug(LogCategory::Twitch,
-                  QStringLiteral("[DEBUG] Setting access token, length: %1")
-                      .arg(token.length()));
-    // Ne définir le token que s'il n'est pas vide (peut être vide pendant un refresh)
     if (!token.isEmpty()) {
       m_apiClient->setAccessToken(token);
-      // Si on vient de s'authentifier, charger les streams automatiquement
-      if (!m_userId.isEmpty()) {
-        Logger::debug(
-            LogCategory::Twitch,
-            QStringLiteral(
-                "[DEBUG] User ID already known (%1), refreshing streams")
-                .arg(m_userId));
-        refreshStreams();
-        refreshRecommendedStreams();
-        refreshCategories();
-      } else {
-        Logger::debug(
-            LogCategory::Twitch,
-            QStringLiteral(
-                "[DEBUG] User ID not known yet, will be loaded via getUserInfo"));
-        // getUserInfo sera appelé par refreshStreams
-        refreshStreams();
-        refreshRecommendedStreams();
-        refreshCategories();
-      }
-    } else {
-      Logger::debug(LogCategory::Twitch,
-                    QStringLiteral("[DEBUG] Token is empty (refresh in progress?), "
-                                   "skipping API calls"));
+      refreshStreams();
+      refreshRecommendedStreams();
+      refreshCategories();
     }
   }
 }
@@ -399,135 +294,60 @@ void TwitchService::refreshCategories() {
 }
 
 void TwitchService::refreshPopularClips() {
-  Logger::debug(LogCategory::Twitch,
-                QStringLiteral("[DEBUG] refreshPopularClips() called"));
-
   if (!m_apiClient) {
-    Logger::error(LogCategory::Twitch,
-                  QStringLiteral("[DEBUG] API client is null"));
+    Logger::error(LogCategory::Twitch, QStringLiteral("API client is null"));
     emit errorOccurred(QStringLiteral("Client API non initialisé."));
     return;
   }
 
   QString token = m_authManager ? m_authManager->accessToken() : QString();
-  Logger::debug(LogCategory::Twitch,
-                QStringLiteral("[DEBUG] Token available: %1, length: %2")
-                    .arg(token.isEmpty() ? "NO" : "YES")
-                    .arg(token.length()));
   if (!token.isEmpty()) {
     m_apiClient->setAccessToken(token);
   }
 
-  Logger::debug(LogCategory::Twitch,
-                QStringLiteral("[DEBUG] Requesting popular clips"));
+  Logger::debug(LogCategory::Twitch, QStringLiteral("Requesting popular clips"));
   m_apiClient->getPopularClips(20);
-  Logger::debug(LogCategory::Twitch,
-                QStringLiteral("[DEBUG] getPopularClips() call completed"));
 }
 
 void TwitchService::refreshFollowedClips() {
-  Logger::debug(LogCategory::Twitch,
-                QStringLiteral("[DEBUG] refreshFollowedClips() called"));
-  Logger::debug(LogCategory::Twitch,
-                QStringLiteral("[DEBUG] isAuthenticated: %1, userId: %2")
-                    .arg(isAuthenticated())
-                    .arg(m_userId.isEmpty() ? "EMPTY" : m_userId));
-
   if (!m_apiClient || !m_authManager) {
-    Logger::error(LogCategory::Twitch,
-                  QStringLiteral("[DEBUG] API client or auth manager is null"));
+    Logger::error(LogCategory::Twitch, QStringLiteral("API client or auth manager is null"));
     emit errorOccurred(QStringLiteral("Client API non initialisé."));
     return;
   }
 
   if (!isAuthenticated() || m_userId.isEmpty()) {
-    Logger::warning(LogCategory::Twitch,
-                    QStringLiteral("[DEBUG] Not authenticated or userId "
-                                   "unknown, clearing followed clips"));
     m_followedClips.clear();
     emit followedClipsChanged();
     return;
   }
 
   // Récupérer les broadcaster_ids des chaînes suivies
-  // On utilise m_followedChannels car elle contient tous les streamers suivis,
-  // pas seulement ceux qui sont en direct (contrairement à m_streams)
   QStringList broadcasterIds;
-  Logger::debug(
-      LogCategory::Twitch,
-      QStringLiteral(
-          "[DEBUG] Extracting broadcaster IDs from %1 followed channels")
-          .arg(m_followedChannels.size()));
 
-  // Si les chaînes suivies ne sont pas encore chargées, essayer avec les
-  // streams suivis en direct
+  // Si les chaînes suivies ne sont pas encore chargées, essayer avec les streams en direct
   if (m_followedChannels.isEmpty() && !m_streams.isEmpty()) {
-    Logger::debug(
-        LogCategory::Twitch,
-        QStringLiteral(
-            "[DEBUG] No followed channels yet, using %1 live streams instead")
-            .arg(m_streams.size()));
-    for (int i = 0; i < m_streams.size(); ++i) {
-      const QVariant &streamVar = m_streams.at(i);
+    for (const QVariant &streamVar : m_streams) {
       const QVariantMap stream = streamVar.toMap();
-      QString broadcasterId =
-          stream.value(QStringLiteral("user_id")).toString();
+      QString broadcasterId = stream.value(QStringLiteral("user_id")).toString();
       if (broadcasterId.isEmpty()) {
         broadcasterId = stream.value(QStringLiteral("id")).toString();
       }
       if (!broadcasterId.isEmpty()) {
         broadcasterIds.append(broadcasterId);
-        Logger::debug(
-            LogCategory::Twitch,
-            QStringLiteral("[DEBUG] Added broadcaster_id from stream: %1")
-                .arg(broadcasterId));
       }
     }
   } else {
-    // Utiliser les chaînes suivies (contient tous les streamers suivis)
-    for (int i = 0; i < m_followedChannels.size(); ++i) {
-      const QVariant &channelVar = m_followedChannels.at(i);
+    for (const QVariant &channelVar : m_followedChannels) {
       const QVariantMap channel = channelVar.toMap();
-
-      // Les chaînes suivies utilisent "broadcaster_id" pour le broadcaster_id
-      QString broadcasterId =
-          channel.value(QStringLiteral("broadcaster_id")).toString();
-
-      Logger::debug(
-          LogCategory::Twitch,
-          QStringLiteral(
-              "[DEBUG] Channel %1: broadcaster_id=%2, broadcaster_name=%3")
-              .arg(i)
-              .arg(broadcasterId)
-              .arg(channel.value(QStringLiteral("broadcaster_name"))
-                       .toString()));
-
+      QString broadcasterId = channel.value(QStringLiteral("broadcaster_id")).toString();
       if (!broadcasterId.isEmpty()) {
         broadcasterIds.append(broadcasterId);
-        Logger::debug(LogCategory::Twitch,
-                      QStringLiteral("[DEBUG] Added broadcaster_id: %1")
-                          .arg(broadcasterId));
-      } else {
-        Logger::warning(
-            LogCategory::Twitch,
-            QStringLiteral("[DEBUG] Channel %1 has no broadcaster_id").arg(i));
       }
     }
   }
 
-  Logger::debug(
-      LogCategory::Twitch,
-      QStringLiteral(
-          "[DEBUG] Found %1 broadcaster IDs from %2 channels/%3 streams")
-          .arg(broadcasterIds.size())
-          .arg(m_followedChannels.size())
-          .arg(m_streams.size()));
-
   if (broadcasterIds.isEmpty()) {
-    Logger::warning(
-        LogCategory::Twitch,
-        QStringLiteral(
-            "[DEBUG] No broadcaster IDs found - cannot fetch followed clips"));
     m_followedClips.clear();
     emit followedClipsChanged();
     return;
@@ -538,36 +358,18 @@ void TwitchService::refreshFollowedClips() {
     m_apiClient->setAccessToken(token);
   }
 
-  Logger::debug(LogCategory::Twitch,
-                QStringLiteral(
-                    "[DEBUG] Requesting followed clips for %1 broadcasters: %2")
-                    .arg(broadcasterIds.size())
-                    .arg(broadcasterIds.join(", ")));
+  Logger::debug(LogCategory::Twitch, QStringLiteral("Requesting followed clips for %1 broadcasters").arg(broadcasterIds.size()));
   m_apiClient->getFollowedClips(broadcasterIds, 5);
-  Logger::debug(LogCategory::Twitch,
-                QStringLiteral("[DEBUG] getFollowedClips() call completed"));
 }
 
 void TwitchService::refreshVideos() {
-  Logger::debug(LogCategory::Twitch,
-                QStringLiteral("[DEBUG] refreshVideos() called"));
-  Logger::debug(LogCategory::Twitch,
-                QStringLiteral("[DEBUG] isAuthenticated: %1, userId: %2")
-                    .arg(isAuthenticated())
-                    .arg(m_userId.isEmpty() ? "EMPTY" : m_userId));
-
   if (!m_apiClient || !m_authManager) {
-    Logger::error(LogCategory::Twitch,
-                  QStringLiteral("[DEBUG] API client or auth manager is null"));
+    Logger::error(LogCategory::Twitch, QStringLiteral("API client or auth manager is null"));
     emit errorOccurred(QStringLiteral("Client API non initialisé."));
     return;
   }
 
   if (!isAuthenticated() || m_userId.isEmpty()) {
-    Logger::warning(
-        LogCategory::Twitch,
-        QStringLiteral(
-            "[DEBUG] Not authenticated or userId unknown, clearing videos"));
     m_videos.clear();
     emit videosChanged();
     return;
@@ -578,33 +380,18 @@ void TwitchService::refreshVideos() {
     m_apiClient->setAccessToken(token);
   }
 
-  Logger::debug(
-      LogCategory::Twitch,
-      QStringLiteral("[DEBUG] Requesting videos for userId: %1").arg(m_userId));
+  Logger::debug(LogCategory::Twitch, QStringLiteral("Requesting videos"));
   m_apiClient->getVideos(m_userId, 20);
-  Logger::debug(LogCategory::Twitch,
-                QStringLiteral("[DEBUG] getVideos() call completed"));
 }
 
 void TwitchService::refreshFollowedChannels() {
-  Logger::debug(LogCategory::Twitch,
-                QStringLiteral("[DEBUG] refreshFollowedChannels() called"));
-  Logger::debug(LogCategory::Twitch,
-                QStringLiteral("[DEBUG] isAuthenticated: %1, userId: %2")
-                    .arg(isAuthenticated())
-                    .arg(m_userId.isEmpty() ? "EMPTY" : m_userId));
-
   if (!m_apiClient || !m_authManager) {
-    Logger::error(LogCategory::Twitch,
-                  QStringLiteral("[DEBUG] API client or auth manager is null"));
+    Logger::error(LogCategory::Twitch, QStringLiteral("API client or auth manager is null"));
     emit errorOccurred(QStringLiteral("Client API non initialisé."));
     return;
   }
 
   if (!isAuthenticated() || m_userId.isEmpty()) {
-    Logger::warning(LogCategory::Twitch,
-                    QStringLiteral("[DEBUG] Not authenticated or userId "
-                                   "unknown, clearing followed channels"));
     m_followedChannels.clear();
     emit followedChannelsChanged();
     return;
@@ -615,13 +402,8 @@ void TwitchService::refreshFollowedChannels() {
     m_apiClient->setAccessToken(token);
   }
 
-  Logger::debug(
-      LogCategory::Twitch,
-      QStringLiteral("[DEBUG] Requesting followed channels for userId: %1")
-          .arg(m_userId));
+  Logger::debug(LogCategory::Twitch, QStringLiteral("Requesting followed channels"));
   m_apiClient->getFollowedChannels(m_userId);
-  Logger::debug(LogCategory::Twitch,
-                QStringLiteral("[DEBUG] getFollowedChannels() call completed"));
 }
 
 void TwitchService::refreshNewStreamers() {
@@ -655,22 +437,13 @@ void TwitchService::refreshNewStreamers() {
 }
 
 void TwitchService::refreshCategoryStreams(const QString &gameId) {
-  Logger::debug(
-      LogCategory::Twitch,
-      QStringLiteral("[DEBUG] refreshCategoryStreams() called for gameId: %1")
-          .arg(gameId));
-
   if (!m_apiClient) {
-    Logger::error(LogCategory::Twitch,
-                  QStringLiteral("[DEBUG] API client is null"));
+    Logger::error(LogCategory::Twitch, QStringLiteral("API client is null"));
     emit errorOccurred(QStringLiteral("Client API non initialisé."));
     return;
   }
 
   if (gameId.isEmpty()) {
-    Logger::warning(
-        LogCategory::Twitch,
-        QStringLiteral("[DEBUG] Game ID is empty, clearing category streams"));
     m_categoryStreams.clear();
     emit categoryStreamsChanged();
     return;
@@ -679,21 +452,10 @@ void TwitchService::refreshCategoryStreams(const QString &gameId) {
   QString token = m_authManager ? m_authManager->accessToken() : QString();
   if (!token.isEmpty()) {
     m_apiClient->setAccessToken(token);
-    Logger::debug(LogCategory::Twitch,
-                  QStringLiteral("[DEBUG] Access token set, length: %1")
-                      .arg(token.length()));
-  } else {
-    Logger::warning(LogCategory::Twitch,
-                    QStringLiteral("[DEBUG] No access token available"));
   }
 
-  Logger::debug(LogCategory::Twitch,
-                QStringLiteral("[DEBUG] Requesting streams for category: %1")
-                    .arg(gameId));
+  Logger::debug(LogCategory::Twitch, QStringLiteral("Requesting streams for category: %1").arg(gameId));
   m_apiClient->getStreamsByCategory(gameId, 20);
-  Logger::debug(
-      LogCategory::Twitch,
-      QStringLiteral("[DEBUG] getStreamsByCategory() call completed"));
 }
 
 void TwitchService::onAccessTokenChanged(const QString &token) {
@@ -853,23 +615,23 @@ void TwitchService::refreshStreams() {
   } else {
     // Sinon, on récupère d'abord l'ID utilisateur
     // Vérifier que le token est défini avant d'appeler getUserInfo()
-    QString token = m_authManager ? m_authManager->accessToken() : QString();
-    if (token.isEmpty()) {
+    QString authToken = m_authManager ? m_authManager->accessToken() : QString();
+    if (authToken.isEmpty()) {
       Logger::error(
           LogCategory::Twitch,
-          QStringLiteral("[ERROR] Cannot get user info: token is empty"));
+          QStringLiteral("Cannot get user info: token is empty"));
       emit errorOccurred(
           QStringLiteral("Token d'authentification manquant pour récupérer les "
                          "informations utilisateur"));
       return;
     }
     // S'assurer que le token est défini dans l'API client
-    m_apiClient->setAccessToken(token);
+    m_apiClient->setAccessToken(authToken);
     Logger::debug(
         LogCategory::Twitch,
         QStringLiteral(
             "User ID unknown, requesting user info first (token length: %1)")
-            .arg(token.length()));
+            .arg(authToken.length()));
     m_apiClient->getUserInfo();
   }
 }
