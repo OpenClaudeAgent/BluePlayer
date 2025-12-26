@@ -79,10 +79,36 @@ ApplicationWindow {
     }
   }
 
+  // Player view - full screen, no margins (outside ColumnLayout)
+  Loader {
+    id: playerLoader
+    anchors.fill: parent
+    visible: currentView === "player"
+    active: currentView === "player"
+    source: "PlayerView.qml"
+    
+    onItemChanged: {
+      if (item && currentView === "player") {
+        console.log("[main.qml] Setting PlayerView properties")
+        var service = root.getTwitchService()
+        item.twitchService = service
+        item.streamerLogin = root.playerStreamerLogin
+        item.streamerName = root.playerStreamerName
+        item.streamTitle = root.playerStreamTitle
+        item.backRequested.connect(function() {
+          console.log("[main.qml] Back requested, returning to home")
+          root.currentView = "home"
+        })
+      }
+    }
+  }
+
+  // Other views - with margins and scroll
   ColumnLayout {
     anchors.fill: parent
     anchors.margins: AppleTheme.spacingLarge
     spacing: AppleTheme.spacingMedium
+    visible: currentView !== "player"
 
     ScrollView {
       Layout.fillWidth: true
@@ -92,6 +118,7 @@ ApplicationWindow {
       Loader {
         id: pageLoader
         anchors.fill: parent
+        active: currentView !== "player"
         source: {
           // Si twitchService n'existe pas ou si l'utilisateur n'est pas authentifié, afficher la vue de connexion
           var service = root.getTwitchService()
@@ -99,11 +126,6 @@ ApplicationWindow {
           if (!service || !service.authenticated) {
             console.log("[main.qml] Loading LoginView.qml")
             return "LoginView.qml"
-          }
-          // Afficher PlayerView si un stream est sélectionné
-          if (currentView === "player") {
-            console.log("[main.qml] Loading PlayerView.qml")
-            return "PlayerView.qml"
           }
           // Sinon, afficher la vue normale selon currentView
           console.log("[main.qml] Loading view:", currentView)
@@ -117,24 +139,7 @@ ApplicationWindow {
         onItemChanged: {
           console.log("[main.qml] onItemChanged - currentView:", currentView)
           if (item) {
-            if (currentView === "player") {
-              console.log("[main.qml] Setting PlayerView properties:")
-              console.log("[main.qml]   playerStreamerLogin:", root.playerStreamerLogin)
-              console.log("[main.qml]   playerStreamerName:", root.playerStreamerName)
-              console.log("[main.qml]   playerStreamTitle:", root.playerStreamTitle)
-              var service = root.getTwitchService()
-              console.log("[main.qml]   twitchService:", service ? "exists" : "null")
-              item.twitchService = service
-              // Définir les propriétés dans l'ordre pour déclencher les handlers
-              item.streamerLogin = root.playerStreamerLogin
-              item.streamerName = root.playerStreamerName
-              item.streamTitle = root.playerStreamTitle
-              console.log("[main.qml] Properties set, item.streamerLogin:", item.streamerLogin)
-              item.backRequested.connect(function() {
-                console.log("[main.qml] Back requested, returning to home")
-                root.currentView = "home"
-              })
-            } else if (item.hasOwnProperty("openStreamPlayer")) {
+            if (item.hasOwnProperty("openStreamPlayer")) {
               console.log("[main.qml] Connecting openStreamPlayer signal")
               item.openStreamPlayer.connect(function(login, name, title) {
                 console.log("[main.qml] openStreamPlayer signal received:")
