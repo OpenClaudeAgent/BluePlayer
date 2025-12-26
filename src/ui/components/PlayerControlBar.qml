@@ -65,51 +65,46 @@ Rectangle {
     NumberAnimation { duration: 300; easing.type: Easing.InOutCubic }
   }
   
-  // Main content
+  // Main content - Single row layout
   RowLayout {
     anchors.fill: parent
     anchors.leftMargin: 24
     anchors.rightMargin: 24
-    anchors.bottomMargin: 16
-    anchors.topMargin: 24
-    spacing: 16
+    anchors.bottomMargin: 20
+    anchors.topMargin: 28
+    spacing: 12
 
-    // Play/Pause Button
-    Item {
+    // Play/Pause Button - Same height as other controls
+    Rectangle {
       id: playPauseButton
-      Layout.preferredWidth: 44
-      Layout.preferredHeight: 44
+      Layout.preferredWidth: chipHeight
+      Layout.preferredHeight: chipHeight
+      radius: chipRadius
+      color: playPauseMouseArea.containsMouse ? "#33FFFFFF" : "#1AFFFFFF"
+      border.color: "#4DFFFFFF"
+      border.width: 1
 
-      Rectangle {
-        id: playPauseBg
-        anchors.fill: parent
-        radius: 22
-        color: playPauseMouseArea.containsMouse ? "#33FFFFFF" : "#1AFFFFFF"
-        border.color: "#4DFFFFFF"
-        border.width: 1
+      Behavior on color {
+        ColorAnimation { duration: 150 }
+      }
 
-        Behavior on color {
-          ColorAnimation { duration: 150 }
-        }
-
-        scale: playPauseMouseArea.pressed ? 0.92 : (playPauseMouseArea.containsMouse ? 1.05 : 1.0)
-        Behavior on scale {
-          NumberAnimation { duration: 100; easing.type: Easing.OutQuad }
-        }
+      scale: playPauseMouseArea.pressed ? 0.92 : (playPauseMouseArea.containsMouse ? 1.05 : 1.0)
+      Behavior on scale {
+        NumberAnimation { duration: 100; easing.type: Easing.OutQuad }
       }
 
       // Play/Pause Icon container
       Item {
         anchors.centerIn: parent
-        width: 24
-        height: 24
+        width: 20
+        height: 20
 
-        // Play triangle - using Unicode character
+        // Play triangle
         Text {
           anchors.centerIn: parent
           visible: !buffering && (paused || !playing)
-          text: "\u25B6"  // Unicode play triangle
-          font.pixelSize: 18
+          text: "\u25B6"
+          font.pixelSize: 14
           color: "#FFFFFF"
           horizontalAlignment: Text.AlignHCenter
           verticalAlignment: Text.AlignVCenter
@@ -118,18 +113,18 @@ Rectangle {
         // Pause bars
         Row {
           anchors.centerIn: parent
-          spacing: 4
+          spacing: 3
           visible: !buffering && playing && !paused
 
           Rectangle {
-            width: 4
-            height: 14
+            width: 3
+            height: 12
             radius: 1
             color: "#FFFFFF"
           }
           Rectangle {
-            width: 4
-            height: 14
+            width: 3
+            height: 12
             radius: 1
             color: "#FFFFFF"
           }
@@ -140,7 +135,7 @@ Rectangle {
           anchors.centerIn: parent
           visible: buffering
           text: "..."
-          font.pixelSize: 14
+          font.pixelSize: 12
           font.bold: true
           color: "#FFFFFF"
         }
@@ -159,253 +154,217 @@ Rectangle {
       ToolTip.delay: 800
     }
 
-    // Spacer
-    Item { Layout.fillWidth: true }
-
-    // Seek area - YouTube-style DVR behavior
-    ColumnLayout {
+    // Seek slider - Takes all available space
+    Slider {
+      id: seekSlider
       Layout.fillWidth: true
-      spacing: 6
+      Layout.preferredHeight: chipHeight
+      enabled: currentDuration > 0
+      hoverEnabled: true
+      from: 0
+      to: currentDuration > 0 ? currentDuration : 1
 
-      // Slider + Live button row
-      RowLayout {
-        Layout.fillWidth: true
-        spacing: 12
+      // Properties for easier access
+      property bool isLiveMode: controlBar.liveMode
+      property real currentDuration: controlBar.duration
+      property bool userDragging: false
+      property real seekTarget: 0
 
-        // Seek slider - Live mode: ALWAYS at 100%, VOD mode: follows position
-        Slider {
-          id: seekSlider
-          Layout.fillWidth: true
-          enabled: currentDuration > 0
-          hoverEnabled: true
-          from: 0
-          to: currentDuration > 0 ? currentDuration : 1
+      // In live mode: always at live edge (UI only)
+      readonly property bool atLiveEdge: isLiveMode || (currentDuration > 0 && (currentDuration - controlBar.position) <= 5)
 
-          // Properties for easier access
-          property bool isLiveMode: controlBar.liveMode
-          property real currentDuration: controlBar.duration
-          property bool userDragging: false
-          property real seekTarget: 0
+      // SIMPLE LOGIC:
+      // - Live mode: slider always at 100% (right edge)
+      // - VOD mode: slider follows actual position
+      Binding {
+          target: seekSlider
+          property: "value"
+          value: seekSlider.isLiveMode ? seekSlider.to : controlBar.position
+          when: !seekSlider.userDragging && !seekSlider.pressed
+      }
 
-          // In live mode: always at live edge (UI only)
-          readonly property bool atLiveEdge: isLiveMode || (currentDuration > 0 && (currentDuration - controlBar.position) <= 5)
-
-          // SIMPLE LOGIC:
-          // - Live mode: slider always at 100% (right edge)
-          // - VOD mode: slider follows actual position
-          Binding {
-              target: seekSlider
-              property: "value"
-              value: seekSlider.isLiveMode ? seekSlider.to : controlBar.position
-              when: !seekSlider.userDragging && !seekSlider.pressed
-          }
-
-          onPressedChanged: {
-            if (pressed) {
-              userDragging = true
-              controlBar.seekDragStarted()
-              // In live mode, start seek from current position
-              seekTarget = isLiveMode ? currentDuration : controlBar.position
-            } else if (userDragging) {
-              userDragging = false
-              controlBar.seekDragEnded(seekTarget)
-              
-              // If user seeked to a position (not at the very end), do the seek
-              // The backend will handle switching to VOD mode if needed
-              controlBar.seekRequested(seekTarget)
-            }
-          }
-
-          onMoved: {
-            if (userDragging || pressed) {
-              seekTarget = value
-              controlBar.seekPreviewed(value)
-            }
-          }
-
-          background: Rectangle {
-            x: seekSlider.leftPadding
-            y: seekSlider.topPadding + seekSlider.availableHeight / 2 - height / 2
-            width: seekSlider.availableWidth
-            height: 6
-            radius: 3
-            color: "#26FFFFFF"
-
-            // Buffered/available area (full width = all cached content)
-            Rectangle {
-              width: parent.width
-              height: parent.height
-              radius: parent.radius
-              color: "#44FFFFFF"
-            }
-
-            // Played progress
-            Rectangle {
-              width: seekSlider.visualPosition * parent.width
-              height: parent.height
-              radius: parent.radius
-              gradient: Gradient {
-                GradientStop { position: 0.0; color: AppleTheme.accent }
-                GradientStop { position: 1.0; color: AppleTheme.accentSubtle }
-              }
-              opacity: 0.9
-            }
-
-            // Hover highlight
-            Rectangle {
-              anchors.fill: parent
-              radius: parent.radius
-              color: AppleTheme.accent
-              opacity: (seekSlider.pressed || seekSlider.userDragging) ? 0.10 : (seekSlider.hovered ? 0.06 : 0.0)
-              Behavior on opacity { NumberAnimation { duration: 100 } }
-            }
-          }
-
-          handle: Item {
-            x: seekSlider.leftPadding + seekSlider.visualPosition * (seekSlider.availableWidth - width)
-            y: seekSlider.topPadding + seekSlider.availableHeight / 2 - height / 2
-            width: 18
-            height: 18
-
-            // Hover/drag halo
-            Rectangle {
-              anchors.centerIn: parent
-              width: parent.width + 8
-              height: parent.height + 8
-              radius: width / 2
-              color: AppleTheme.accent
-              opacity: (seekSlider.pressed || seekSlider.userDragging) ? 0.16 : (seekSlider.hovered ? 0.10 : 0.0)
-              visible: opacity > 0
-              antialiasing: true
-            }
-
-            // Handle
-            Rectangle {
-              anchors.centerIn: parent
-              width: parent.width
-              height: parent.height
-              radius: width / 2
-              color: "#FFFFFF"
-              border.color: seekSlider.hovered || seekSlider.pressed || seekSlider.userDragging ? AppleTheme.accent : "#B3FFFFFF"
-              border.width: 1
-              opacity: seekSlider.enabled ? 1.0 : 0.6
-              scale: seekSlider.pressed ? 1.15 : (seekSlider.hovered ? 1.08 : 1.0)
-              Behavior on scale { NumberAnimation { duration: 100; easing.type: Easing.OutCubic } }
-              Behavior on border.color { ColorAnimation { duration: 120 } }
-            }
-          }
-        }
-        
-        // LIVE/VOD indicator - Fixed size, only color changes
-        Rectangle {
-          id: livePill
-          width: 56
-          height: 24
-          radius: 12
-          color: seekSlider.atLiveEdge ? "#FF3B30" : "#2C2C2E"
-          border.color: seekSlider.atLiveEdge ? "#FF6961" : "#48484A"
-          border.width: 1
-          
-          Behavior on color { ColorAnimation { duration: 200 } }
-          Behavior on border.color { ColorAnimation { duration: 200 } }
-          
-          Row {
-            anchors.centerIn: parent
-            spacing: 6
-            
-            // Pulsing dot
-            Rectangle {
-              width: 8; height: 8; radius: 4
-              anchors.verticalCenter: parent.verticalCenter
-              color: seekSlider.atLiveEdge ? "#FFFFFF" : "#8E8E93"
-              
-              SequentialAnimation on opacity {
-                running: seekSlider.atLiveEdge
-                loops: Animation.Infinite
-                NumberAnimation { to: 0.5; duration: 600 }
-                NumberAnimation { to: 1.0; duration: 600 }
-              }
-            }
-            
-            Text {
-              text: seekSlider.atLiveEdge ? qsTr("LIVE") : qsTr("VOD")
-              font.pixelSize: 11
-              font.weight: Font.DemiBold
-              color: "#FFFFFF"
-              anchors.verticalCenter: parent.verticalCenter
-            }
-          }
-          
-          MouseArea {
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: seekSlider.atLiveEdge ? Qt.ArrowCursor : Qt.PointingHandCursor
-            onClicked: {
-              if (!seekSlider.atLiveEdge) {
-                controlBar.liveClicked()
-              }
-            }
-            
-            ToolTip.visible: containsMouse && !seekSlider.atLiveEdge
-            ToolTip.text: qsTr("Retour au direct")
-            ToolTip.delay: 400
-          }
+      onPressedChanged: {
+        if (pressed) {
+          userDragging = true
+          controlBar.seekDragStarted()
+          seekTarget = isLiveMode ? currentDuration : controlBar.position
+        } else if (userDragging) {
+          userDragging = false
+          controlBar.seekDragEnded(seekTarget)
+          controlBar.seekRequested(seekTarget)
         }
       }
 
-      // Time labels - YouTube style
-      RowLayout {
-        Layout.fillWidth: true
-        spacing: 8
+      onMoved: {
+        if (userDragging || pressed) {
+          seekTarget = value
+          controlBar.seekPreviewed(value)
+        }
+      }
 
-        // Current position
-        Text {
-          text: controlBar._formatTime(position)
+      background: Rectangle {
+        x: seekSlider.leftPadding
+        y: seekSlider.topPadding + seekSlider.availableHeight / 2 - height / 2
+        width: seekSlider.availableWidth
+        height: 6
+        radius: 3
+        color: "#26FFFFFF"
+
+        // Buffered/available area
+        Rectangle {
+          width: parent.width
+          height: parent.height
+          radius: parent.radius
+          color: "#44FFFFFF"
+        }
+
+        // Played progress
+        Rectangle {
+          width: seekSlider.visualPosition * parent.width
+          height: parent.height
+          radius: parent.radius
+          gradient: Gradient {
+            GradientStop { position: 0.0; color: AppleTheme.accent }
+            GradientStop { position: 1.0; color: AppleTheme.accentSubtle }
+          }
+          opacity: 0.9
+        }
+
+        // Hover highlight
+        Rectangle {
+          anchors.fill: parent
+          radius: parent.radius
+          color: AppleTheme.accent
+          opacity: (seekSlider.pressed || seekSlider.userDragging) ? 0.10 : (seekSlider.hovered ? 0.06 : 0.0)
+          Behavior on opacity { NumberAnimation { duration: 100 } }
+        }
+      }
+
+      handle: Item {
+        x: seekSlider.leftPadding + seekSlider.visualPosition * (seekSlider.availableWidth - width)
+        y: seekSlider.topPadding + seekSlider.availableHeight / 2 - height / 2
+        width: 16
+        height: 16
+
+        // Hover/drag halo
+        Rectangle {
+          anchors.centerIn: parent
+          width: parent.width + 6
+          height: parent.height + 6
+          radius: width / 2
+          color: AppleTheme.accent
+          opacity: (seekSlider.pressed || seekSlider.userDragging) ? 0.16 : (seekSlider.hovered ? 0.10 : 0.0)
+          visible: opacity > 0
+          antialiasing: true
+        }
+
+        // Handle
+        Rectangle {
+          anchors.centerIn: parent
+          width: parent.width
+          height: parent.height
+          radius: width / 2
           color: "#FFFFFF"
-          font.pixelSize: 12
-          font.family: "SF Mono, Menlo, monospace"
-        }
-        
-        Item { Layout.fillWidth: true }
-        
-        // Live offset or LIVE badge - Show offset when not at live edge in live mode
-        Text {
-          visible: controlBar.liveMode && !seekSlider.atLiveEdge && liveOffset > 0
-          text: qsTr("-%1").arg(controlBar._formatTime(liveOffset))
-          color: "#FFEB3B"
-          font.pixelSize: 12
-          font.family: "SF Mono, Menlo, monospace"
-        }
-        
-        // Duration (DVR buffer end)
-        Text {
-          text: "/ " + (duration > 0 ? controlBar._formatTime(duration) : "--:--")
-          color: "#99FFFFFF"
-          font.pixelSize: 12
-          font.family: "SF Mono, Menlo, monospace"
+          border.color: seekSlider.hovered || seekSlider.pressed || seekSlider.userDragging ? AppleTheme.accent : "#B3FFFFFF"
+          border.width: 1
+          opacity: seekSlider.enabled ? 1.0 : 0.6
+          scale: seekSlider.pressed ? 1.12 : (seekSlider.hovered ? 1.06 : 1.0)
+          Behavior on scale { NumberAnimation { duration: 100; easing.type: Easing.OutCubic } }
+          Behavior on border.color { ColorAnimation { duration: 120 } }
         }
       }
     }
+    
+    // LIVE/VOD indicator - Small round indicator
+    Rectangle {
+      id: livePill
+      Layout.preferredWidth: 24
+      Layout.preferredHeight: 24
+      Layout.alignment: Qt.AlignVCenter
+      radius: 12
+      color: liveMouseArea.containsMouse ? (seekSlider.atLiveEdge ? "#FF4136" : "#3C3C3E") : (seekSlider.atLiveEdge ? "#FF3B30" : "#2C2C2E")
+      border.color: seekSlider.atLiveEdge ? "#FF6961" : "#48484A"
+      border.width: 1
+      
+      Behavior on color { ColorAnimation { duration: 150 } }
+      Behavior on border.color { ColorAnimation { duration: 200 } }
+      
+      // Pulsing dot centered
+      Rectangle {
+        anchors.centerIn: parent
+        width: 8; height: 8; radius: 4
+        color: seekSlider.atLiveEdge ? "#FFFFFF" : "#8E8E93"
+        
+        SequentialAnimation on opacity {
+          running: seekSlider.atLiveEdge
+          loops: Animation.Infinite
+          NumberAnimation { to: 0.5; duration: 600 }
+          NumberAnimation { to: 1.0; duration: 600 }
+        }
+      }
+      
+      MouseArea {
+        id: liveMouseArea
+        anchors.fill: parent
+        hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
+        onClicked: controlBar.liveClicked()
+      }
+      
+      ToolTip.visible: liveMouseArea.containsMouse
+      ToolTip.text: seekSlider.atLiveEdge ? qsTr("Resynchroniser le direct") : qsTr("Retour au direct")
+      ToolTip.delay: 800
+    }
 
-    // Spacer
-    Item { Layout.fillWidth: true }
+    // Time display - two lines stacked
+    Column {
+      Layout.alignment: Qt.AlignVCenter
+      spacing: 2
+      
+      property bool showTimers: !seekSlider.atLiveEdge
+      
+      // Current position (top)
+      Text {
+        text: controlBar._formatTime(position)
+        color: "#FFFFFF"
+        font.pixelSize: 10
+        font.family: "Menlo"
+        opacity: parent.showTimers ? 1.0 : 0.0
+      }
+      
+      // Total duration (bottom)
+      Text {
+        text: controlBar._formatTime(duration)
+        color: "#88FFFFFF"
+        font.pixelSize: 10
+        font.family: "Menlo"
+        opacity: parent.showTimers ? 1.0 : 0.0
+      }
+    }
 
-    // Playback / video toggles cluster
+    // Right controls group - all aligned
     RowLayout {
       spacing: 6
       Layout.alignment: Qt.AlignVCenter
 
+      // Speed down
       Rectangle {
         id: rateDown
-        width: 32; height: 32; radius: 16
-        color: "#1AFFFFFF"
+        width: chipHeight; height: chipHeight; radius: chipRadius
+        color: rateDownMouse.containsMouse ? "#33FFFFFF" : "#1AFFFFFF"
+        Behavior on color { ColorAnimation { duration: 150 } }
         Text { anchors.centerIn: parent; text: "\u2212"; color: "#FFFFFF"; font.pixelSize: 14 }
         MouseArea {
+          id: rateDownMouse
           anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
           onClicked: controlBar.playbackRateRequested(Math.max(0.25, playbackRate - 0.1))
         }
+        ToolTip.visible: rateDownMouse.containsMouse
+        ToolTip.text: qsTr("Ralentir")
+        ToolTip.delay: 800
       }
 
+      // Speed display
       Rectangle {
         id: rateChip
         width: chipWidth; height: chipHeight; radius: chipRadius
@@ -415,296 +374,307 @@ Rectangle {
           anchors.centerIn: parent
           text: playbackRate.toFixed(2) + "x"
           color: "#FFFFFF"
-          font.pixelSize: 12
+          font.pixelSize: 11
           font.bold: true
         }
         MouseArea {
+          id: rateChipMouse
           anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
           onClicked: controlBar.playbackRateRequested(1.0)
-          ToolTip.visible: containsMouse
-          ToolTip.text: qsTr("Réinitialiser la vitesse (R)")
         }
+        ToolTip.visible: rateChipMouse.containsMouse
+        ToolTip.text: qsTr("Réinitialiser la vitesse (R)")
+        ToolTip.delay: 800
       }
 
+      // Speed up
       Rectangle {
         id: rateUp
-        width: 32; height: 32; radius: 16
-        color: "#1AFFFFFF"
+        width: chipHeight; height: chipHeight; radius: chipRadius
+        color: rateUpMouse.containsMouse ? "#33FFFFFF" : "#1AFFFFFF"
+        Behavior on color { ColorAnimation { duration: 150 } }
         Text { anchors.centerIn: parent; text: "+"; color: "#FFFFFF"; font.pixelSize: 14 }
         MouseArea {
+          id: rateUpMouse
           anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
           onClicked: controlBar.playbackRateRequested(Math.min(3.0, playbackRate + 0.1))
         }
+        ToolTip.visible: rateUpMouse.containsMouse
+        ToolTip.text: qsTr("Accélérer")
+        ToolTip.delay: 800
       }
 
+      // HW toggle - compact
       Rectangle {
         id: hwToggle
-        width: chipWidth; height: chipHeight; radius: chipRadius
-        color: "#26FFFFFF"
+        width: 44; height: chipHeight; radius: chipRadius
+        color: hwMouse.containsMouse ? "#33FFFFFF" : "#26FFFFFF"
         border.color: "#4DFFFFFF"; border.width: 1
+        Behavior on color { ColorAnimation { duration: 150 } }
         Text {
           anchors.centerIn: parent
           text: hardwareDecoding ? qsTr("HW") : qsTr("SW")
           color: "#FFFFFF"
-          font.pixelSize: 12
+          font.pixelSize: 11
           font.bold: true
         }
         MouseArea {
+          id: hwMouse
           anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
           onClicked: controlBar.hardwareToggleClicked()
-          ToolTip.visible: containsMouse
-          ToolTip.text: hardwareDecoding ? qsTr("Décodage matériel") : qsTr("Décodage logiciel")
         }
+        ToolTip.visible: hwMouse.containsMouse
+        ToolTip.text: hardwareDecoding ? qsTr("Décodage matériel") : qsTr("Décodage logiciel")
+        ToolTip.delay: 800
       }
 
+      // Fit/Crop toggle - compact
       Rectangle {
         id: cropToggle
-        width: chipWidth; height: chipHeight; radius: chipRadius
-        color: "#26FFFFFF"
+        width: 44; height: chipHeight; radius: chipRadius
+        color: cropMouse.containsMouse ? "#33FFFFFF" : "#26FFFFFF"
         border.color: "#4DFFFFFF"; border.width: 1
+        Behavior on color { ColorAnimation { duration: 150 } }
         Text {
           anchors.centerIn: parent
           text: cropVideo ? qsTr("Crop") : qsTr("Fit")
           color: "#FFFFFF"
-          font.pixelSize: 12
+          font.pixelSize: 11
           font.bold: true
         }
         MouseArea {
+          id: cropMouse
           anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
           onClicked: controlBar.cropToggleClicked()
-          ToolTip.visible: containsMouse
-          ToolTip.text: cropVideo ? qsTr("Rognage (panscan)") : qsTr("Adapter")
         }
+        ToolTip.visible: cropMouse.containsMouse
+        ToolTip.text: cropVideo ? qsTr("Rognage (panscan)") : qsTr("Adapter")
+        ToolTip.delay: 800
       }
-    }
 
-    // Volume Control - Button with vertical popup slider
-    Item {
-      id: volumeControl
-      Layout.preferredWidth: 40
-      Layout.preferredHeight: 40
-
-      // Volume Icon Button
+      // Volume Control - Button with vertical popup slider
       Item {
-        id: volumeButton
-        anchors.fill: parent
+        id: volumeControl
+        Layout.preferredWidth: chipHeight
+        Layout.preferredHeight: chipHeight
 
+        // Volume Icon Button
         Rectangle {
+          id: volumeButton
           anchors.fill: parent
-          radius: 20
-          color: volumeMouseArea.containsMouse ? "#26FFFFFF" : "transparent"
+          radius: chipRadius
+          color: volumeMouseArea.containsMouse ? "#33FFFFFF" : "#1AFFFFFF"
+          border.color: "#4DFFFFFF"
+          border.width: 1
 
           Behavior on color {
             ColorAnimation { duration: 150 }
           }
-        }
 
-        // Volume Icon
-        Canvas {
-          id: volumeIcon
-          anchors.centerIn: parent
-          width: 22
-          height: 22
+          // Volume Icon
+          Canvas {
+            id: volumeIcon
+            anchors.centerIn: parent
+            width: 18
+            height: 18
 
-          property real vol: muted ? 0 : volume
-          onVolChanged: requestPaint()
-          Component.onCompleted: requestPaint()
+            property real vol: muted ? 0 : volume
+            onVolChanged: requestPaint()
+            Component.onCompleted: requestPaint()
 
-          onPaint: {
-            var ctx = getContext("2d")
-            ctx.reset()
-            ctx.fillStyle = "#FFFFFF"
-            ctx.strokeStyle = "#FFFFFF"
-            ctx.lineWidth = 1.5
-            ctx.lineCap = "round"
-
-            // Speaker body
-            ctx.beginPath()
-            ctx.moveTo(3, 8)
-            ctx.lineTo(7, 8)
-            ctx.lineTo(12, 4)
-            ctx.lineTo(12, 18)
-            ctx.lineTo(7, 14)
-            ctx.lineTo(3, 14)
-            ctx.closePath()
-            ctx.fill()
-
-            if (vol === 0 || muted) {
-              // X for muted
-              ctx.beginPath()
-              ctx.moveTo(15, 8)
-              ctx.lineTo(20, 14)
-              ctx.stroke()
-              ctx.beginPath()
-              ctx.moveTo(20, 8)
-              ctx.lineTo(15, 14)
-              ctx.stroke()
-            } else {
-              // Sound waves
-              if (vol > 0) {
-                ctx.beginPath()
-                ctx.arc(12, 11, 4, -Math.PI/3, Math.PI/3, false)
-                ctx.stroke()
-              }
-              if (vol > 0.5) {
-                ctx.beginPath()
-                ctx.arc(12, 11, 7, -Math.PI/3, Math.PI/3, false)
-                ctx.stroke()
-              }
-            }
-          }
-        }
-
-        MouseArea {
-          id: volumeMouseArea
-          anchors.fill: parent
-          hoverEnabled: true
-          cursorShape: Qt.PointingHandCursor
-          
-          onClicked: {
-            controlBar.muteClicked()
-            hideVolumeTimer.restart()
-          }
-          
-          onEntered: {
-            showVolumeSlider = true
-            hideVolumeTimer.stop()
-          }
-        }
-
-        ToolTip.visible: volumeMouseArea.containsMouse && !showVolumeSlider
-        ToolTip.text: showVolumeSlider ? (muted ? qsTr("Unmute (M)") : qsTr("Mute (M)")) : qsTr("Volume")
-        ToolTip.delay: 800
-      }
-
-      // Vertical Volume Slider Popup (appears above the button)
-      Rectangle {
-        id: volumeSliderPopup
-        width: 40
-        height: showVolumeSlider ? 120 : 0
-        anchors.bottom: volumeButton.top
-        anchors.bottomMargin: 8
-        anchors.horizontalCenter: volumeButton.horizontalCenter
-        radius: 20
-        color: "#CC1C1C1E"
-        border.color: "#4DFFFFFF"
-        border.width: 1
-        clip: true
-        opacity: showVolumeSlider ? 1.0 : 0.0
-        visible: height > 0
-
-        Behavior on height {
-          NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
-        }
-        Behavior on opacity {
-          NumberAnimation { duration: 150 }
-        }
-
-        Slider {
-          id: volumeSlider
-          anchors.centerIn: parent
-          orientation: Qt.Vertical
-          height: 90
-          width: 30
-          from: 0.0
-          to: 1.0
-          value: muted ? 0 : volume
-
-          background: Rectangle {
-            x: volumeSlider.leftPadding + volumeSlider.availableWidth / 2 - width / 2
-            y: volumeSlider.topPadding
-            width: 4
-            height: volumeSlider.availableHeight
-            radius: 2
-            color: "#33FFFFFF"
-
-            Rectangle {
-              width: parent.width
-              height: (1 - volumeSlider.visualPosition) * parent.height
-              anchors.bottom: parent.bottom
-              radius: 2
-              color: "#FFFFFF"
-            }
-          }
-
-          handle: Rectangle {
-            x: volumeSlider.leftPadding + volumeSlider.availableWidth / 2 - width / 2
-            y: volumeSlider.topPadding + volumeSlider.visualPosition * (volumeSlider.availableHeight - height)
-            width: 16
-            height: 16
-            radius: 8
-            color: "#FFFFFF"
-
-            scale: volumeSlider.pressed ? 1.2 : 1.0
-            Behavior on scale {
-              NumberAnimation { duration: 100 }
-            }
-          }
-
-          onMoved: {
-            if (muted && value > 0) {
-              controlBar.muteClicked()
-            }
-            controlBar.volumeRequested(value)
-          }
-        }
-
-        MouseArea {
-          anchors.fill: parent
-          hoverEnabled: true
-          propagateComposedEvents: true
-          onExited: hideVolumeTimer.restart()
-          onEntered: hideVolumeTimer.stop()
-          onPressed: function(mouse) { mouse.accepted = false }
-          onReleased: function(mouse) { mouse.accepted = false }
-        }
-      }
-    }
-
-    // Spacer
-    Item { Layout.fillWidth: true }
-
-    // Fullscreen Button
-    Item {
-      id: fullscreenButton
-      Layout.preferredWidth: 40
-      Layout.preferredHeight: 40
-
-      Rectangle {
-          anchors.fill: parent
-          radius: 20
-          color: fsMouseArea.containsMouse ? "#26FFFFFF" : "transparent"
-          Behavior on color { ColorAnimation { duration: 150 } }
-      }
-
-      Canvas {
-          anchors.centerIn: parent
-          width: 20
-          height: 20
-          onPaint: {
+            onPaint: {
               var ctx = getContext("2d")
               ctx.reset()
+              ctx.fillStyle = "#FFFFFF"
               ctx.strokeStyle = "#FFFFFF"
-              ctx.lineWidth = 2
+              ctx.lineWidth = 1.5
               ctx.lineCap = "round"
 
-              // Top Left
-              ctx.beginPath(); ctx.moveTo(0, 6); ctx.lineTo(0,0); ctx.lineTo(6,0); ctx.stroke();
-              // Top Right
-              ctx.beginPath(); ctx.moveTo(14, 0); ctx.lineTo(20,0); ctx.lineTo(20,6); ctx.stroke();
-              // Bottom Left
-              ctx.beginPath(); ctx.moveTo(0, 14); ctx.lineTo(0,20); ctx.lineTo(6,20); ctx.stroke();
-              // Bottom Right
-              ctx.beginPath(); ctx.moveTo(14, 20); ctx.lineTo(20,20); ctx.lineTo(20,14); ctx.stroke();
+              // Speaker body (scaled down)
+              ctx.beginPath()
+              ctx.moveTo(2, 6)
+              ctx.lineTo(5, 6)
+              ctx.lineTo(9, 3)
+              ctx.lineTo(9, 15)
+              ctx.lineTo(5, 12)
+              ctx.lineTo(2, 12)
+              ctx.closePath()
+              ctx.fill()
+
+              if (vol === 0 || muted) {
+                // X for muted
+                ctx.beginPath()
+                ctx.moveTo(12, 6)
+                ctx.lineTo(16, 12)
+                ctx.stroke()
+                ctx.beginPath()
+                ctx.moveTo(16, 6)
+                ctx.lineTo(12, 12)
+                ctx.stroke()
+              } else {
+                // Sound waves
+                if (vol > 0) {
+                  ctx.beginPath()
+                  ctx.arc(9, 9, 3, -Math.PI/3, Math.PI/3, false)
+                  ctx.stroke()
+                }
+                if (vol > 0.5) {
+                  ctx.beginPath()
+                  ctx.arc(9, 9, 6, -Math.PI/3, Math.PI/3, false)
+                  ctx.stroke()
+                }
+              }
+            }
           }
+
+          MouseArea {
+            id: volumeMouseArea
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            
+            onClicked: {
+              controlBar.muteClicked()
+              hideVolumeTimer.restart()
+            }
+            
+            onEntered: {
+              showVolumeSlider = true
+              hideVolumeTimer.stop()
+            }
+          }
+
+          ToolTip.visible: volumeMouseArea.containsMouse && !showVolumeSlider
+          ToolTip.text: muted ? qsTr("Activer le son (M)") : qsTr("Couper le son (M)")
+          ToolTip.delay: 800
+        }
+
+        // Vertical Volume Slider Popup
+        Rectangle {
+          id: volumeSliderPopup
+          width: 36
+          height: showVolumeSlider ? 110 : 0
+          anchors.bottom: volumeButton.top
+          anchors.bottomMargin: 8
+          anchors.horizontalCenter: volumeButton.horizontalCenter
+          radius: 18
+          color: "#CC1C1C1E"
+          border.color: "#4DFFFFFF"
+          border.width: 1
+          clip: true
+          opacity: showVolumeSlider ? 1.0 : 0.0
+          visible: height > 0
+
+          Behavior on height {
+            NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+          }
+          Behavior on opacity {
+            NumberAnimation { duration: 150 }
+          }
+
+          Slider {
+            id: volumeSlider
+            anchors.centerIn: parent
+            orientation: Qt.Vertical
+            height: 85
+            width: 26
+            from: 0.0
+            to: 1.0
+            value: muted ? 0 : volume
+
+            background: Rectangle {
+              x: volumeSlider.leftPadding + volumeSlider.availableWidth / 2 - width / 2
+              y: volumeSlider.topPadding
+              width: 4
+              height: volumeSlider.availableHeight
+              radius: 2
+              color: "#33FFFFFF"
+
+              Rectangle {
+                width: parent.width
+                height: (1 - volumeSlider.visualPosition) * parent.height
+                anchors.bottom: parent.bottom
+                radius: 2
+                color: "#FFFFFF"
+              }
+            }
+
+            handle: Rectangle {
+              x: volumeSlider.leftPadding + volumeSlider.availableWidth / 2 - width / 2
+              y: volumeSlider.topPadding + volumeSlider.visualPosition * (volumeSlider.availableHeight - height)
+              width: 14
+              height: 14
+              radius: 7
+              color: "#FFFFFF"
+
+              scale: volumeSlider.pressed ? 1.2 : 1.0
+              Behavior on scale {
+                NumberAnimation { duration: 100 }
+              }
+            }
+
+            onMoved: {
+              if (muted && value > 0) {
+                controlBar.muteClicked()
+              }
+              controlBar.volumeRequested(value)
+            }
+          }
+
+          MouseArea {
+            anchors.fill: parent
+            hoverEnabled: true
+            propagateComposedEvents: true
+            onExited: hideVolumeTimer.restart()
+            onEntered: hideVolumeTimer.stop()
+            onPressed: function(mouse) { mouse.accepted = false }
+            onReleased: function(mouse) { mouse.accepted = false }
+          }
+        }
       }
 
-      MouseArea {
-          id: fsMouseArea
-          anchors.fill: parent
-          hoverEnabled: true
-          cursorShape: Qt.PointingHandCursor
-          onClicked: controlBar.fullscreenClicked()
+      // Fullscreen Button
+      Rectangle {
+        id: fullscreenButton
+        width: chipHeight; height: chipHeight; radius: chipRadius
+        color: fsMouseArea.containsMouse ? "#33FFFFFF" : "#1AFFFFFF"
+        border.color: "#4DFFFFFF"
+        border.width: 1
+        Behavior on color { ColorAnimation { duration: 150 } }
+
+        Canvas {
+            anchors.centerIn: parent
+            width: 16
+            height: 16
+            onPaint: {
+                var ctx = getContext("2d")
+                ctx.reset()
+                ctx.strokeStyle = "#FFFFFF"
+                ctx.lineWidth = 1.5
+                ctx.lineCap = "round"
+
+                // Top Left
+                ctx.beginPath(); ctx.moveTo(0, 5); ctx.lineTo(0,0); ctx.lineTo(5,0); ctx.stroke();
+                // Top Right
+                ctx.beginPath(); ctx.moveTo(11, 0); ctx.lineTo(16,0); ctx.lineTo(16,5); ctx.stroke();
+                // Bottom Left
+                ctx.beginPath(); ctx.moveTo(0, 11); ctx.lineTo(0,16); ctx.lineTo(5,16); ctx.stroke();
+                // Bottom Right
+                ctx.beginPath(); ctx.moveTo(11, 16); ctx.lineTo(16,16); ctx.lineTo(16,11); ctx.stroke();
+            }
+        }
+
+        MouseArea {
+            id: fsMouseArea
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: controlBar.fullscreenClicked()
+        }
+
+        ToolTip.visible: fsMouseArea.containsMouse
+        ToolTip.text: qsTr("Plein écran (F)")
+        ToolTip.delay: 800
       }
     }
   }

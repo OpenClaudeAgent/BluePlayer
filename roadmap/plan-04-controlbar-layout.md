@@ -43,12 +43,19 @@ Réorganiser le layout de la barre de contrôle pour un design plus cohérent.
 - `src/ui/components/PlayerControlBar.qml`
 
 ## Checklist de validation
-- [ ] Play/Pause est à gauche
-- [ ] Seekbar prend l'espace central disponible
-- [ ] Bouton LIVE est adjacent à la seekbar (à droite)
-- [ ] Groupe de droite : vitesse, HW, Fit, Volume, Fullscreen
-- [ ] Tous les éléments sont alignés verticalement
-- [ ] La seekbar a la même hauteur visuelle que les boutons
-- [ ] L'espacement est cohérent entre tous les éléments
-- [ ] L'espacement est correct entre Volume et Fullscreen
-- [ ] Le design est propre et professionnel
+- [x] Play/Pause est à gauche
+- [x] Seekbar prend l'espace central disponible
+- [x] Bouton LIVE est adjacent à la seekbar (à droite)
+- [x] Groupe de droite : vitesse, HW, Fit, Volume, Fullscreen
+- [x] Tous les éléments sont alignés verticalement
+- [x] La seekbar a la même hauteur visuelle que les boutons
+- [x] L'espacement est cohérent entre tous les éléments
+- [x] L'espacement est correct entre Volume et Fullscreen
+- [x] Le design est propre et professionnel
+
+## Bonus (ajouté lors de l'implémentation)
+
+- **Bouton LIVE compact** : Bouton rond minimaliste avec dot pulsant (sans texte), cliquable pour resynchroniser le direct
+- **Boutons HW/Fit compacts** : Largeur réduite pour un design plus équilibré
+- **Timer intelligent** : Affichage position/durée sur deux lignes, masqué automatiquement en mode live
+- **Police monospace** : Chiffres à largeur fixe pour éviter les décalages visuels

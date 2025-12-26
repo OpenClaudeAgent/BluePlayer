@@ -83,7 +83,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 1 | Bouton Volume | [plan-01](./plan-01-volume-button.md) | `feature/volume-button` | 🟢 Terminé |
 | 2 | Fullscreen harmonisé | [plan-02](./plan-02-fullscreen.md) | `feature/fullscreen` | 🟢 Terminé |
 | 3 | Largeur boutons | [plan-03](./plan-03-buttons-width.md) | `feature/buttons-width` | 🟢 Terminé |
-| 4 | Layout barre de contrôle | [plan-04](./plan-04-controlbar-layout.md) | `feature/controlbar-layout` | 🔴 En attente |
+| 4 | Layout barre de contrôle | [plan-04](./plan-04-controlbar-layout.md) | `feature/controlbar-layout` | 🟢 Terminé |
 | 5 | Gestion Cache/VOD | [plan-05](./plan-05-cache-vod.md) | `feature/cache-vod` | 🔴 En attente |
 | 6 | Barre de recherche Twitch | [plan-06](./plan-06-search.md) | `feature/search` | 🔴 En attente |
 | 7 | Chat Twitch intégré | [plan-07](./plan-07-chat.md) | `feature/chat` | 🔴 En attente |
@@ -111,3 +111,4 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 2025-12-26 | Réorganisation roadmap : vitesse lecture (ex plan-02) devient plan-10, dépend de plan-05 (Cache/VOD) |
 | 2025-12-26 | Tâche 2 terminée - Fullscreen harmonisé (comportement unifié + curseur auto-caché) |
 | 2025-12-26 | Tâche 3 terminée - Largeur boutons harmonisée (64px) + style uniforme |
+| 2025-12-26 | Tâche 4 terminée - Layout barre de contrôle réorganisé + timer intelligent |
