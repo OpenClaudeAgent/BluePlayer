@@ -31,7 +31,7 @@ Item {
   property bool adsActive: false
   property int adSegments: 0
   property bool controlsVisible: true
-  property bool isFullscreen: false  // Safari-style fullscreen mode
+  // isFullscreen removed - now using native Window.showFullScreen()
   property bool hardwareDecodingEnabled: true
   property bool cropMode: false
   property real playbackRate: 1.0
@@ -174,8 +174,7 @@ Item {
 
     MpvQuickItem {
       id: mpvPlayer
-      // Parent changes between videoContainer (normal) and fsVideoContainer (fullscreen)
-      parent: isFullscreen ? fsVideoContainer : videoContainer
+      parent: videoContainer
       anchors.fill: parent
       
       onPlayingChanged: function(isPlaying) {
@@ -243,7 +242,13 @@ Item {
       id: backgroundMouseArea
       anchors.fill: parent
       hoverEnabled: true
-      propagateComposedEvents: true 
+      propagateComposedEvents: true
+      // Hide cursor in fullscreen when controls are hidden
+      cursorShape: {
+        var win = Window.window
+        var isFullscreen = win && win.visibility === Window.FullScreen
+        return (isFullscreen && !playerRoot.controlsVisible) ? Qt.BlankCursor : Qt.ArrowCursor
+      }
       
       onPositionChanged: {
         playerRoot.controlsVisible = true
@@ -521,8 +526,14 @@ Item {
       onLiveRequested: goLive()
       onLiveClicked: goLive()
       onFullscreenClicked: {
-          isFullscreen = !isFullscreen
-          console.log("[PlayerView] Fullscreen toggled:", isFullscreen)
+          // Use same mechanism as double-click for native fullscreen
+          var win = Window.window
+          if (win) {
+              if (win.visibility === Window.FullScreen)
+                  win.showNormal()
+              else
+                  win.showFullScreen()
+          }
       }
       onPlaybackRateRequested: function(rate) { adjustPlaybackRate(rate) }
       onHardwareToggleClicked: toggleHardwareDecoding()
@@ -648,8 +659,14 @@ Item {
         event.accepted = true
         break
       case Qt.Key_Escape:
-        requestStop()
-        playerRoot.backRequested()
+        // If fullscreen, exit fullscreen first; otherwise quit player
+        var winEsc = Window.window
+        if (winEsc && winEsc.visibility === Window.FullScreen) {
+          winEsc.showNormal()
+        } else {
+          requestStop()
+          playerRoot.backRequested()
+        }
         event.accepted = true
         break
       case Qt.Key_Plus:
@@ -667,7 +684,14 @@ Item {
         event.accepted = true
         break
       case Qt.Key_F:
-        isFullscreen = !isFullscreen
+        // Toggle native fullscreen (same as double-click)
+        var winF = Window.window
+        if (winF) {
+          if (winF.visibility === Window.FullScreen)
+            winF.showNormal()
+          else
+            winF.showFullScreen()
+        }
         event.accepted = true
         break
       case Qt.Key_L:
@@ -743,135 +767,4 @@ Item {
     playerRoot.forceActiveFocus()
   }
   
-  // ========================================
-  // FULLSCREEN WINDOW (Safari-style)
-  // ========================================
-  // A separate window that goes fullscreen independently
-  // The main app window stays in normal mode
-  
-  Window {
-    id: fullscreenWindow
-    title: streamerName || streamerLogin
-    color: "#000000"
-    flags: Qt.Window
-    
-    // Controls visibility state
-    property bool controlsShown: true
-    
-    // Only show when fullscreen is active
-    visible: isFullscreen
-    
-    // Start in fullscreen when shown
-    onVisibleChanged: {
-      if (visible) {
-        console.log("[Fullscreen] Window opened")
-        showFullScreen()
-      } else {
-        console.log("[Fullscreen] Window closed")
-        showNormal()
-      }
-    }
-    
-    // Container for the reparented player
-    Item {
-      id: fsVideoContainer
-      anchors.fill: parent
-    }
-    
-    // Mouse interaction
-    MouseArea {
-      id: fsMouseArea
-      anchors.fill: parent
-      hoverEnabled: true
-      
-      onPositionChanged: {
-        fullscreenWindow.controlsShown = true
-        fsControlsTimer.restart()
-      }
-      
-      onDoubleClicked: {
-        isFullscreen = false
-      }
-      
-      onClicked: {
-         // Toggle controls on click
-         fullscreenWindow.controlsShown = !fullscreenWindow.controlsShown
-         if (fullscreenWindow.controlsShown) fsControlsTimer.restart()
-      }
-    }
-    
-    // Auto-hide controls timer
-    Timer {
-      id: fsControlsTimer
-      interval: 3000
-      onTriggered: fullscreenWindow.controlsShown = false
-    }
-    
-    // Minimal overlay controls
-    Rectangle {
-      id: fsControls
-      anchors.bottom: parent.bottom
-      anchors.left: parent.left
-      anchors.right: parent.right
-      height: 80
-      
-      gradient: Gradient {
-        GradientStop { position: 0.0; color: "transparent" }
-        GradientStop { position: 1.0; color: "#CC000000" }
-      }
-      
-      opacity: fullscreenWindow.controlsShown ? 1.0 : 0.0
-      visible: opacity > 0
-      Behavior on opacity { NumberAnimation { duration: 200 } }
-      
-      // Streamer name
-      Text {
-        anchors.left: parent.left
-        anchors.bottom: parent.bottom
-        anchors.margins: 20
-        text: streamerName || streamerLogin
-        font.family: AppleTheme.fontFamily
-        font.pixelSize: 18
-        font.bold: true
-        color: "#FFFFFF"
-      }
-      
-      // Exit button
-      Rectangle {
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        anchors.margins: 20
-        width: 100
-        height: 36
-        radius: 8
-        color: exitFsBtnMouse.containsMouse ? "#FF4444" : "#80FFFFFF"
-        
-        Text {
-          anchors.centerIn: parent
-          text: "Exit ⎋"
-          font.pixelSize: 14
-          color: exitFsBtnMouse.containsMouse ? "#FFFFFF" : "#000000"
-        }
-        
-        MouseArea {
-          id: exitFsBtnMouse
-          anchors.fill: parent
-          hoverEnabled: true
-          cursorShape: Qt.PointingHandCursor
-          onClicked: isFullscreen = false
-        }
-      }
-    }
-    
-    // Keyboard shortcuts
-    Shortcut {
-      sequence: "Escape"
-      onActivated: isFullscreen = false
-    }
-    
-    Shortcut {
-      sequence: "F"
-      onActivated: isFullscreen = false
-    }
-  }
 }

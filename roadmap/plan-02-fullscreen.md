@@ -36,10 +36,14 @@ onDoubleClicked: {
 - `src/ui/PlayerView.qml`
 
 ## Checklist de validation
-- [ ] Le bouton fullscreen a le même comportement que le double-clic
-- [ ] La UI est visible en mode plein écran
-- [ ] Les contrôles sont accessibles en plein écran
-- [ ] L'auto-hide fonctionne en plein écran
-- [ ] On peut sortir du plein écran via le bouton
-- [ ] On peut sortir du plein écran via Escape
-- [ ] On peut sortir du plein écran via double-clic
+- [x] Le bouton fullscreen a le même comportement que le double-clic
+- [x] La UI est visible en mode plein écran
+- [x] Les contrôles sont accessibles en plein écran
+- [x] L'auto-hide fonctionne en plein écran (+ curseur caché)
+- [x] On peut sortir du plein écran via le bouton
+- [x] On peut sortir du plein écran via Escape
+- [x] On peut sortir du plein écran via double-clic
+
+## Bonus (ajouté lors de l'implémentation)
+
+- **Auto-hide du curseur** : En mode fullscreen, le curseur disparaît automatiquement avec les contrôles (après 3s d'inactivité). Il réapparaît dès que la souris bouge.
