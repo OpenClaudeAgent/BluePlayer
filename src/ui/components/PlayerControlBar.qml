@@ -473,15 +473,16 @@ Rectangle {
       }
     }
 
-    // Volume Control Group
-    RowLayout {
-      spacing: 4
+    // Volume Control - Button with vertical popup slider
+    Item {
+      id: volumeControl
+      Layout.preferredWidth: 40
+      Layout.preferredHeight: 40
 
       // Volume Icon Button
       Item {
         id: volumeButton
-        Layout.preferredWidth: 40
-        Layout.preferredHeight: 40
+        anchors.fill: parent
 
         Rectangle {
           anchors.fill: parent
@@ -554,80 +555,92 @@ Rectangle {
           anchors.fill: parent
           hoverEnabled: true
           cursorShape: Qt.PointingHandCursor
-          onClicked: controlBar.muteClicked()
-          onEntered: showVolumeSlider = true
+          
+          onClicked: {
+            controlBar.muteClicked()
+            hideVolumeTimer.restart()
+          }
+          
+          onEntered: {
+            showVolumeSlider = true
+            hideVolumeTimer.stop()
+          }
         }
 
         ToolTip.visible: volumeMouseArea.containsMouse && !showVolumeSlider
-        ToolTip.text: muted ? qsTr("Unmute (M)") : qsTr("Mute (M)")
+        ToolTip.text: showVolumeSlider ? (muted ? qsTr("Unmute (M)") : qsTr("Mute (M)")) : qsTr("Volume")
         ToolTip.delay: 800
       }
 
-      // Volume Slider Container
-      Item {
-        id: volumeSliderContainer
-        Layout.preferredWidth: showVolumeSlider ? 110 : 0
-        Layout.preferredHeight: 40
+      // Vertical Volume Slider Popup (appears above the button)
+      Rectangle {
+        id: volumeSliderPopup
+        width: 40
+        height: showVolumeSlider ? 120 : 0
+        anchors.bottom: volumeButton.top
+        anchors.bottomMargin: 8
+        anchors.horizontalCenter: volumeButton.horizontalCenter
+        radius: 20
+        color: "#CC1C1C1E"
+        border.color: "#4DFFFFFF"
+        border.width: 1
         clip: true
+        opacity: showVolumeSlider ? 1.0 : 0.0
+        visible: height > 0
 
-        Behavior on Layout.preferredWidth {
+        Behavior on height {
           NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
         }
+        Behavior on opacity {
+          NumberAnimation { duration: 150 }
+        }
 
-        // Slider background pill
-        Rectangle {
-          anchors.verticalCenter: parent.verticalCenter
-          anchors.left: parent.left
-          anchors.leftMargin: 4
-          width: 100
-          height: 32
-          radius: 16
-          color: "#1AFFFFFF"
+        Slider {
+          id: volumeSlider
+          anchors.centerIn: parent
+          orientation: Qt.Vertical
+          height: 90
+          width: 30
+          from: 0.0
+          to: 1.0
+          value: muted ? 0 : volume
 
-          Slider {
-            id: volumeSlider
-            anchors.centerIn: parent
-            width: 80
-            from: 0.0
-            to: 1.0
-            value: muted ? 0 : volume
+          background: Rectangle {
+            x: volumeSlider.leftPadding + volumeSlider.availableWidth / 2 - width / 2
+            y: volumeSlider.topPadding
+            width: 4
+            height: volumeSlider.availableHeight
+            radius: 2
+            color: "#33FFFFFF"
 
-            background: Rectangle {
-              x: volumeSlider.leftPadding
-              y: volumeSlider.topPadding + volumeSlider.availableHeight / 2 - height / 2
-              width: volumeSlider.availableWidth
-              height: 4
+            Rectangle {
+              width: parent.width
+              height: (1 - volumeSlider.visualPosition) * parent.height
+              anchors.bottom: parent.bottom
               radius: 2
-              color: "#33FFFFFF"
-
-              Rectangle {
-                width: volumeSlider.visualPosition * parent.width
-                height: parent.height
-                radius: 2
-                color: "#FFFFFF"
-              }
-            }
-
-            handle: Rectangle {
-              x: volumeSlider.leftPadding + volumeSlider.visualPosition * (volumeSlider.availableWidth - width)
-              y: volumeSlider.topPadding + volumeSlider.availableHeight / 2 - height / 2
-              width: 14
-              height: 14
-              radius: 7
               color: "#FFFFFF"
-
-              scale: volumeSlider.pressed ? 1.2 : 1.0
-              Behavior on scale {
-                NumberAnimation { duration: 100 }
-              }
             }
+          }
 
-            onMoved: {
-              if (muted && value > 0) {
-                controlBar.muteClicked()
-              }
-              controlBar.volumeRequested(value)
+          handle: Rectangle {
+            x: volumeSlider.leftPadding + volumeSlider.availableWidth / 2 - width / 2
+            y: volumeSlider.topPadding + volumeSlider.visualPosition * (volumeSlider.availableHeight - height)
+            width: 16
+            height: 16
+            radius: 8
+            color: "#FFFFFF"
+
+            scale: volumeSlider.pressed ? 1.2 : 1.0
+            Behavior on scale {
+              NumberAnimation { duration: 100 }
             }
+          }
+
+          onMoved: {
+            if (muted && value > 0) {
+              controlBar.muteClicked()
+            }
+            controlBar.volumeRequested(value)
           }
         }
 
@@ -703,10 +716,13 @@ Rectangle {
     anchors.right: parent.right
     anchors.top: parent.top
     anchors.bottom: parent.bottom
-    width: 180
+    width: 80
     hoverEnabled: true
     propagateComposedEvents: true
-    onEntered: hideVolumeTimer.stop()
+    onEntered: {
+      showVolumeSlider = true
+      hideVolumeTimer.stop()
+    }
     onExited: hideVolumeTimer.restart()
     onPressed: function(mouse) { mouse.accepted = false }
     onReleased: function(mouse) { mouse.accepted = false }

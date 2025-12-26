@@ -72,7 +72,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 
 | # | Tâche | Plan | Branche | Statut |
 |---|-------|------|---------|--------|
-| 1 | Bouton Volume | [plan-01](./plan-01-volume-button.md) | `feature/volume-button` | 🔴 En attente |
+| 1 | Bouton Volume | [plan-01](./plan-01-volume-button.md) | `feature/volume-button` | 🟢 Terminé |
 | 2 | Vitesse lecture auto-reset | [plan-02](./plan-02-playback-speed.md) | `feature/playback-speed` | 🔴 En attente |
 | 3 | Fullscreen harmonisé | [plan-03](./plan-03-fullscreen.md) | `feature/fullscreen` | 🔴 En attente |
 | 4 | Largeur boutons | [plan-04](./plan-04-buttons-width.md) | `feature/buttons-width` | 🔴 En attente |
@@ -99,3 +99,4 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 |------|------------|
 | 2024-XX-XX | Création de la roadmap, tâches 1-9 définies |
 | 2024-12-26 | Ajout tâche 10 - Panel Préférences |
+| 2024-12-26 | Tâche 1 terminée - Bouton Volume (slider vertical + hover) |

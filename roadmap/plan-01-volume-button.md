@@ -29,9 +29,12 @@ Si barre ouverte:
 - `src/ui/components/PlayerControlBar.qml`
 
 ## Checklist de validation
-- [ ] Premier clic sur le bouton volume ouvre la barre (sans muter)
-- [ ] Deuxième clic (barre ouverte) mute le son
-- [ ] Troisième clic (barre ouverte) unmute le son
-- [ ] Le slider de volume fonctionne correctement
-- [ ] La barre se ferme après un délai d'inactivité
-- [ ] Le comportement est intuitif et prévisible
+- [x] ~~Premier clic sur le bouton volume ouvre la barre (sans muter)~~ Remplacé par hover
+- [x] Hover sur le bouton/zone ouvre la barre de volume
+- [x] Clic sur le bouton mute le son
+- [x] Clic à nouveau unmute le son
+- [x] Le slider de volume fonctionne correctement
+- [x] La barre se ferme après un délai d'inactivité (1.5s)
+- [x] Le comportement est intuitif et prévisible
+- [x] Slider vertical (layout stable, pas de décalage)
+- [x] Contrôles dans le bon sens (haut = +, bas = -)
