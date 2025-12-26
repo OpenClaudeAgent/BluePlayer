@@ -11,7 +11,7 @@ Item {
   property string previewImage: ""
   property string streamerLogin: ""
   
-  signal clicked(string streamerLogin, string streamerName, string streamTitle)
+  signal clicked(string streamerLogin, string streamerName, string streamTitle, string thumbnailUrl)
 
   implicitWidth: 180
   implicitHeight: 220
@@ -81,7 +81,7 @@ Item {
 
           // Image avec chargement asynchrone et cache
           Image {
-            id: previewImage
+            id: thumbnailImage
             anchors.fill: parent
             source: cardRoot.isPlaceholder ? "" : cardRoot.previewImage
             fillMode: Image.PreserveAspectCrop
@@ -100,11 +100,11 @@ Item {
           Rectangle {
             anchors.fill: parent
             color: cardRoot.isPlaceholder ? "#1a2230" : AppleTheme.surfaceSoft
-            visible: previewImage.status !== Image.Ready || cardRoot.isPlaceholder
+            visible: thumbnailImage.status !== Image.Ready || cardRoot.isPlaceholder
             
             Text {
               anchors.centerIn: parent
-              text: cardRoot.isPlaceholder ? "⋯" : (previewImage.status === Image.Loading ? "⏳" : "📺")
+              text: cardRoot.isPlaceholder ? "⋯" : (thumbnailImage.status === Image.Loading ? "⏳" : "📺")
               font.pixelSize: 32
               color: AppleTheme.mutedText
               opacity: 0.5
@@ -120,7 +120,7 @@ Item {
             height: 20
             radius: 10
             color: AppleTheme.statusNegative
-            visible: !cardRoot.isPlaceholder && previewImage.status === Image.Ready
+            visible: !cardRoot.isPlaceholder && thumbnailImage.status === Image.Ready
 
             Text {
               anchors.centerIn: parent
@@ -176,8 +176,9 @@ Item {
     cursorShape: Qt.PointingHandCursor
     onClicked: {
       if (!cardRoot.isPlaceholder && cardRoot.streamerLogin) {
-        console.log("Clicked on stream:", cardRoot.streamerName, "login:", cardRoot.streamerLogin)
-        cardRoot.clicked(cardRoot.streamerLogin, cardRoot.streamerName, cardRoot.streamTitle)
+        console.log("[DEBUG StreamCard] Clicked on stream:", cardRoot.streamerName, "login:", cardRoot.streamerLogin)
+        console.log("[DEBUG StreamCard] previewImage:", cardRoot.previewImage)
+        cardRoot.clicked(cardRoot.streamerLogin, cardRoot.streamerName, cardRoot.streamTitle, cardRoot.previewImage)
       }
     }
   }

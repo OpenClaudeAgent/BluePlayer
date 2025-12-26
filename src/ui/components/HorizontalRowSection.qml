@@ -17,7 +17,7 @@ Item {
   // Signal émis quand une catégorie est cliquée
   signal categoryClicked(string categoryId, string categoryName)
   // Signal émis quand un stream est cliqué
-  signal streamClicked(string streamerLogin, string streamerName, string streamTitle)
+  signal streamClicked(string streamerLogin, string streamerName, string streamTitle, string thumbnailUrl)
   readonly property bool isCategorySection: sectionTitle === "Parcourir" || (sectionType === "" && cardsModel.length > 0 && cardsModel[0] && cardsModel[0].boxArtUrl !== undefined)
   
   // Masquer la section "Recommandations par catégorie" si elle ne contient que des placeholders
@@ -130,8 +130,9 @@ Item {
           streamerLogin: card ? (card.streamerLogin || card.userLogin || "") : ""
           isPlaceholder: card ? (card.isPlaceholder || false) : true
           
-          onClicked: function(login, name, title) {
-            root.streamClicked(login, name, title)
+          onClicked: function(login, name, title, thumbnailUrl) {
+            console.log("[DEBUG HorizontalRowSection] StreamCard clicked, thumbnailUrl:", thumbnailUrl)
+            root.streamClicked(login, name, title, thumbnailUrl)
           }
         }
       }

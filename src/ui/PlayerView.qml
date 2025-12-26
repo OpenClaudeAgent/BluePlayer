@@ -15,6 +15,17 @@ Item {
   property string streamerLogin: ""
   property string streamerName: ""
   property string streamTitle: ""
+  property string streamThumbnailUrl: ""  // URL du thumbnail Twitch
+  // VOD mode properties
+  property bool isVodMode: false
+  property string vodFilePath: ""
+  property string vodId: ""
+  property var vodMetadata: null
+  // Recording properties
+  property string currentRecordingPath: ""
+  property string currentThumbnailPath: ""
+  property var recordingStartTime: null
+  property string recordingGameCategory: ""
   property bool playing: false
   property bool paused: false
   property bool buffering: false
@@ -94,8 +105,124 @@ Item {
   }
   
   function requestStop() {
+    // Sauvegarder l'enregistrement si en cours
+    saveRecordingIfNeeded()
     mpvPlayer.stop()
     statusText = qsTr("Lecture arrêtée")
+  }
+  
+  function startAutoRecording() {
+    if (isVodMode || !streamerLogin) return
+    
+    // Générer un nom de fichier unique
+    var timestamp = new Date().toISOString().replace(/[:.]/g, "-")
+    var filename = streamerLogin + "_" + timestamp + ".ts"
+    var thumbFilename = streamerLogin + "_" + timestamp + ".jpg"
+    
+    console.log("[PlayerView] startAutoRecording called")
+    console.log("[PlayerView]   streamerLogin:", streamerLogin)
+    console.log("[PlayerView]   streamThumbnailUrl:", streamThumbnailUrl)
+    
+    // Obtenir le chemin du cache
+    if (typeof cacheManager !== "undefined" && cacheManager) {
+      var cachePath = cacheManager.cacheDirectory + "/" + filename
+      console.log("[PlayerView] Starting auto-recording to:", cachePath)
+      
+      currentRecordingPath = cachePath
+      recordingStartTime = new Date()
+      recordingGameCategory = ""  // TODO: obtenir depuis twitchService si disponible
+      
+      // Télécharger le thumbnail si disponible
+      if (streamThumbnailUrl && streamThumbnailUrl.length > 0) {
+        console.log("[PlayerView] Downloading thumbnail from:", streamThumbnailUrl)
+        currentThumbnailPath = cacheManager.downloadThumbnail(streamThumbnailUrl, thumbFilename)
+        console.log("[PlayerView] Thumbnail saved to:", currentThumbnailPath)
+      } else {
+        console.log("[PlayerView] No thumbnail URL available")
+        currentThumbnailPath = ""
+      }
+      
+      mpvPlayer.startRecording(cachePath)
+    } else {
+      console.log("[PlayerView] Cannot start recording - cacheManager not available")
+    }
+  }
+  
+  function saveRecordingIfNeeded() {
+    if (!currentRecordingPath || currentRecordingPath.length === 0) return
+    if (isVodMode) return
+    
+    console.log("[PlayerView] Stopping recording and saving metadata")
+    mpvPlayer.stopRecording()
+    
+    // Calculer la durée
+    var durationSecs = 0
+    if (recordingStartTime) {
+      durationSecs = Math.floor((new Date() - recordingStartTime) / 1000)
+    }
+    
+    // Ne pas sauvegarder les enregistrements trop courts (< 30 secondes)
+    if (durationSecs < 30) {
+      console.log("[PlayerView] Recording too short (" + durationSecs + "s), not saving")
+      currentRecordingPath = ""
+      recordingStartTime = null
+      return
+    }
+    
+    // Ajouter au cache manager
+    if (typeof cacheManager !== "undefined" && cacheManager) {
+      console.log("[PlayerView] currentThumbnailPath:", currentThumbnailPath)
+      var metadata = {
+        "streamerLogin": streamerLogin,
+        "streamerName": streamerName || streamerLogin,
+        "streamTitle": streamTitle || qsTr("Stream enregistre"),
+        "filePath": currentRecordingPath,
+        "duration": durationSecs,
+        "gameCategory": recordingGameCategory,
+        "thumbnailPath": currentThumbnailPath
+      }
+      
+      console.log("[PlayerView] Saving VOD metadata:", JSON.stringify(metadata))
+      cacheManager.addVodFromQml(metadata)
+    }
+    
+    // Reset
+    currentRecordingPath = ""
+    currentThumbnailPath = ""
+    recordingStartTime = null
+  }
+  
+  function loadVod() {
+    console.log("[PlayerView] loadVod() called")
+    console.log("[PlayerView] vodFilePath:", vodFilePath)
+    
+    if (!vodFilePath || vodFilePath.length === 0) {
+      console.log("[PlayerView] ERROR: No VOD file path provided")
+      updateStatus(qsTr("Aucun fichier selectionne"))
+      return
+    }
+    
+    isVodMode = true
+    liveMode = false
+    updateStatus(qsTr("Chargement de la video..."))
+    
+    // Appliquer les settings
+    mpvPlayer.hardwareDecoding = hardwareDecodingEnabled
+    mpvPlayer.cropVideo = cropMode
+    mpvPlayer.playbackRate = playbackRate
+    
+    // Charger le fichier local
+    console.log("[PlayerView] Playing VOD file:", vodFilePath)
+    mpvPlayer.play(vodFilePath)
+    controlsVisible = true
+    
+    // Reprendre à la position sauvegardée si disponible
+    if (vodMetadata && vodMetadata.watchPosition > 0) {
+      console.log("[PlayerView] Resuming from position:", vodMetadata.watchPosition)
+      Qt.callLater(function() {
+        mpvPlayer.seek(vodMetadata.watchPosition)
+      })
+    }
   }
   
   function togglePlayPause() {
@@ -190,6 +317,10 @@ Item {
           playerRoot.buffering = false
           playerRoot.updateStatus(qsTr("Lecture en cours"))
           playerRoot.forceActiveFocus()
+          // Démarrer l'enregistrement automatique pour les streams live
+          if (!playerRoot.isVodMode && playerRoot.currentRecordingPath.length === 0) {
+            playerRoot.startAutoRecording()
+          }
         } else {
           if (playerRoot.hlsUrl.length > 0) {
             playerRoot.updateStatus(qsTr("Lecture arretee"))
@@ -493,6 +624,7 @@ Item {
       position: playerRoot.position
       liveOffset: playerRoot.liveOffset
       liveMode: playerRoot.liveMode
+      isReplayMode: playerRoot.isVodMode
       controlsVisible: playerRoot.controlsVisible
       playbackRate: playerRoot.playbackRate
       hardwareDecoding: playerRoot.hardwareDecodingEnabled
@@ -755,9 +887,17 @@ Item {
   // Appeler loadStream() quand streamerLogin devient disponible
   onStreamerLoginChanged: {
     console.log("[PlayerView] onStreamerLoginChanged called, streamerLogin:", streamerLogin)
-    if (streamerLogin && streamerLogin.length > 0) {
+    if (streamerLogin && streamerLogin.length > 0 && !isVodMode) {
       playerRoot.liveMode = true // Force live mode for new streams
       loadStream()
+    }
+  }
+  
+  // Appeler loadVod() quand vodFilePath devient disponible
+  onVodFilePathChanged: {
+    console.log("[PlayerView] onVodFilePathChanged called, vodFilePath:", vodFilePath)
+    if (vodFilePath && vodFilePath.length > 0) {
+      loadVod()
     }
   }
 

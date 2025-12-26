@@ -3,19 +3,20 @@
 #include <QTimer>
 
 #include "api/twitch/TwitchService.hpp"
+#include "core/CacheManager.hpp"
 #include "core/Config.hpp"
 #include "core/Constants.hpp"
 #include "core/Logger.hpp"
 
 namespace blueplayer::core {
 
-Application::Application(QObject *parent)
+Application::Application(QObject* parent)
     : QObject(parent),
-
-      m_twitchService(std::make_unique<api::twitch::TwitchService>(this)) {}
+      m_twitchService(std::make_unique<api::twitch::TwitchService>(this)),
+      m_cacheManager(std::make_unique<CacheManager>(this)) {}
 
 Application::~Application() =
-    default; // Défini ici pour permettre forward declarations dans le header
+    default;  // Défini ici pour permettre forward declarations dans le header
 
 void Application::initialize() {
   Config::instance().load();
@@ -26,6 +27,13 @@ void Application::initialize() {
   Logger::debug(LogCategory::Core, QStringLiteral("initialize() called"));
   Logger::debug(LogCategory::Core, QStringLiteral("TwitchService exists: %1")
                                        .arg(m_twitchService != nullptr));
+
+  // Démarrer le service de nettoyage automatique du cache
+  if (m_cacheManager) {
+    m_cacheManager->startCleanupService();
+    Logger::info(LogCategory::Core,
+                 QStringLiteral("Cache cleanup service started"));
+  }
 
   // Si l'utilisateur est déjà authentifié, charger les streams suivis
   // automatiquement
@@ -78,8 +86,12 @@ void Application::initialize() {
   }
 }
 
-blueplayer::api::twitch::TwitchService *Application::twitchService() const {
+blueplayer::api::twitch::TwitchService* Application::twitchService() const {
   return m_twitchService.get();
 }
 
-} // namespace blueplayer::core
+CacheManager* Application::cacheManager() const {
+  return m_cacheManager.get();
+}
+
+}  // namespace blueplayer::core

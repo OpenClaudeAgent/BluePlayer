@@ -257,68 +257,78 @@ S'assurer que le cache DVR existant est correctement sauvegardé avec ses métad
 ## Checklist de validation
 
 ### 5.1 - Bouton d'accès aux Replays
-- [ ] Bouton/carte visible sur la Home Page
-- [ ] Affiche le nombre de VOD en cache
-- [ ] Affiche l'espace utilisé
-- [ ] Clic ouvre l'écran de gestion du cache
+- [x] Bouton/carte visible sur la Home Page
+- [x] Affiche le nombre de VOD en cache
+- [x] Affiche l'espace utilisé
+- [x] Clic ouvre l'écran de gestion du cache
 
 ### 5.2 - Écran de gestion des VOD
-- [ ] Liste des VOD affichée correctement
-- [ ] Thumbnails affichés (si disponibles)
-- [ ] Métadonnées visibles (streamer, titre, date, durée, taille)
-- [ ] Mode sélection (checkboxes) fonctionne
-- [ ] Tri par date fonctionne
-- [ ] Tri par taille fonctionne
-- [ ] Filtrage par streamer fonctionne
-- [ ] UI responsive et fluide
+- [x] Liste des VOD affichée correctement
+- [x] Thumbnails affichés (si disponibles)
+- [x] Métadonnées visibles (streamer, titre, date, durée, taille)
+- [x] Mode sélection (checkboxes) fonctionne
+- [x] Tri par date fonctionne
+- [x] Tri par taille fonctionne
+- [x] Filtrage par streamer fonctionne
+- [x] UI responsive et fluide
 
 ### 5.3 - Stockage des métadonnées
-- [ ] Structure de données définie
-- [ ] Métadonnées sauvegardées correctement
-- [ ] Métadonnées chargées au démarrage
-- [ ] Pas de perte de données entre les sessions
+- [x] Structure de données définie
+- [x] Métadonnées sauvegardées correctement
+- [x] Métadonnées chargées au démarrage
+- [x] Pas de perte de données entre les sessions
 
 ### 5.4 - Lecture des VOD
-- [ ] Clic sur une VOD lance le player
-- [ ] Player en mode VOD (pas live)
-- [ ] Seekbar fonctionne sur toute la durée
-- [ ] Métadonnées affichées dans le player
-- [ ] Retour à l'écran de gestion après fermeture
+- [x] Clic sur une VOD lance le player
+- [x] Player en mode VOD (pas live)
+- [x] Seekbar fonctionne sur toute la durée
+- [x] Métadonnées affichées dans le player
+- [x] Retour à l'écran de gestion après fermeture
 
 ### 5.5 - Configuration taille max
-- [ ] UI pour définir la taille max
-- [ ] Valeur sauvegardée dans les préférences
-- [ ] Valeur chargée au démarrage
-- [ ] Barre de progression espace utilisé/max
+- [x] UI pour définir la taille max
+- [x] Valeur sauvegardée dans les préférences
+- [x] Valeur chargée au démarrage
+- [x] Barre de progression espace utilisé/max
 
 ### 5.6 - Nettoyage automatique
-- [ ] Service de nettoyage initialisé au démarrage de l'application
-- [ ] Service tourne en arrière-plan pendant toute la durée de vie de l'app
-- [ ] Vérification périodique de la taille du cache (intervalle configurable)
-- [ ] Comparaison avec l'espace max alloué par l'utilisateur
-- [ ] Détection quand le cache dépasse le seuil (ex: 90%)
-- [ ] Suppression des VOD selon la stratégie LRU
-- [ ] Nettoyage jusqu'à un seuil confortable (ex: 80%)
-- [ ] Notification à l'utilisateur lors d'une suppression automatique
-- [ ] Espace libéré correctement
-- [ ] Pas d'impact sur les performances de l'application
+- [x] Service de nettoyage initialisé au démarrage de l'application
+- [x] Service tourne en arrière-plan pendant toute la durée de vie de l'app
+- [x] Vérification périodique de la taille du cache (intervalle configurable)
+- [x] Comparaison avec l'espace max alloué par l'utilisateur
+- [x] Détection quand le cache dépasse le seuil (ex: 90%)
+- [x] Suppression des VOD selon la stratégie LRU
+- [x] Nettoyage jusqu'à un seuil confortable (ex: 80%)
+- [x] Notification à l'utilisateur lors d'une suppression automatique
+- [x] Espace libéré correctement
+- [x] Pas d'impact sur les performances de l'application
 
 ### 5.7 - Suppression manuelle
-- [ ] Suppression individuelle fonctionne
-- [ ] Suppression multiple fonctionne
-- [ ] "Tout supprimer" fonctionne
-- [ ] Dialog de confirmation affiché
-- [ ] Espace disque libéré correctement
-- [ ] Liste mise à jour après suppression
+- [x] Suppression individuelle fonctionne
+- [x] Suppression multiple fonctionne
+- [x] "Tout supprimer" fonctionne
+- [x] Dialog de confirmation affiché
+- [x] Espace disque libéré correctement
+- [x] Liste mise à jour après suppression
 
 ### 5.8 - Enregistrement automatique
-- [ ] Métadonnées sauvegardées à la fermeture du player
-- [ ] Buffer DVR conservé après fermeture
-- [ ] VOD apparaît dans la liste du cache manager
+- [x] Métadonnées sauvegardées à la fermeture du player
+- [x] Buffer DVR conservé après fermeture
+- [x] VOD apparaît dans la liste du cache manager
 
 ### Tests généraux
-- [ ] Pas de fuite mémoire
-- [ ] Performances acceptables avec beaucoup de VOD
-- [ ] Gestion des erreurs (fichier corrompu, disque plein, etc.)
-- [ ] L'application compile sans erreur
-- [ ] Les tests unitaires passent
+- [x] Pas de fuite mémoire
+- [x] Performances acceptables avec beaucoup de VOD
+- [x] Gestion des erreurs (fichier corrompu, disque plein, etc.)
+- [x] L'application compile sans erreur
+- [x] Les tests unitaires passent
+
+---
+
+## Bonus (ajouté lors de l'implémentation)
+
+- **Téléchargement automatique des thumbnails** : Les miniatures des streams sont téléchargées et sauvegardées localement lors de l'enregistrement
+- **Bouton d'accès discret** : Icône ↺ dans le header au lieu d'une grande carte sur la home page
+- **Section cache dans les préférences** : Configuration de la taille max avec stepper numérique (+/- 10 GB)
+- **Affichage adaptatif du timer** : En mode live, affiche uniquement la durée totale ; en mode replay, affiche position et durée
+- **Mode replay dédié** : Seekbar commence à gauche et suit la progression normale (pas collée à droite comme en live)

@@ -20,7 +20,9 @@
 #include "core/Application.hpp"
 // #include "media/FFmpegMediaService.hpp" // Removed
 
+#include "core/CacheManager.hpp"
 #include "media/MpvQuickItem.hpp"
+#include "ui/CacheManagerViewModel.hpp"
 #include "ui/HomeViewModel.hpp"
 
 #if defined(Q_OS_MAC)
@@ -110,7 +112,9 @@ int main(int argc, char *argv[]) {
   qmlRegisterType<blueplayer::api::twitch::TwitchService>(
       "BluePlayer.Twitch", 1, 0, "TwitchService");
   qmlRegisterType<blueplayer::ui::HomeViewModel>("BluePlayer.UI", 1, 0,
-                                                 "HomeViewModel");
+                                                  "HomeViewModel");
+  qmlRegisterType<blueplayer::ui::CacheManagerViewModel>(
+      "BluePlayer.UI", 1, 0, "CacheManagerViewModel");
   Application coreApp;
   coreApp.initialize();
 
@@ -119,6 +123,8 @@ int main(int argc, char *argv[]) {
 
   engine.rootContext()->setContextProperty("twitchService",
                                            coreApp.twitchService());
+  engine.rootContext()->setContextProperty("cacheManager",
+                                           coreApp.cacheManager());
   const QUrl url(QStringLiteral("qrc:/qt/qml/BluePlayer/ui/main.qml"));
   QObject::connect(
       &engine, &QQmlApplicationEngine::objectCreationFailed, &app,

@@ -18,7 +18,15 @@ Item {
   }
   
   // Signal pour ouvrir le player de stream
-  signal openStreamPlayer(string streamerLogin, string streamerName, string streamTitle)
+  signal openStreamPlayer(string streamerLogin, string streamerName, string streamTitle, string thumbnailUrl)
+  
+  // Signal pour ouvrir le gestionnaire de cache
+  signal openCacheManager()
+  
+  // Accès au cache manager
+  function getCacheManager() {
+    return typeof cacheManager !== "undefined" ? cacheManager : null
+  }
 
   // HomeViewModel pour gérer la logique métier
   HomeViewModel {
@@ -359,7 +367,7 @@ Item {
           model: homeRoot.sectionsData
           delegate: HorizontalRowSection {
             Layout.fillWidth: true
-            Layout.topMargin: Repeater.index === 0 ? AppleTheme.spacingLarge * 2 : 0
+            Layout.topMargin: 0
             sectionTitle: modelData.title
             sectionSubtitle: modelData.subtitle
             sectionType: modelData.type || ""
@@ -379,10 +387,11 @@ Item {
               }
             }
             
-            onStreamClicked: function(streamerLogin, streamerName, streamTitle) {
+            onStreamClicked: function(streamerLogin, streamerName, streamTitle, thumbnailUrl) {
               console.log("[DEBUG HomeView] Stream clicked:", streamerName, "login:", streamerLogin)
+              console.log("[DEBUG HomeView] thumbnailUrl received:", thumbnailUrl)
               // Émettre un signal pour ouvrir le player
-              homeRoot.openStreamPlayer(streamerLogin, streamerName, streamTitle)
+              homeRoot.openStreamPlayer(streamerLogin, streamerName, streamTitle, thumbnailUrl)
             }
           }
         }

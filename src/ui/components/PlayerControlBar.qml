@@ -22,6 +22,7 @@ Rectangle {
   property real position: 0.0
   property real liveOffset: 0.0
   property bool liveMode: true
+  property bool isReplayMode: false  // Mode fichier local (pas de live)
   property real playbackRate: 1.0
   property bool hardwareDecoding: true
   property bool cropVideo: false
@@ -72,7 +73,7 @@ Rectangle {
     anchors.rightMargin: 24
     anchors.bottomMargin: 20
     anchors.topMargin: 28
-    spacing: 12
+    spacing: 8
 
     // Play/Pause Button - Same height as other controls
     Rectangle {
@@ -165,17 +166,17 @@ Rectangle {
       to: currentDuration > 0 ? currentDuration : 1
 
       // Properties for easier access
-      property bool isLiveMode: controlBar.liveMode
+      property bool isLiveMode: controlBar.liveMode && !controlBar.isReplayMode  // Replay mode = never live
       property real currentDuration: controlBar.duration
       property bool userDragging: false
       property real seekTarget: 0
 
-      // In live mode: always at live edge (UI only)
-      readonly property bool atLiveEdge: isLiveMode || (currentDuration > 0 && (currentDuration - controlBar.position) <= 5)
+      // In live mode: always at live edge (UI only) - but NOT in replay mode
+      readonly property bool atLiveEdge: isLiveMode || (!controlBar.isReplayMode && currentDuration > 0 && (currentDuration - controlBar.position) <= 5)
 
       // SIMPLE LOGIC:
-      // - Live mode: slider always at 100% (right edge)
-      // - VOD mode: slider follows actual position
+      // - Live mode (and not replay): slider always at 100% (right edge)
+      // - VOD/Replay mode: slider follows actual position from 0
       Binding {
           target: seekSlider
           property: "value"
@@ -275,9 +276,10 @@ Rectangle {
       }
     }
     
-    // LIVE/VOD indicator - Small round indicator
+    // LIVE/VOD indicator - Small round indicator (hidden in replay mode)
     Rectangle {
       id: livePill
+      visible: !controlBar.isReplayMode
       Layout.preferredWidth: 24
       Layout.preferredHeight: 24
       Layout.alignment: Qt.AlignVCenter
@@ -316,35 +318,39 @@ Rectangle {
       ToolTip.delay: 800
     }
 
-    // Time display - two lines stacked
+    // Time display - adapts to mode
     Column {
       Layout.alignment: Qt.AlignVCenter
       spacing: 2
       
-      property bool showTimers: !seekSlider.atLiveEdge
+      // En mode replay: toujours afficher position + durée
+      // En mode live: afficher seulement la durée totale (temps de buffer)
+      property bool isReplay: controlBar.isReplayMode
+      property bool showTimers: isReplay || !seekSlider.atLiveEdge || controlBar.duration > 0
       
-      // Current position (top)
+      // Current position (top) - seulement en mode replay ou quand pas au live edge
       Text {
         text: controlBar._formatTime(position)
         color: "#FFFFFF"
         font.pixelSize: 10
         font.family: "Menlo"
+        visible: parent.isReplay || !seekSlider.atLiveEdge
         opacity: parent.showTimers ? 1.0 : 0.0
       }
       
-      // Total duration (bottom)
+      // Total duration - toujours visible, commence à "00:00"
       Text {
         text: controlBar._formatTime(duration)
-        color: "#88FFFFFF"
+        color: parent.isReplay ? "#88FFFFFF" : "#FFFFFF"
         font.pixelSize: 10
         font.family: "Menlo"
-        opacity: parent.showTimers ? 1.0 : 0.0
+        opacity: (controlBar.duration > 0 || parent.isReplay) ? 1.0 : 0.3
       }
     }
 
     // Right controls group - all aligned
     RowLayout {
-      spacing: 6
+      spacing: 8
       Layout.alignment: Qt.AlignVCenter
 
       // Speed down

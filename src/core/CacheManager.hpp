@@ -2,31 +2,43 @@
 
 #include <QMutex>
 #include <QObject>
+#include <QTimer>
+#include <QVariantList>
 #include <atomic>
-#include <chrono>
+#include <vector>
+
+#include "VodMetadata.hpp"
 
 namespace blueplayer::core {
 
 /**
- * @brief Gestionnaire du cache vidéo pour le mode replay
+ * @brief Gestionnaire du cache vidéo pour le mode replay et les VOD
  *
- * Gère le cache vidéo en mémoire et expose la durée disponible
- * pour le seekback. Le cache est dynamique et s'étend avec le stream.
+ * Gère le cache vidéo en mémoire, les métadonnées des VOD enregistrées,
+ * et le nettoyage automatique selon la stratégie LRU.
  *
  * Caractéristiques:
- * - Pas de plafond: le cache stocke toute la durée du stream
- * - Mise à jour en temps réel de la durée disponible
- * - Signaux pour synchroniser avec la state machine et l'UI
+ * - Cache dynamique pour le mode replay en direct
+ * - Stockage persistant des métadonnées VOD
+ * - Service de nettoyage automatique en arrière-plan
+ * - Signaux pour synchroniser avec l'UI
  */
 class CacheManager : public QObject {
   Q_OBJECT
 
+  // Propriétés pour le cache live (existant)
   Q_PROPERTY(double cacheDuration READ cacheDuration NOTIFY cacheDurationChanged)
-  Q_PROPERTY(
-      double cacheStartTime READ cacheStartTime NOTIFY cacheStartTimeChanged)
+  Q_PROPERTY(double cacheStartTime READ cacheStartTime NOTIFY cacheStartTimeChanged)
   Q_PROPERTY(double cacheEndTime READ cacheEndTime NOTIFY cacheEndTimeChanged)
   Q_PROPERTY(qint64 cacheSizeBytes READ cacheSizeBytes NOTIFY cacheSizeBytesChanged)
   Q_PROPERTY(bool isCaching READ isCaching NOTIFY isCachingChanged)
+
+  // Nouvelles propriétés pour la gestion des VOD
+  Q_PROPERTY(qint64 totalVodSize READ totalVodSize NOTIFY totalVodSizeChanged)
+  Q_PROPERTY(qint64 maxCacheSize READ maxCacheSize WRITE setMaxCacheSize NOTIFY maxCacheSizeChanged)
+  Q_PROPERTY(int vodCount READ vodCount NOTIFY vodCountChanged)
+  Q_PROPERTY(QVariantList vodList READ vodList NOTIFY vodListChanged)
+  Q_PROPERTY(QString cacheDirectory READ cacheDirectory CONSTANT)
 
  public:
   /**
@@ -40,164 +52,234 @@ class CacheManager : public QObject {
    */
   ~CacheManager() override;
 
-  // ===== Getters =====
+  // ===== Getters existants (cache live) =====
 
-  /**
-   * @brief Obtient la durée totale du cache en secondes
-   * @return La durée du cache (cacheEndTime - cacheStartTime)
-   */
   [[nodiscard]] double cacheDuration() const;
-
-  /**
-   * @brief Obtient le temps de début du cache
-   * @return Le temps de début en secondes
-   */
   [[nodiscard]] double cacheStartTime() const {
     return m_cacheStartTime.load(std::memory_order_acquire);
   }
-
-  /**
-   * @brief Obtient le temps de fin du cache (= live edge)
-   * @return Le temps de fin en secondes
-   */
   [[nodiscard]] double cacheEndTime() const {
     return m_cacheEndTime.load(std::memory_order_acquire);
   }
-
-  /**
-   * @brief Obtient la taille du cache en octets
-   * @return La taille en octets
-   */
   [[nodiscard]] qint64 cacheSizeBytes() const {
     return m_cacheSizeBytes.load(std::memory_order_acquire);
   }
-
-  /**
-   * @brief Vérifie si le cache est actif
-   * @return true si le cache est en cours d'écriture
-   */
   [[nodiscard]] bool isCaching() const {
     return m_isCaching.load(std::memory_order_acquire);
   }
-
-  /**
-   * @brief Vérifie si un temps donné est dans le cache
-   * @param time Le temps à vérifier
-   * @return true si le temps est dans la plage du cache
-   */
   [[nodiscard]] bool isTimeInCache(double time) const;
-
-  /**
-   * @brief Obtient le temps le plus ancien disponible dans le cache
-   * @return Le temps minimum accessible pour le replay
-   */
   [[nodiscard]] double oldestAvailableTime() const {
     return m_cacheStartTime.load(std::memory_order_acquire);
   }
-
-  /**
-   * @brief Obtient le temps le plus récent disponible dans le cache
-   * @return Le temps maximum accessible (live edge)
-   */
   [[nodiscard]] double newestAvailableTime() const {
     return m_cacheEndTime.load(std::memory_order_acquire);
   }
 
+  // ===== Nouveaux getters (gestion VOD) =====
+
+  /**
+   * @brief Obtient la taille totale des VOD en cache
+   * @return La taille totale en octets
+   */
+  [[nodiscard]] qint64 totalVodSize() const;
+
+  /**
+   * @brief Obtient la taille maximale du cache configurée
+   * @return La taille max en octets
+   */
+  [[nodiscard]] qint64 maxCacheSize() const { return m_maxCacheSize; }
+
+  /**
+   * @brief Obtient le nombre de VOD en cache
+   * @return Le nombre de VOD
+   */
+  [[nodiscard]] int vodCount() const;
+
+  /**
+   * @brief Obtient la liste des VOD pour l'UI
+   * @return QVariantList des métadonnées VOD
+   */
+  [[nodiscard]] QVariantList vodList() const;
+
+  /**
+   * @brief Obtient le chemin du répertoire de cache
+   * @return Le chemin absolu
+   */
+  [[nodiscard]] QString cacheDirectory() const { return m_cacheDirectory; }
+
+  /**
+   * @brief Obtient le pourcentage d'utilisation du cache
+   * @return Pourcentage entre 0 et 100
+   */
+  [[nodiscard]] Q_INVOKABLE double cacheUsagePercent() const;
+
+  /**
+   * @brief Obtient la taille formatée du cache utilisé
+   * @return Chaîne formatée (ex: "2.5 GB")
+   */
+  [[nodiscard]] Q_INVOKABLE QString formattedTotalSize() const;
+
+  /**
+   * @brief Obtient la taille max formatée
+   * @return Chaîne formatée (ex: "10 GB")
+   */
+  [[nodiscard]] Q_INVOKABLE QString formattedMaxSize() const;
+
  public slots:
-  /**
-   * @brief Démarre le cache pour un nouveau stream
-   * @param startTime Le temps de début du stream
-   */
+  // ===== Slots existants (cache live) =====
   void startCaching(double startTime = 0.0);
-
-  /**
-   * @brief Arrête le cache
-   */
   void stopCaching();
-
-  /**
-   * @brief Met à jour la fin du cache (appelé quand le live edge avance)
-   * @param endTime Le nouveau temps de fin
-   */
   void updateCacheEnd(double endTime);
-
-  /**
-   * @brief Met à jour la taille du cache en octets
-   * @param sizeBytes La nouvelle taille
-   */
   void updateCacheSize(qint64 sizeBytes);
-
-  /**
-   * @brief Réinitialise le cache
-   */
   void reset();
-
-  /**
-   * @brief Clampe un temps dans la plage du cache
-   * @param time Le temps à clamper
-   * @return Le temps clampé entre cacheStartTime et cacheEndTime
-   */
   [[nodiscard]] double clampToCache(double time) const;
 
+  // ===== Nouveaux slots (gestion VOD) =====
+
+  /**
+   * @brief Définit la taille maximale du cache
+   * @param maxSize Taille max en octets
+   */
+  void setMaxCacheSize(qint64 maxSize);
+
+  /**
+   * @brief Ajoute une VOD au cache
+   * @param metadata Les métadonnées de la VOD
+   * @return true si ajoutée avec succès
+   */
+  bool addVod(const VodMetadata& metadata);
+
+  /**
+   * @brief Ajoute une VOD au cache depuis QML
+   * @param metadata Les métadonnées sous forme de QVariantMap
+   * @return true si ajoutée avec succès
+   */
+  Q_INVOKABLE bool addVodFromQml(const QVariantMap& metadata);
+
+  /**
+   * @brief Télécharge un thumbnail depuis une URL et le sauvegarde
+   * @param url L'URL du thumbnail
+   * @param vodId L'ID de la VOD (pour nommer le fichier)
+   * @return Le chemin local du fichier ou vide si échec
+   */
+  Q_INVOKABLE QString downloadThumbnail(const QString& url, const QString& filename);
+
+  /**
+   * @brief Supprime une VOD du cache par ID
+   * @param vodId L'ID de la VOD
+   * @return true si supprimée avec succès
+   */
+  Q_INVOKABLE bool removeVod(const QString& vodId);
+
+  /**
+   * @brief Supprime plusieurs VOD du cache
+   * @param vodIds Liste des IDs à supprimer
+   * @return Nombre de VOD supprimées
+   */
+  Q_INVOKABLE int removeVods(const QStringList& vodIds);
+
+  /**
+   * @brief Vide entièrement le cache
+   * @return Nombre de VOD supprimées
+   */
+  Q_INVOKABLE int clearAllVods();
+
+  /**
+   * @brief Met à jour la position de lecture d'une VOD
+   * @param vodId L'ID de la VOD
+   * @param position Position en secondes
+   */
+  Q_INVOKABLE void updateWatchPosition(const QString& vodId, qint64 position);
+
+  /**
+   * @brief Marque une VOD comme lue (met à jour lastPlayedAt)
+   * @param vodId L'ID de la VOD
+   */
+  Q_INVOKABLE void markAsPlayed(const QString& vodId);
+
+  /**
+   * @brief Obtient les métadonnées d'une VOD
+   * @param vodId L'ID de la VOD
+   * @return Les métadonnées ou une structure vide si non trouvée
+   */
+  Q_INVOKABLE QVariantMap getVodMetadata(const QString& vodId) const;
+
+  /**
+   * @brief Démarre le service de nettoyage automatique
+   * @param intervalMs Intervalle de vérification en millisecondes (défaut: 5 min)
+   */
+  void startCleanupService(int intervalMs = 300000);
+
+  /**
+   * @brief Arrête le service de nettoyage automatique
+   */
+  void stopCleanupService();
+
+  /**
+   * @brief Force un nettoyage immédiat du cache
+   * @return Nombre de VOD supprimées
+   */
+  Q_INVOKABLE int performCleanup();
+
+  /**
+   * @brief Sauvegarde les métadonnées sur le disque
+   */
+  void saveMetadata();
+
+  /**
+   * @brief Charge les métadonnées depuis le disque
+   */
+  void loadMetadata();
+
  signals:
-  /**
-   * @brief Émis quand la durée du cache change
-   * @param duration La nouvelle durée en secondes
-   */
+  // ===== Signaux existants =====
   void cacheDurationChanged(double duration);
-
-  /**
-   * @brief Émis quand le temps de début du cache change
-   * @param startTime Le nouveau temps de début
-   */
   void cacheStartTimeChanged(double startTime);
-
-  /**
-   * @brief Émis quand le temps de fin du cache change
-   * @param endTime Le nouveau temps de fin
-   */
   void cacheEndTimeChanged(double endTime);
-
-  /**
-   * @brief Émis quand la taille du cache change
-   * @param sizeBytes La nouvelle taille en octets
-   */
   void cacheSizeBytesChanged(qint64 sizeBytes);
-
-  /**
-   * @brief Émis quand l'état de cache change
-   * @param isCaching true si le cache est actif
-   */
   void isCachingChanged(bool isCaching);
-
-  /**
-   * @brief Émis pour notifier la state machine d'une mise à jour du cache
-   * @param duration La nouvelle durée du cache
-   */
   void cacheUpdated(double duration);
 
- private:
-  /**
-   * @brief Émet les signaux de changement si nécessaire
-   */
-  void emitChanges();
+  // ===== Nouveaux signaux =====
+  void totalVodSizeChanged(qint64 totalSize);
+  void maxCacheSizeChanged(qint64 maxSize);
+  void vodCountChanged(int count);
+  void vodListChanged();
+  void vodAdded(const QString& vodId);
+  void vodRemoved(const QString& vodId);
+  void vodsCleared();
+  void cleanupPerformed(int removedCount, qint64 freedBytes);
+  void cacheThresholdReached(double usagePercent);
 
-  // ===== État atomique pour performances =====
+ private:
+  void emitChanges();
+  void checkCacheThreshold();
+  QString metadataFilePath() const;
+  void ensureCacheDirectoryExists();
+  bool deleteVodFile(const QString& filePath);
+  void sortVodsByLru();
+
+  // ===== État atomique pour cache live =====
   std::atomic<double> m_cacheStartTime{0.0};
   std::atomic<double> m_cacheEndTime{0.0};
   std::atomic<qint64> m_cacheSizeBytes{0};
   std::atomic<bool> m_isCaching{false};
 
-  // ===== Cache des dernières valeurs émises =====
   double m_lastEmittedDuration = -1.0;
   double m_lastEmittedStartTime = -1.0;
   double m_lastEmittedEndTime = -1.0;
 
-  // ===== Mutex pour les opérations composées =====
+  // ===== État pour gestion VOD =====
+  std::vector<VodMetadata> m_vodMetadataList;
+  qint64 m_maxCacheSize = 10LL * 1024 * 1024 * 1024;  // 10 GB par défaut
+  QString m_cacheDirectory;
+  QTimer* m_cleanupTimer = nullptr;
+  
+  // Seuils pour le nettoyage automatique
+  static constexpr double kCleanupTriggerThreshold = 0.90;  // 90%
+  static constexpr double kCleanupTargetThreshold = 0.80;   // 80%
+
   mutable QMutex m_mutex;
 };
 
 }  // namespace blueplayer::core
-
-
-

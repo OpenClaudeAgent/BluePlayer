@@ -35,6 +35,8 @@ set(BLUEPLAYER_CORE_SOURCES
   api/twitch/TwitchService.hpp
   ui/HomeViewModel.cpp
   ui/HomeViewModel.hpp
+  ui/CacheManagerViewModel.cpp
+  ui/CacheManagerViewModel.hpp
 )
 
 set(BLUEPLAYER_MEDIA_SOURCES
@@ -113,6 +115,7 @@ qt_add_qml_module(BluePlayer
     ui/LoginView.qml
     ui/PreferencesView.qml
     ui/PlayerView.qml
+    ui/CacheManagerView.qml
     ui/VideoPlayerApple.qml
     ui/themes/AppleTheme.js
     ui/components/AppleCard.qml
