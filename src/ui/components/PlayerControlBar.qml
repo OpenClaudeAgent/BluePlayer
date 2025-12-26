@@ -26,6 +26,11 @@ Rectangle {
   property bool hardwareDecoding: true
   property bool cropVideo: false
   
+  // Chip button dimensions (for consistent sizing)
+  readonly property int chipWidth: 64
+  readonly property int chipHeight: 32
+  readonly property int chipRadius: 16
+  
   // Signals
   signal playPauseClicked()
   signal stopClicked()
@@ -403,7 +408,7 @@ Rectangle {
 
       Rectangle {
         id: rateChip
-        width: 70; height: 32; radius: 16
+        width: chipWidth; height: chipHeight; radius: chipRadius
         color: "#26FFFFFF"
         border.color: "#4DFFFFFF"; border.width: 1
         Text {
@@ -434,9 +439,9 @@ Rectangle {
 
       Rectangle {
         id: hwToggle
-        width: 52; height: 32; radius: 16
-        color: hardwareDecoding ? "#3349c7ff" : "#1AFFFFFF"
-        border.color: hardwareDecoding ? "#49c7ff" : "#4DFFFFFF"
+        width: chipWidth; height: chipHeight; radius: chipRadius
+        color: "#26FFFFFF"
+        border.color: "#4DFFFFFF"; border.width: 1
         Text {
           anchors.centerIn: parent
           text: hardwareDecoding ? qsTr("HW") : qsTr("SW")
@@ -454,9 +459,9 @@ Rectangle {
 
       Rectangle {
         id: cropToggle
-        width: 68; height: 32; radius: 16
-        color: cropVideo ? "#339C27B0" : "#1AFFFFFF"
-        border.color: cropVideo ? "#9C27B0" : "#4DFFFFFF"
+        width: chipWidth; height: chipHeight; radius: chipRadius
+        color: "#26FFFFFF"
+        border.color: "#4DFFFFFF"; border.width: 1
         Text {
           anchors.centerIn: parent
           text: cropVideo ? qsTr("Crop") : qsTr("Fit")
