@@ -1,21 +1,33 @@
 # BluePlayer
 
+> **Note** : Ce projet est développé en mode *vibe-coding* avec Claude/OpenCode. C'est un projet expérimental qui sert également de terrain d'exploration pour le développement assisté par IA.
+
 BluePlayer est une application native de lecture multimédia haute performance, développée en C++ avec le framework Qt et la bibliothèque FFmpeg. L'objectif est de fournir une expérience utilisateur fluide et riche, notamment pour la lecture de contenus vidéo.
 
 ## Table des Matières
 
 - [Fonctionnalités](#fonctionnalités)
+- [Documentation](#documentation)
 - [Prérequis](#prérequis)
 - [Installation et Compilation](#installation-et-compilation)
 - [Exécution](#exécution)
 - [Tests](#tests)
 - [Structure du Projet](#structure-du-projet)
+- [Roadmap](#roadmap)
 
 ## Fonctionnalités
 
 - Lecture de divers formats vidéo et audio grâce à FFmpeg.
 - Interface utilisateur moderne et réactive développée avec Qt Quick.
 - Accélération matérielle pour une performance optimale.
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [SETUP.md](docs/SETUP.md) | Guide d'installation détaillé et configuration |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Architecture technique du projet |
+| [AGENTIC-WORKFLOW.md](docs/AGENTIC-WORKFLOW.md) | Workflow des agents IA (vibe-coding) |
 
 ## Prérequis
 
@@ -92,6 +104,10 @@ make test
     -   `streaming/` : Gestion du streaming.
     -   `ui/` : Interface utilisateur QML.
 -   `tests/` : Tests unitaires et d'intégration.
+
+## Roadmap
+
+Consultez la [Roadmap](roadmap/README.md) pour le suivi des tâches planifiées et en cours.
 
 ## Changelog
 
