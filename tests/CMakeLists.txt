@@ -320,3 +320,29 @@ target_include_directories(test_twitch_service PRIVATE ${TEST_INCLUDE_DIRS})
 target_link_directories(test_twitch_service PRIVATE /opt/homebrew/lib ${FFMPEG_LIBS_LIBRARY_DIRS})
 apply_coverage_flags(test_twitch_service)
 add_test(NAME TwitchService COMMAND test_twitch_service)
+
+# Tests unitaires pour Error
+add_executable(test_error
+  core/TestError.cpp
+)
+target_link_libraries(test_error PRIVATE
+  ${TEST_LIBS}
+  blueplayer_core
+)
+target_include_directories(test_error PRIVATE ${TEST_INCLUDE_DIRS})
+target_link_directories(test_error PRIVATE /opt/homebrew/lib)
+apply_coverage_flags(test_error)
+add_test(NAME Error COMMAND test_error)
+
+# Tests unitaires pour Result
+add_executable(test_result
+  core/TestResult.cpp
+)
+target_link_libraries(test_result PRIVATE
+  ${TEST_LIBS}
+  blueplayer_core
+)
+target_include_directories(test_result PRIVATE ${TEST_INCLUDE_DIRS})
+target_link_directories(test_result PRIVATE /opt/homebrew/lib)
+apply_coverage_flags(test_result)
+add_test(NAME Result COMMAND test_result)
