@@ -126,7 +126,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | **21** | **Dette Technique** | [plan-21](./plan-21-technical-debt.md) | `refactor/tech-debt` | - | 🔴 En attente |
 | 22 | Page succès OAuth | [plan-22](./plan-22-oauth-success-page.md) | `fix/oauth-success-page` | - | 🔴 En attente |
 | 23 | Auto-refresh Home | [plan-23](./plan-23-auto-refresh.md) | `feature/auto-refresh` | - | 🔴 En attente |
-| **24** | **Refactoring Profond** | [plan-24](./plan-24-deep-refactoring.md) | `refactor/deep-analysis` | v0.12.0 (Sprint 2) | 🟡 En cours |
+| **24** | **Refactoring Profond** | [plan-24](./plan-24-deep-refactoring.md) | `refactor/deep-analysis` | v0.13.0 (Sprint 3) | 🟡 En cours |
 | **25** | **Audit UI/UX Design** | [plan-25](./plan-25-ui-design-audit.md) | `design/ui-audit` | - | 🔴 En attente |
 
 ### Plans spéciaux
@@ -183,3 +183,4 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 2025-12-27 | Tâche 10 terminée - Animations harmonisées, transitions navigation, architecture vues optimisée |
 | 2025-12-27 | Plan 24 Sprint 1 terminé - Sécurité renforcée (Keychain, validation IRC, thread-safety) |
 | 2025-12-27 | Plan 24 Sprint 2 terminé - Refactoring PlayerView (composants QML, logique recording C++, injection dépendances) |
+| 2025-12-27 | Plan 24 Sprint 3 terminé - Refactoring PlayerControlBar (ControlButton, SeekBar, VolumeControl) + signature code |

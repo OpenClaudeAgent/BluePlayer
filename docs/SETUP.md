@@ -261,3 +261,77 @@ Voir `docs/TESTING.md` pour plus de détails sur la stratégie de test et les co
 4.  **Guidage dans l'UI**  
     L'interface expose un panneau Twitch avec les boutons Connexion / Déconnexion / Actualiser et une liste des streams. La sélection d'un stream ouvre l'URL Twitch dans le navigateur.
 
+## 10. Signature de code pour le Keychain (macOS)
+
+BluePlayer utilise le **macOS Keychain** pour stocker de manière sécurisée les tokens OAuth Twitch. Sans signature de code, macOS considère chaque recompilation comme une "nouvelle" application et demande l'autorisation d'accès au Keychain à chaque lancement.
+
+### 10.1. Problème
+
+Sans signature, vous devez entrer votre mot de passe Keychain **4 fois** à chaque démarrage de l'application après une recompilation.
+
+### 10.2. Solution : Signature automatique
+
+Le projet est configuré pour signer automatiquement l'application avec votre certificat de développement Apple.
+
+#### Prérequis
+
+1. **Compte développeur Apple** (gratuit ou payant)
+2. **Certificat de développement** installé dans votre Keychain
+
+#### Vérifier votre certificat
+
+```bash
+security find-identity -v -p codesigning
+```
+
+Vous devriez voir une ligne comme :
+```
+1) E8F938C579690A07F405E486C84C573D745B43DD "Apple Development: votre@email.com (XXXXXXXXXX)"
+```
+
+#### Configuration dans CMakeLists.txt
+
+La signature est déjà configurée dans `src/CMakeLists.txt`. Si vous avez un certificat différent, modifiez le hash SHA-1 :
+
+```cmake
+# Pour les builds Ninja/Make (non-Xcode)
+add_custom_command(TARGET BluePlayer POST_BUILD
+  COMMAND codesign --force --deep --sign <VOTRE_SHA1_ICI>
+          "$<TARGET_BUNDLE_DIR:BluePlayer>"
+  COMMENT "Signing BluePlayer.app with developer certificate..."
+)
+```
+
+### 10.3. Première utilisation
+
+Après la première compilation signée :
+
+1. Lancez l'application : `make run`
+2. Quand le popup Keychain apparaît, cliquez sur **"Toujours autoriser"**
+3. Les builds suivants n'afficheront plus ce popup
+
+### 10.4. Créer un certificat de développement (si nécessaire)
+
+Si vous n'avez pas de certificat :
+
+1. Ouvrez **Xcode** → Preferences → Accounts
+2. Connectez-vous avec votre Apple ID
+3. Sélectionnez votre équipe → Manage Certificates
+4. Cliquez sur **+** → Apple Development
+5. Le certificat sera automatiquement installé dans votre Keychain
+
+Puis récupérez le hash SHA-1 avec la commande `security find-identity` ci-dessus.
+
+### 10.5. Alternative : Signature ad-hoc (sans certificat)
+
+Si vous n'avez pas de compte développeur Apple, vous pouvez utiliser une signature ad-hoc :
+
+```cmake
+add_custom_command(TARGET BluePlayer POST_BUILD
+  COMMAND codesign --force --deep --sign - "$<TARGET_BUNDLE_DIR:BluePlayer>"
+  COMMENT "Ad-hoc signing BluePlayer.app..."
+)
+```
+
+> **Note :** La signature ad-hoc ne résout pas le problème du Keychain. Elle est utile uniquement pour les tests sans authentification Twitch.
+

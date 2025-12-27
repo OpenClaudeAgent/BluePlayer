@@ -113,6 +113,7 @@ Consultez la [Roadmap](roadmap/README.md) pour le suivi des tâches planifiées 
 
 | Version | Date | Description |
 |---------|------|-------------|
+| v0.13.0 | 2025-12-27 | Refactoring PlayerControlBar (ControlButton, SeekBar, VolumeControl) + signature code automatique |
 | v0.12.0 | 2025-12-27 | Refactoring PlayerView (composants QML extraits, logique recording en C++, injection dépendances) |
 | v0.11.0 | 2025-12-27 | Sécurité renforcée (Keychain macOS, validation IRC, thread-safety, logging) |
 | v0.10.0 | 2025-12-27 | Animations harmonisées, transitions navigation fluides, architecture vues optimisée |

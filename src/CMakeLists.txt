@@ -150,6 +150,9 @@ qt_add_qml_module(BluePlayer
     ui/components/TopBarOverlay.qml
     ui/components/LoadingOverlay.qml
     ui/components/ErrorToast.qml
+    ui/components/ControlButton.qml
+    ui/components/SeekBar.qml
+    ui/components/VolumeControl.qml
 )
 
 target_link_libraries(BluePlayer
@@ -170,6 +173,26 @@ set_target_properties(BluePlayer PROPERTIES
   MACOSX_BUNDLE TRUE
   WIN32_EXECUTABLE TRUE
 )
+
+# Code signing for macOS - permet au Keychain de reconnaître l'app entre les builds
+if(APPLE)
+  # Utilise le certificat de développement disponible
+  set_target_properties(BluePlayer PROPERTIES
+    XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "Apple Development"
+    XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "SKFL9W89L2"
+    XCODE_ATTRIBUTE_CODE_SIGN_STYLE "Automatic"
+  )
+  
+  # Pour les builds Ninja/Make (non-Xcode), signer manuellement après le build
+  # Utilise le hash SHA-1 du certificat pour éviter les problèmes d'échappement
+  if(NOT CMAKE_GENERATOR MATCHES "Xcode")
+    add_custom_command(TARGET BluePlayer POST_BUILD
+      COMMAND codesign --force --deep --sign E8F938C579690A07F405E486C84C573D745B43DD 
+              "$<TARGET_BUNDLE_DIR:BluePlayer>"
+      COMMENT "Signing BluePlayer.app with developer certificate..."
+    )
+  endif()
+endif()
 
 setup_compiler_warnings(BluePlayer)
 
