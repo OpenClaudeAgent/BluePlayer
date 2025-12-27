@@ -1,0 +1,41 @@
+{
+  "data": [
+    {
+      "id": "41234567890",
+      "user_id": "123456789",
+      "user_login": "teststreamer",
+      "user_name": "TestStreamer",
+      "game_id": "509658",
+      "game_name": "Just Chatting",
+      "type": "live",
+      "title": "Welcome to my stream!",
+      "viewer_count": 15000,
+      "started_at": "2024-01-15T10:30:00Z",
+      "language": "en",
+      "thumbnail_url": "https://static-cdn.jtvnw.net/previews-ttv/live_user_teststreamer-{width}x{height}.jpg",
+      "tag_ids": [],
+      "tags": ["English", "Gaming"],
+      "is_mature": false
+    },
+    {
+      "id": "41234567891",
+      "user_id": "987654321",
+      "user_login": "anotherstreamer",
+      "user_name": "AnotherStreamer",
+      "game_id": "33214",
+      "game_name": "Fortnite",
+      "type": "live",
+      "title": "Road to Victory Royale!",
+      "viewer_count": 8500,
+      "started_at": "2024-01-15T09:00:00Z",
+      "language": "en",
+      "thumbnail_url": "https://static-cdn.jtvnw.net/previews-ttv/live_user_anotherstreamer-{width}x{height}.jpg",
+      "tag_ids": [],
+      "tags": ["Competitive", "English"],
+      "is_mature": false
+    }
+  ],
+  "pagination": {
+    "cursor": "eyJiIjpudWxsLCJhIjp7Ik9mZnNldCI6MjB9fQ=="
+  }
+}

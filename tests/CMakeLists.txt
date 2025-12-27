@@ -365,3 +365,60 @@ target_include_directories(test_result PRIVATE ${TEST_INCLUDE_DIRS})
 target_link_directories(test_result PRIVATE /opt/homebrew/lib)
 apply_coverage_flags(test_result)
 add_test(NAME Result COMMAND test_result)
+
+# ===== Contract Tests =====
+
+# Include directories for contract tests
+set(CONTRACT_TEST_INCLUDE_DIRS
+  ${CMAKE_CURRENT_SOURCE_DIR}/../src
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/contracts
+)
+
+# Helix API Contract Tests
+add_executable(test_helix_contracts
+  contracts/TestHelixContracts.cpp
+)
+target_link_libraries(test_helix_contracts PRIVATE
+  ${TEST_LIBS}
+)
+target_include_directories(test_helix_contracts PRIVATE ${CONTRACT_TEST_INCLUDE_DIRS})
+target_link_directories(test_helix_contracts PRIVATE /opt/homebrew/lib)
+apply_coverage_flags(test_helix_contracts)
+add_test(NAME HelixContracts COMMAND test_helix_contracts)
+
+# OAuth Contract Tests
+add_executable(test_oauth_contracts
+  contracts/TestOAuthContracts.cpp
+)
+target_link_libraries(test_oauth_contracts PRIVATE
+  ${TEST_LIBS}
+)
+target_include_directories(test_oauth_contracts PRIVATE ${CONTRACT_TEST_INCLUDE_DIRS})
+target_link_directories(test_oauth_contracts PRIVATE /opt/homebrew/lib)
+apply_coverage_flags(test_oauth_contracts)
+add_test(NAME OAuthContracts COMMAND test_oauth_contracts)
+
+# IRC Contract Tests
+add_executable(test_irc_contracts
+  contracts/TestIrcContracts.cpp
+)
+target_link_libraries(test_irc_contracts PRIVATE
+  ${TEST_LIBS}
+)
+target_include_directories(test_irc_contracts PRIVATE ${CONTRACT_TEST_INCLUDE_DIRS})
+target_link_directories(test_irc_contracts PRIVATE /opt/homebrew/lib)
+apply_coverage_flags(test_irc_contracts)
+add_test(NAME IrcContracts COMMAND test_irc_contracts)
+
+# HLS Contract Tests
+add_executable(test_hls_contracts
+  contracts/TestHlsContracts.cpp
+)
+target_link_libraries(test_hls_contracts PRIVATE
+  ${TEST_LIBS}
+)
+target_include_directories(test_hls_contracts PRIVATE ${CONTRACT_TEST_INCLUDE_DIRS})
+target_link_directories(test_hls_contracts PRIVATE /opt/homebrew/lib)
+apply_coverage_flags(test_hls_contracts)
+add_test(NAME HlsContracts COMMAND test_hls_contracts)

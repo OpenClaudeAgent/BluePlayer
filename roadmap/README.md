@@ -108,7 +108,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 6 | Barre de recherche Twitch | [plan-06](./plan-06-search.md) | `feature/search` | v0.6.0 | 🟢 Terminé |
 | 7 | Chat Twitch intégré | [plan-07](./plan-07-chat.md) | `feature/chat` | v0.7.0 | 🟢 Terminé |
 | 8 | Fix ligne vide Home | [plan-08](./plan-08-home-empty-row.md) | `feature/fix-home-row` | v0.8.0 | 🟢 Terminé |
-| 9 | Vitesse lecture intelligente | [plan-09](./plan-09-playback-speed.md) | `feature/playback-speed` | - | 🔴 En attente |
+| 9 | Vitesse lecture intelligente | [plan-09](./plan-09-playback-speed.md) | `feature/playback-speed` | v0.9.0 | 🟢 Terminé |
 | 10 | Animations & Transitions | [plan-10](./plan-10-animations.md) | `feature/animations` | - | 🔴 En attente |
 | 11 | Sélecteur Qualité Stream | [plan-11](./plan-11-quality-selector.md) | `feature/quality-selector` | - | 🔴 En attente |
 | 12 | Panel Préférences | [plan-12](./plan-12-preferences.md) | `feature/preferences` | - | 🔴 En attente |
@@ -170,3 +170,4 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 2025-12-27 | Ajout plan 22 - Page succès OAuth (amélioration UX authentification) |
 | 2025-12-27 | Tâche 8 terminée - Suppression section redondante Home (5 sections au lieu de 6) |
 | 2025-12-27 | Ajout plan 23 - Auto-refresh Home (30s streams/clips, retour premier plan, gestion erreur) |
+| 2025-12-27 | Tâche 9 terminée - Vitesse lecture intelligente (auto-reset, protection live edge, mode replay) |

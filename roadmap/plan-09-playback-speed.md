@@ -153,34 +153,34 @@ void MpvQuickItem::resume() {
 ## Checklist de validation
 
 ### Détection du live edge
-- [ ] `isNearLiveEdge()` retourne true quand delta < 2s
-- [ ] `isApproachingLiveEdge()` retourne true quand delta < 5s
-- [ ] La détection fonctionne indépendamment du mode "live" UI
+- [x] `isNearLiveEdge()` retourne true quand delta < 2s
+- [x] `isApproachingLiveEdge()` retourne true quand delta < 5s
+- [x] La détection fonctionne indépendamment du mode "live" UI
 
 ### Vitesse > 1x
-- [ ] La vitesse > 1x fonctionne en mode VOD/replay
-- [ ] Quand on approche du live (< 5s), la vitesse reset à 1.0x
-- [ ] Toast "Vitesse réinitialisée (live)" s'affiche
-- [ ] Pas de stutter quand on arrive au live
-- [ ] Le bouton de vitesse affiche bien 1.00x après le reset
+- [x] La vitesse > 1x fonctionne en mode VOD/replay
+- [x] Quand on approche du live (< 5s), la vitesse reset à 1.0x
+- [x] Toast "Vitesse réinitialisée (live)" s'affiche
+- [x] Pas de stutter quand on arrive au live
+- [x] Le bouton de vitesse affiche bien 1.00x après le reset
 
 ### Vitesse < 1x
-- [ ] La vitesse < 1x fonctionne normalement
-- [ ] Si on ralentit depuis le live edge, on passe en mode "replay"
-- [ ] L'indicateur LIVE/VOD se met à jour correctement
+- [x] La vitesse < 1x fonctionne normalement
+- [x] Si on ralentit depuis le live edge, on passe en mode "replay"
+- [x] L'indicateur LIVE/VOD se met à jour correctement
 
 ### Pause
-- [ ] Pause au live edge → on quitte le live edge
-- [ ] À la reprise, on est en mode "replay"
-- [ ] L'indicateur LIVE/VOD reflète la réalité
+- [x] Pause au live edge → on quitte le live edge
+- [x] À la reprise, on est en mode "replay"
+- [x] L'indicateur LIVE/VOD reflète la réalité
 
 ### Protection au live edge
-- [ ] Au live edge, vitesse max autorisée ~1.2x
-- [ ] Tentative d'aller plus vite → toast explicatif
-- [ ] Pas de crash ou comportement bizarre
+- [x] Au live edge, vitesse max autorisée ~1.2x
+- [x] Tentative d'aller plus vite → toast explicatif
+- [x] Pas de crash ou comportement bizarre
 
 ### Tests généraux
-- [ ] Pas de régression sur la lecture normale
-- [ ] Transitions fluides entre les modes
-- [ ] Toasts non intrusifs
-- [ ] Performances acceptables
+- [x] Pas de régression sur la lecture normale
+- [x] Transitions fluides entre les modes
+- [x] Toasts non intrusifs
+- [x] Performances acceptables

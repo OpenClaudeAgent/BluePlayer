@@ -1,0 +1,213 @@
+# BluePlayer Quality Gates Configuration
+# This file defines thresholds for test quality metrics
+# Used by CI/CD pipelines and local validation scripts
+
+version: "1.0"
+
+# Global coverage thresholds (percentage)
+coverage:
+  global:
+    line: 70        # Minimum line coverage (current validate_build.sh threshold)
+    branch: 65      # Minimum branch coverage
+    function: 80    # Minimum function coverage
+    
+  # Per-module thresholds (more stringent for critical modules)
+  modules:
+    core:
+      line: 85
+      branch: 80
+      function: 95
+      critical: true
+      description: "Core business logic - highest coverage requirements"
+      
+    core/network:
+      line: 80
+      branch: 75
+      function: 90
+      critical: true
+      description: "Network layer - critical for API communication"
+      
+    api/twitch:
+      line: 80
+      branch: 70
+      function: 90
+      critical: true
+      description: "Twitch API integration"
+      
+    media:
+      line: 60
+      branch: 55
+      function: 75
+      critical: false
+      description: "Media playback - hardware dependent, lower threshold"
+      
+    chat:
+      line: 75
+      branch: 70
+      function: 85
+      critical: false
+      description: "Chat functionality"
+      
+    ui:
+      line: 70
+      branch: 65
+      function: 80
+      critical: false
+      description: "ViewModel layer"
+
+# Mutation testing thresholds
+mutation:
+  global:
+    minimum_score: 60   # Fail build if below this
+    target_score: 75    # Warning if below this
+    
+  per_module:
+    core: 75
+    core/network: 80
+    api/twitch: 75
+    media: 60
+    chat: 70
+    ui: 65
+    
+  # Mutators and their expected kill rates
+  mutator_effectiveness:
+    negate_condition: 80
+    conditionals_boundary: 75
+    math_add: 70
+    math_sub: 70
+    math_mul: 70
+    math_div: 70
+    and_or_replacement: 75
+    remove_void_function: 65
+    replace_assignment: 70
+    replace_call: 60
+
+# Test execution constraints
+execution:
+  unit_tests:
+    max_total_time: 60    # seconds - all unit tests combined
+    max_single_test: 5    # seconds - any individual test
+    warning_threshold: 45 # seconds - warn if approaching limit
+    
+  integration_tests:
+    max_total_time: 120   # seconds
+    max_single_test: 30   # seconds
+    warning_threshold: 90 # seconds
+    
+  all_tests:
+    max_total_time: 180   # seconds - complete test suite
+    timeout_multiplier: 2 # for CI environments (slower)
+
+# Flaky test policy
+flaky:
+  tolerance: 0              # Zero tolerance - no flaky tests allowed
+  quarantine_after: 2       # Quarantine after N consecutive failures
+  auto_retry: 3             # Retry count before marking as flaky
+  detection_runs: 5         # Number of runs to detect flakiness
+  quarantine_max_days: 14   # Maximum days in quarantine before fix required
+
+# Test-to-code ratio
+ratio:
+  minimum: 0.8              # test LOC / source LOC minimum
+  target: 1.2               # target ratio
+  warning: 0.9              # warn if below this
+  
+  per_module_minimum:
+    core: 1.0
+    core/network: 1.0
+    api/twitch: 1.2
+    media: 0.6
+    chat: 0.8
+    ui: 0.8
+
+# Test code quality metrics
+test_quality:
+  complexity:
+    max_cyclomatic_per_test: 5
+    max_nesting_depth: 3
+    max_assertions_per_test: 10
+    max_lines_per_test: 50
+    
+  duplication:
+    max_percentage: 5       # percentage of duplicated test code
+    min_block_size: 6       # minimum lines to count as duplicate
+    
+  naming:
+    pattern: "test_*"       # test function naming pattern
+    max_name_length: 80
+    require_descriptive: true
+    
+  organization:
+    max_tests_per_file: 30
+    require_fixture: true
+    require_setup_teardown: true
+
+# Critical path - 100% coverage required
+critical_paths:
+  - class: TwitchAuthManager
+    methods:
+      - authenticate
+      - refreshToken
+      - validateToken
+      - logout
+    coverage: 100
+    mutation_score: 85
+    
+  - class: SecureStorage
+    methods:
+      - store
+      - retrieve
+      - remove
+    coverage: 100
+    mutation_score: 80
+    
+  - class: InputValidator
+    methods:
+      - validateUrl
+      - validateUsername
+      - sanitizeInput
+    coverage: 100
+    mutation_score: 90
+    
+  - class: ErrorHandler
+    methods:
+      - handleError
+      - handleNetworkError
+      - handleApiError
+    coverage: 100
+    mutation_score: 80
+
+# CI/CD pipeline configuration
+ci:
+  pre_commit:
+    run_affected_only: true
+    max_time: 60            # seconds
+    skip_mutation: true
+    
+  pull_request:
+    run_full_suite: true
+    max_time: 180           # seconds
+    run_mutation: true
+    require_coverage_report: true
+    block_on_coverage_drop: true
+    coverage_drop_threshold: 5  # percentage
+    
+  nightly:
+    run_comprehensive: true
+    max_time: 600           # seconds
+    run_mutation: true
+    run_flaky_detection: true
+    flaky_detection_runs: 10
+    generate_trend_report: true
+    
+  main_branch:
+    require_all_gates_pass: true
+    update_coverage_badge: true
+    archive_metrics: true
+
+# Notification thresholds
+notifications:
+  coverage_drop_alert: 5    # percentage drop triggers alert
+  flaky_test_alert: true    # alert on any flaky test
+  slow_test_alert: true     # alert when tests exceed time threshold
+  mutation_drop_alert: 10   # percentage drop triggers alert

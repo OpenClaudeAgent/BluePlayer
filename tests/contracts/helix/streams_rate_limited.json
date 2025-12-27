@@ -1,0 +1,5 @@
+{
+  "error": "Too Many Requests",
+  "status": 429,
+  "message": "Request limit exceeded"
+}
