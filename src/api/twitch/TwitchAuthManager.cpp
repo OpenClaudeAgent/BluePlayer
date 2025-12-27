@@ -225,46 +225,9 @@ TwitchAuthManager::~TwitchAuthManager() { stopListener(); }
 bool TwitchAuthManager::isAuthenticated() const { return m_isAuthenticated; }
 
 QString TwitchAuthManager::accessToken() const {
-  // #region agent log
-  QFile logFile(QStringLiteral("/Users/user/Projects/BluePlayer/.cursor/debug.log"));
-  if (logFile.open(QIODevice::WriteOnly | QIODevice::Append)) {
-    QJsonObject logEntry;
-    logEntry[QStringLiteral("sessionId")] = QStringLiteral("debug-session");
-    logEntry[QStringLiteral("runId")] = QStringLiteral("run1");
-    logEntry[QStringLiteral("hypothesisId")] = QStringLiteral("A");
-    logEntry[QStringLiteral("location")] = QStringLiteral("TwitchAuthManager.cpp:220");
-    logEntry[QStringLiteral("message")] = QStringLiteral("accessToken() called");
-    QJsonObject data;
-    data[QStringLiteral("isRefreshing")] = m_isRefreshing;
-    data[QStringLiteral("tokenLength")] = m_accessToken.length();
-    data[QStringLiteral("tokenPreview")] = m_accessToken.isEmpty() ? QStringLiteral("EMPTY") : m_accessToken.left(8) + QStringLiteral("...");
-    data[QStringLiteral("isExpired")] = isTokenExpiredOrExpiringSoon();
-    logEntry[QStringLiteral("data")] = data;
-    logEntry[QStringLiteral("timestamp")] = QDateTime::currentMSecsSinceEpoch();
-    QTextStream stream(&logFile);
-    stream << QJsonDocument(logEntry).toJson(QJsonDocument::Compact) << "\n";
-    logFile.close();
-  }
-  // #endregion
-  
   // Si un refresh est en cours, ne pas retourner l'ancien token expiré
   // Attendre que le refresh soit terminé
   if (m_isRefreshing) {
-    // #region agent log
-    if (logFile.open(QIODevice::WriteOnly | QIODevice::Append)) {
-      QJsonObject logEntry;
-      logEntry[QStringLiteral("sessionId")] = QStringLiteral("debug-session");
-      logEntry[QStringLiteral("runId")] = QStringLiteral("run1");
-      logEntry[QStringLiteral("hypothesisId")] = QStringLiteral("A");
-      logEntry[QStringLiteral("location")] = QStringLiteral("TwitchAuthManager.cpp:225");
-      logEntry[QStringLiteral("message")] = QStringLiteral("accessToken() - refresh in progress, returning empty token");
-      logEntry[QStringLiteral("data")] = QJsonObject();
-      logEntry[QStringLiteral("timestamp")] = QDateTime::currentMSecsSinceEpoch();
-      QTextStream stream(&logFile);
-      stream << QJsonDocument(logEntry).toJson(QJsonDocument::Compact) << "\n";
-      logFile.close();
-    }
-    // #endregion
     Logger::debug(LogCategory::Twitch,
                   QStringLiteral("Token refresh in progress, returning empty token"));
     return QString(); // Retourner un token vide pendant le refresh
@@ -275,45 +238,11 @@ QString TwitchAuthManager::accessToken() const {
   
   // Si le token est expiré et qu'un refresh vient d'être lancé, retourner vide
   if (m_isRefreshing || (isTokenExpiredOrExpiringSoon() && !m_refreshToken.isEmpty())) {
-    // #region agent log
-    if (logFile.open(QIODevice::WriteOnly | QIODevice::Append)) {
-      QJsonObject logEntry;
-      logEntry[QStringLiteral("sessionId")] = QStringLiteral("debug-session");
-      logEntry[QStringLiteral("runId")] = QStringLiteral("run1");
-      logEntry[QStringLiteral("hypothesisId")] = QStringLiteral("A");
-      logEntry[QStringLiteral("location")] = QStringLiteral("TwitchAuthManager.cpp:240");
-      logEntry[QStringLiteral("message")] = QStringLiteral("accessToken() - token expired, refresh needed, returning empty");
-      logEntry[QStringLiteral("data")] = QJsonObject();
-      logEntry[QStringLiteral("timestamp")] = QDateTime::currentMSecsSinceEpoch();
-      QTextStream stream(&logFile);
-      stream << QJsonDocument(logEntry).toJson(QJsonDocument::Compact) << "\n";
-      logFile.close();
-    }
-    // #endregion
     Logger::debug(LogCategory::Twitch,
                   QStringLiteral("Token expired and refresh needed, returning empty token"));
     return QString(); // Retourner un token vide si expiré et refresh nécessaire
   }
   
-  // #region agent log
-  if (logFile.open(QIODevice::WriteOnly | QIODevice::Append)) {
-    QJsonObject logEntry;
-    logEntry[QStringLiteral("sessionId")] = QStringLiteral("debug-session");
-    logEntry[QStringLiteral("runId")] = QStringLiteral("run1");
-    logEntry[QStringLiteral("hypothesisId")] = QStringLiteral("A");
-    logEntry[QStringLiteral("location")] = QStringLiteral("TwitchAuthManager.cpp:250");
-    logEntry[QStringLiteral("message")] = QStringLiteral("accessToken() returning valid token");
-    QJsonObject data;
-    data[QStringLiteral("isRefreshing")] = m_isRefreshing;
-    data[QStringLiteral("tokenLength")] = m_accessToken.length();
-    data[QStringLiteral("tokenPreview")] = m_accessToken.isEmpty() ? QStringLiteral("EMPTY") : m_accessToken.left(8) + QStringLiteral("...");
-    logEntry[QStringLiteral("data")] = data;
-    logEntry[QStringLiteral("timestamp")] = QDateTime::currentMSecsSinceEpoch();
-    QTextStream stream(&logFile);
-    stream << QJsonDocument(logEntry).toJson(QJsonDocument::Compact) << "\n";
-    logFile.close();
-  }
-  // #endregion
   return m_accessToken;
 }
 
@@ -451,26 +380,6 @@ void TwitchAuthManager::handleTokenReply() {
       blueplayer::core::network::HttpClient::checkNetworkError(
           reply, QStringLiteral("requête OAuth"));
   if (networkError.hasError()) {
-    // #region agent log
-    QFile logFile(QStringLiteral("/Users/user/Projects/BluePlayer/.cursor/debug.log"));
-    if (logFile.open(QIODevice::WriteOnly | QIODevice::Append)) {
-      QJsonObject logEntry;
-      logEntry[QStringLiteral("sessionId")] = QStringLiteral("debug-session");
-      logEntry[QStringLiteral("runId")] = QStringLiteral("run1");
-      logEntry[QStringLiteral("hypothesisId")] = QStringLiteral("B");
-      logEntry[QStringLiteral("location")] = QStringLiteral("TwitchAuthManager.cpp:359");
-      logEntry[QStringLiteral("message")] = QStringLiteral("handleTokenReply() - network error");
-      QJsonObject data;
-      data[QStringLiteral("errorMessage")] = networkError.toString();
-      int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-      data[QStringLiteral("statusCode")] = statusCode;
-      logEntry[QStringLiteral("data")] = data;
-      logEntry[QStringLiteral("timestamp")] = QDateTime::currentMSecsSinceEpoch();
-      QTextStream stream(&logFile);
-      stream << QJsonDocument(logEntry).toJson(QJsonDocument::Compact) << "\n";
-      logFile.close();
-    }
-    // #endregion
     m_isRefreshing = false;
     emit errorOccurred(networkError.toString());
 
@@ -507,26 +416,6 @@ void TwitchAuthManager::handleTokenReply() {
   const QJsonObject object = document.object();
   m_accessToken = object.value(QStringLiteral("access_token")).toString();
 
-  // #region agent log
-  QFile logFile(QStringLiteral("/Users/user/Projects/BluePlayer/.cursor/debug.log"));
-  if (logFile.open(QIODevice::WriteOnly | QIODevice::Append)) {
-    QJsonObject logEntry;
-    logEntry[QStringLiteral("sessionId")] = QStringLiteral("debug-session");
-    logEntry[QStringLiteral("runId")] = QStringLiteral("run1");
-    logEntry[QStringLiteral("hypothesisId")] = QStringLiteral("D");
-    logEntry[QStringLiteral("location")] = QStringLiteral("TwitchAuthManager.cpp:394");
-    logEntry[QStringLiteral("message")] = QStringLiteral("handleTokenReply() - new token received");
-    QJsonObject logData;
-    logData[QStringLiteral("newTokenLength")] = m_accessToken.length();
-    logData[QStringLiteral("newTokenPreview")] = m_accessToken.isEmpty() ? QStringLiteral("EMPTY") : m_accessToken.left(8) + QStringLiteral("...");
-    logEntry[QStringLiteral("data")] = logData;
-    logEntry[QStringLiteral("timestamp")] = QDateTime::currentMSecsSinceEpoch();
-    QTextStream stream(&logFile);
-    stream << QJsonDocument(logEntry).toJson(QJsonDocument::Compact) << "\n";
-    logFile.close();
-  }
-  // #endregion
-
   // Récupérer le refresh_token s'il est présent (peut être absent lors d'un
   // refresh)
   const QString newRefreshToken =
@@ -548,40 +437,8 @@ void TwitchAuthManager::handleTokenReply() {
 
   m_isRefreshing = false;
   persistCredentials();
-  // #region agent log
-  if (logFile.open(QIODevice::WriteOnly | QIODevice::Append)) {
-    QJsonObject logEntry;
-    logEntry[QStringLiteral("sessionId")] = QStringLiteral("debug-session");
-    logEntry[QStringLiteral("runId")] = QStringLiteral("run1");
-    logEntry[QStringLiteral("hypothesisId")] = QStringLiteral("C");
-    logEntry[QStringLiteral("location")] = QStringLiteral("TwitchAuthManager.cpp:417");
-    logEntry[QStringLiteral("message")] = QStringLiteral("handleTokenReply() - about to emit signals");
-    QJsonObject logData;
-    logData[QStringLiteral("tokenLength")] = m_accessToken.length();
-    logEntry[QStringLiteral("data")] = logData;
-    logEntry[QStringLiteral("timestamp")] = QDateTime::currentMSecsSinceEpoch();
-    QTextStream stream(&logFile);
-    stream << QJsonDocument(logEntry).toJson(QJsonDocument::Compact) << "\n";
-    logFile.close();
-  }
-  // #endregion
   emitTokenChanged();
   emitAuthenticated();
-  // #region agent log
-  if (logFile.open(QIODevice::WriteOnly | QIODevice::Append)) {
-    QJsonObject logEntry;
-    logEntry[QStringLiteral("sessionId")] = QStringLiteral("debug-session");
-    logEntry[QStringLiteral("runId")] = QStringLiteral("run1");
-    logEntry[QStringLiteral("hypothesisId")] = QStringLiteral("C");
-    logEntry[QStringLiteral("location")] = QStringLiteral("TwitchAuthManager.cpp:418");
-    logEntry[QStringLiteral("message")] = QStringLiteral("handleTokenReply() - signals emitted");
-    logEntry[QStringLiteral("data")] = QJsonObject();
-    logEntry[QStringLiteral("timestamp")] = QDateTime::currentMSecsSinceEpoch();
-    QTextStream stream(&logFile);
-    stream << QJsonDocument(logEntry).toJson(QJsonDocument::Compact) << "\n";
-    logFile.close();
-  }
-  // #endregion
   reply->deleteLater();
 }
 
@@ -821,24 +678,6 @@ void TwitchAuthManager::loadCredentials() {
       Logger::debug(
           LogCategory::Twitch,
           QStringLiteral("Token expired or expiring soon, refreshing..."));
-      // #region agent log
-      QFile logFile(QStringLiteral("/Users/user/Projects/BluePlayer/.cursor/debug.log"));
-      if (logFile.open(QIODevice::WriteOnly | QIODevice::Append)) {
-        QJsonObject logEntry;
-        logEntry[QStringLiteral("sessionId")] = QStringLiteral("debug-session");
-        logEntry[QStringLiteral("runId")] = QStringLiteral("run1");
-        logEntry[QStringLiteral("hypothesisId")] = QStringLiteral("A");
-        logEntry[QStringLiteral("location")] = QStringLiteral("TwitchAuthManager.cpp:760");
-        logEntry[QStringLiteral("message")] = QStringLiteral("loadCredentials() - launching refresh, NOT setting authenticated=true");
-        QJsonObject data;
-        data[QStringLiteral("tokenLength")] = m_accessToken.length();
-        logEntry[QStringLiteral("data")] = data;
-        logEntry[QStringLiteral("timestamp")] = QDateTime::currentMSecsSinceEpoch();
-        QTextStream stream(&logFile);
-        stream << QJsonDocument(logEntry).toJson(QJsonDocument::Compact) << "\n";
-        logFile.close();
-      }
-      // #endregion
       refresh();
       // Ne pas émettre les signaux maintenant - ils seront émis après le refresh
       // dans handleTokenReply() via emitTokenChanged() et emitAuthenticated()
@@ -898,27 +737,6 @@ bool TwitchAuthManager::isTokenExpiredOrExpiringSoon() const {
 }
 
 void TwitchAuthManager::ensureValidToken() {
-  // #region agent log
-  QFile logFile(QStringLiteral("/Users/user/Projects/BluePlayer/.cursor/debug.log"));
-  if (logFile.open(QIODevice::WriteOnly | QIODevice::Append)) {
-    QJsonObject logEntry;
-    logEntry[QStringLiteral("sessionId")] = QStringLiteral("debug-session");
-    logEntry[QStringLiteral("runId")] = QStringLiteral("run1");
-    logEntry[QStringLiteral("hypothesisId")] = QStringLiteral("A");
-    logEntry[QStringLiteral("location")] = QStringLiteral("TwitchAuthManager.cpp:708");
-    logEntry[QStringLiteral("message")] = QStringLiteral("ensureValidToken() called");
-    QJsonObject data;
-    data[QStringLiteral("hasToken")] = !m_accessToken.isEmpty();
-    data[QStringLiteral("isRefreshing")] = m_isRefreshing;
-    data[QStringLiteral("isExpired")] = isTokenExpiredOrExpiringSoon();
-    data[QStringLiteral("hasRefreshToken")] = !m_refreshToken.isEmpty();
-    logEntry[QStringLiteral("data")] = data;
-    logEntry[QStringLiteral("timestamp")] = QDateTime::currentMSecsSinceEpoch();
-    QTextStream stream(&logFile);
-    stream << QJsonDocument(logEntry).toJson(QJsonDocument::Compact) << "\n";
-    logFile.close();
-  }
-  // #endregion
   // Ne rien faire si on n'a pas de token
   if (m_accessToken.isEmpty()) {
     return;
@@ -926,21 +744,6 @@ void TwitchAuthManager::ensureValidToken() {
 
   // Ne rien faire si un rafraîchissement est déjà en cours
   if (m_isRefreshing) {
-    // #region agent log
-    if (logFile.open(QIODevice::WriteOnly | QIODevice::Append)) {
-      QJsonObject logEntry;
-      logEntry[QStringLiteral("sessionId")] = QStringLiteral("debug-session");
-      logEntry[QStringLiteral("runId")] = QStringLiteral("run1");
-      logEntry[QStringLiteral("hypothesisId")] = QStringLiteral("A");
-      logEntry[QStringLiteral("location")] = QStringLiteral("TwitchAuthManager.cpp:715");
-      logEntry[QStringLiteral("message")] = QStringLiteral("ensureValidToken() - refresh already in progress, returning");
-      logEntry[QStringLiteral("data")] = QJsonObject();
-      logEntry[QStringLiteral("timestamp")] = QDateTime::currentMSecsSinceEpoch();
-      QTextStream stream(&logFile);
-      stream << QJsonDocument(logEntry).toJson(QJsonDocument::Compact) << "\n";
-      logFile.close();
-    }
-    // #endregion
     return;
   }
 
@@ -951,21 +754,6 @@ void TwitchAuthManager::ensureValidToken() {
           LogCategory::Twitch,
           QStringLiteral(
               "Token expired or expiring soon, refreshing automatically..."));
-      // #region agent log
-      if (logFile.open(QIODevice::WriteOnly | QIODevice::Append)) {
-        QJsonObject logEntry;
-        logEntry[QStringLiteral("sessionId")] = QStringLiteral("debug-session");
-        logEntry[QStringLiteral("runId")] = QStringLiteral("run1");
-        logEntry[QStringLiteral("hypothesisId")] = QStringLiteral("A");
-        logEntry[QStringLiteral("location")] = QStringLiteral("TwitchAuthManager.cpp:726");
-        logEntry[QStringLiteral("message")] = QStringLiteral("ensureValidToken() - calling refresh()");
-        logEntry[QStringLiteral("data")] = QJsonObject();
-        logEntry[QStringLiteral("timestamp")] = QDateTime::currentMSecsSinceEpoch();
-        QTextStream stream(&logFile);
-        stream << QJsonDocument(logEntry).toJson(QJsonDocument::Compact) << "\n";
-        logFile.close();
-      }
-      // #endregion
       refresh();
     } else {
       Logger::warning(

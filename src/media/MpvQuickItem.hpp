@@ -140,8 +140,8 @@ private:
   std::atomic<double> m_position{0.0};
   std::atomic<bool> m_isLiveMode{false};
   std::atomic<double> m_streamStart{-1.0}; // -1.0 means not observed or not a live stream
-  bool m_userInitiatedSeek{false}; // Track if user initiated a seek (to allow leaving live mode)
-  bool m_wasAtLiveEdgeBeforePause{false}; // Track if we were at live edge before pause
+  std::atomic<bool> m_userInitiatedSeek{false}; // Track if user initiated a seek (to allow leaving live mode)
+  std::atomic<bool> m_wasAtLiveEdgeBeforePause{false}; // Track if we were at live edge before pause
 
   // Playback tweaks
   double m_playbackRate = 1.0;

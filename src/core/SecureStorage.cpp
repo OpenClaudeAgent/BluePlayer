@@ -2,127 +2,41 @@
 
 #include "core/Logger.hpp"
 
-#include <QCryptographicHash>
-#include <QSettings>
 #include <QStandardPaths>
 #include <QDir>
-#include <QUuid>
 
 #ifdef Q_OS_MAC
-#include <IOKit/IOKitLib.h>
+#include <Security/Security.h>
 #include <CoreFoundation/CoreFoundation.h>
-#include <mach/mach_port.h>
 #endif
 
 namespace blueplayer::core {
 using namespace blueplayer::core;
 
+namespace {
+// Service name for Keychain items
+constexpr const char* kKeychainService = "BluePlayer";
+
+#ifdef Q_OS_MAC
+/**
+ * @brief Creates a CFString from a QString
+ * @param str The QString to convert
+ * @return A CFStringRef (caller must release)
+ */
+CFStringRef createCFString(const QString& str) {
+  return CFStringCreateWithCString(kCFAllocatorDefault,
+                                   str.toUtf8().constData(),
+                                   kCFStringEncodingUTF8);
+}
+
+#endif
+}  // namespace
+
 SecureStorage::SecureStorage(QObject* parent) : QObject(parent) {
-  // Utiliser un chemin sécurisé pour les settings
-  QString settingsPath = QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation);
-  QDir().mkpath(settingsPath);
-  
-  m_settings = new QSettings(QSettings::IniFormat, QSettings::UserScope,
-                             QStringLiteral("BluePlayer"), QStringLiteral("SecureStorage"), this);
+  // Keychain doesn't require initialization
 }
 
 SecureStorage::~SecureStorage() = default;
-
-QByteArray SecureStorage::deriveEncryptionKey() const {
-  // Utiliser une clé en cache pour éviter de la régénérer à chaque fois
-  if (!m_cachedKey.isEmpty()) {
-    return m_cachedKey;
-  }
-
-  // Dériver une clé unique du système
-  QString systemId;
-  
-#ifdef Q_OS_MAC
-  // Sur macOS, utiliser le UUID de la plateforme via IOKit
-  mach_port_t masterPort = 0;
-  // IOMasterPort est deprecated depuis macOS 12.0, mais toujours fonctionnel
-  // Utiliser pragma pour supprimer le warning sur les versions récentes
-  #pragma clang diagnostic push
-  #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-  if (IOMasterPort(MACH_PORT_NULL, &masterPort) == KERN_SUCCESS) {
-  #pragma clang diagnostic pop
-    io_registry_entry_t ioRegistryRoot = IORegistryEntryFromPath(masterPort, "IOService:/");
-    if (ioRegistryRoot != 0) {
-      CFStringRef uuidCf = static_cast<CFStringRef>(IORegistryEntryCreateCFProperty(
-          ioRegistryRoot, CFSTR(kIOPlatformUUIDKey), kCFAllocatorDefault, 0));
-      if (uuidCf) {
-        char uuid[128];
-        if (CFStringGetCString(uuidCf, uuid, 128, kCFStringEncodingUTF8)) {
-          systemId = QString::fromUtf8(uuid);
-        }
-        CFRelease(uuidCf);
-      }
-      IOObjectRelease(ioRegistryRoot);
-    }
-  }
-#else
-  // Sur Linux/Windows, utiliser le chemin home comme identifiant système
-  systemId = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
-#endif
-
-  // Si on ne peut pas obtenir d'ID système, utiliser un UUID stocké
-  if (systemId.isEmpty()) {
-    QSettings fallbackSettings(QSettings::IniFormat, QSettings::UserScope,
-                               QStringLiteral("BluePlayer"), QStringLiteral("System"));
-    systemId = fallbackSettings.value(QStringLiteral("system_uuid")).toString();
-    if (systemId.isEmpty()) {
-      systemId = QUuid::createUuid().toString();
-      fallbackSettings.setValue(QStringLiteral("system_uuid"), systemId);
-    }
-  }
-
-  // Dériver une clé AES-256 depuis l'ID système avec PBKDF2
-  QByteArray salt = "BluePlayerSecureStorage2024";
-  QByteArray key = QCryptographicHash::hash(
-      (systemId + salt).toUtf8(),
-      QCryptographicHash::Sha256);
-
-  m_cachedKey = key;
-  return key;
-}
-
-QString SecureStorage::encrypt(const QString& plaintext) const {
-  if (plaintext.isEmpty()) {
-    return QString();
-  }
-
-  // Note: Pour une implémentation complète, utiliser QCA (Qt Cryptographic Architecture)
-  // ou une bibliothèque comme libsodium. Pour l'instant, on utilise un simple XOR
-  // avec la clé dérivée (à améliorer avec un vrai chiffrement AES).
-  
-  QByteArray key = deriveEncryptionKey();
-  QByteArray data = plaintext.toUtf8();
-  QByteArray encrypted;
-  encrypted.reserve(data.size());
-
-  for (int i = 0; i < data.size(); ++i) {
-    encrypted.append(data[i] ^ key[i % key.size()]);
-  }
-
-  return QString::fromUtf8(encrypted.toBase64());
-}
-
-QString SecureStorage::decrypt(const QString& ciphertext) const {
-  if (ciphertext.isEmpty()) {
-    return QString();
-  }
-
-  QByteArray key = deriveEncryptionKey();
-  QByteArray encrypted = QByteArray::fromBase64(ciphertext.toUtf8());
-  QByteArray decrypted;
-  decrypted.reserve(encrypted.size());
-
-  for (int i = 0; i < encrypted.size(); ++i) {
-    decrypted.append(encrypted[i] ^ key[i % key.size()]);
-  }
-
-  return QString::fromUtf8(decrypted);
-}
 
 bool SecureStorage::store(const QString& key, const QString& value) {
   if (key.isEmpty()) {
@@ -130,17 +44,57 @@ bool SecureStorage::store(const QString& key, const QString& value) {
     return false;
   }
 
-  QString encrypted = encrypt(value);
-  if (encrypted.isEmpty() && !value.isEmpty()) {
-    Logger::error(LogCategory::Core, QStringLiteral("SecureStorage::store: encryption failed"));
+#ifdef Q_OS_MAC
+  // First, try to delete any existing item
+  remove(key);
+
+  // Create the keychain item attributes
+  CFStringRef cfService = createCFString(QString::fromUtf8(kKeychainService));
+  CFStringRef cfAccount = createCFString(key);
+  CFDataRef cfData = CFDataCreate(kCFAllocatorDefault,
+                                  reinterpret_cast<const UInt8*>(value.toUtf8().constData()),
+                                  value.toUtf8().length());
+
+  const void* keys[] = {
+    kSecClass,
+    kSecAttrService,
+    kSecAttrAccount,
+    kSecValueData,
+    kSecAttrAccessible
+  };
+
+  const void* values[] = {
+    kSecClassGenericPassword,
+    cfService,
+    cfAccount,
+    cfData,
+    kSecAttrAccessibleWhenUnlocked
+  };
+
+  CFDictionaryRef query = CFDictionaryCreate(kCFAllocatorDefault,
+                                              keys, values, 5,
+                                              &kCFTypeDictionaryKeyCallBacks,
+                                              &kCFTypeDictionaryValueCallBacks);
+
+  OSStatus status = SecItemAdd(query, nullptr);
+
+  CFRelease(query);
+  CFRelease(cfData);
+  CFRelease(cfAccount);
+  CFRelease(cfService);
+
+  if (status == errSecSuccess) {
+    Logger::debug(LogCategory::Core, QStringLiteral("SecureStorage::store: stored key '%1' in Keychain").arg(key));
+    return true;
+  } else {
+    Logger::error(LogCategory::Core, QStringLiteral("SecureStorage::store: failed to store key '%1' (error: %2)").arg(key).arg(status));
     return false;
   }
-
-  m_settings->setValue(key, encrypted);
-  m_settings->sync();
-  
-  Logger::debug(LogCategory::Core, QStringLiteral("SecureStorage::store: stored key '%1'").arg(key));
-  return true;
+#else
+  // Fallback for non-macOS platforms (should not happen in production)
+  Logger::warning(LogCategory::Core, QStringLiteral("SecureStorage: Keychain not available on this platform"));
+  return false;
+#endif
 }
 
 QString SecureStorage::retrieve(const QString& key, const QString& defaultValue) const {
@@ -148,14 +102,57 @@ QString SecureStorage::retrieve(const QString& key, const QString& defaultValue)
     return defaultValue;
   }
 
-  QString encrypted = m_settings->value(key).toString();
-  if (encrypted.isEmpty()) {
+#ifdef Q_OS_MAC
+  CFStringRef cfService = createCFString(QString::fromUtf8(kKeychainService));
+  CFStringRef cfAccount = createCFString(key);
+
+  const void* keys[] = {
+    kSecClass,
+    kSecAttrService,
+    kSecAttrAccount,
+    kSecReturnData,
+    kSecMatchLimit
+  };
+
+  const void* values[] = {
+    kSecClassGenericPassword,
+    cfService,
+    cfAccount,
+    kCFBooleanTrue,
+    kSecMatchLimitOne
+  };
+
+  CFDictionaryRef query = CFDictionaryCreate(kCFAllocatorDefault,
+                                              keys, values, 5,
+                                              &kCFTypeDictionaryKeyCallBacks,
+                                              &kCFTypeDictionaryValueCallBacks);
+
+  CFTypeRef result = nullptr;
+  OSStatus status = SecItemCopyMatching(query, &result);
+
+  CFRelease(query);
+  CFRelease(cfAccount);
+  CFRelease(cfService);
+
+  if (status == errSecSuccess && result != nullptr) {
+    CFDataRef data = static_cast<CFDataRef>(result);
+    QString value = QString::fromUtf8(
+        reinterpret_cast<const char*>(CFDataGetBytePtr(data)),
+        static_cast<int>(CFDataGetLength(data)));
+    CFRelease(result);
+    Logger::debug(LogCategory::Core, QStringLiteral("SecureStorage::retrieve: retrieved key '%1' from Keychain").arg(key));
+    return value;
+  } else if (status == errSecItemNotFound) {
+    // Item not found - this is normal for first-time use
+    return defaultValue;
+  } else {
+    Logger::warning(LogCategory::Core, QStringLiteral("SecureStorage::retrieve: failed to retrieve key '%1' (error: %2)").arg(key).arg(status));
     return defaultValue;
   }
-
-  QString decrypted = decrypt(encrypted);
-  Logger::debug(LogCategory::Core, QStringLiteral("SecureStorage::retrieve: retrieved key '%1'").arg(key));
-  return decrypted;
+#else
+  Logger::warning(LogCategory::Core, QStringLiteral("SecureStorage: Keychain not available on this platform"));
+  return defaultValue;
+#endif
 }
 
 void SecureStorage::remove(const QString& key) {
@@ -163,20 +160,136 @@ void SecureStorage::remove(const QString& key) {
     return;
   }
 
-  m_settings->remove(key);
-  m_settings->sync();
-  Logger::debug(LogCategory::Core, QStringLiteral("SecureStorage::remove: removed key '%1'").arg(key));
+#ifdef Q_OS_MAC
+  CFStringRef cfService = createCFString(QString::fromUtf8(kKeychainService));
+  CFStringRef cfAccount = createCFString(key);
+
+  const void* keys[] = {
+    kSecClass,
+    kSecAttrService,
+    kSecAttrAccount
+  };
+
+  const void* values[] = {
+    kSecClassGenericPassword,
+    cfService,
+    cfAccount
+  };
+
+  CFDictionaryRef query = CFDictionaryCreate(kCFAllocatorDefault,
+                                              keys, values, 3,
+                                              &kCFTypeDictionaryKeyCallBacks,
+                                              &kCFTypeDictionaryValueCallBacks);
+
+  OSStatus status = SecItemDelete(query);
+
+  CFRelease(query);
+  CFRelease(cfAccount);
+  CFRelease(cfService);
+
+  if (status == errSecSuccess) {
+    Logger::debug(LogCategory::Core, QStringLiteral("SecureStorage::remove: removed key '%1' from Keychain").arg(key));
+  } else if (status != errSecItemNotFound) {
+    // Only log warning if it's not "item not found" (which is expected)
+    Logger::warning(LogCategory::Core, QStringLiteral("SecureStorage::remove: failed to remove key '%1' (error: %2)").arg(key).arg(status));
+  }
+#else
+  Logger::warning(LogCategory::Core, QStringLiteral("SecureStorage: Keychain not available on this platform"));
+#endif
 }
 
 bool SecureStorage::contains(const QString& key) const {
-  return m_settings->contains(key);
+  if (key.isEmpty()) {
+    return false;
+  }
+
+#ifdef Q_OS_MAC
+  CFStringRef cfService = createCFString(QString::fromUtf8(kKeychainService));
+  CFStringRef cfAccount = createCFString(key);
+
+  const void* keys[] = {
+    kSecClass,
+    kSecAttrService,
+    kSecAttrAccount,
+    kSecReturnAttributes,
+    kSecMatchLimit
+  };
+
+  const void* values[] = {
+    kSecClassGenericPassword,
+    cfService,
+    cfAccount,
+    kCFBooleanTrue,
+    kSecMatchLimitOne
+  };
+
+  CFDictionaryRef query = CFDictionaryCreate(kCFAllocatorDefault,
+                                              keys, values, 5,
+                                              &kCFTypeDictionaryKeyCallBacks,
+                                              &kCFTypeDictionaryValueCallBacks);
+
+  CFTypeRef result = nullptr;
+  OSStatus status = SecItemCopyMatching(query, &result);
+
+  CFRelease(query);
+  CFRelease(cfAccount);
+  CFRelease(cfService);
+
+  if (result != nullptr) {
+    CFRelease(result);
+  }
+
+  return status == errSecSuccess;
+#else
+  return false;
+#endif
 }
 
 void SecureStorage::clear() {
-  m_settings->clear();
-  m_settings->sync();
-  Logger::debug(LogCategory::Core, QStringLiteral("SecureStorage::clear: cleared all data"));
+#ifdef Q_OS_MAC
+  CFStringRef cfService = createCFString(QString::fromUtf8(kKeychainService));
+
+  const void* keys[] = {
+    kSecClass,
+    kSecAttrService,
+    kSecMatchLimit
+  };
+
+  const void* values[] = {
+    kSecClassGenericPassword,
+    cfService,
+    kSecMatchLimitAll
+  };
+
+  CFDictionaryRef query = CFDictionaryCreate(kCFAllocatorDefault,
+                                              keys, values, 3,
+                                              &kCFTypeDictionaryKeyCallBacks,
+                                              &kCFTypeDictionaryValueCallBacks);
+
+  // Keep deleting until no more items are found
+  // This is necessary because SecItemDelete may not delete all items at once on macOS
+  OSStatus status = errSecSuccess;
+  int deletedCount = 0;
+  while (status == errSecSuccess) {
+    status = SecItemDelete(query);
+    if (status == errSecSuccess) {
+      deletedCount++;
+    }
+  }
+
+  CFRelease(query);
+  CFRelease(cfService);
+
+  if (status == errSecItemNotFound) {
+    Logger::debug(LogCategory::Core, QStringLiteral("SecureStorage::clear: cleared %1 Keychain items for BluePlayer").arg(deletedCount));
+  } else if (deletedCount > 0) {
+    Logger::debug(LogCategory::Core, QStringLiteral("SecureStorage::clear: cleared %1 Keychain items for BluePlayer").arg(deletedCount));
+  } else {
+    Logger::warning(LogCategory::Core, QStringLiteral("SecureStorage::clear: failed to clear Keychain (error: %1)").arg(status));
+  }
+#else
+  Logger::warning(LogCategory::Core, QStringLiteral("SecureStorage: Keychain not available on this platform"));
+#endif
 }
 
 }  // namespace blueplayer::core
-

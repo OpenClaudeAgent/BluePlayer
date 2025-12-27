@@ -103,7 +103,7 @@ void Logger::warning(const QLoggingCategory& category, const QString& message) {
 }
 
 void Logger::error(const QLoggingCategory& category, const QString& message) {
-  qCWarning(category).noquote() << "[ERROR]" << message;
+  qCCritical(category).noquote() << message;
 }
 
 void Logger::critical(const QLoggingCategory& category, const QString& message) {

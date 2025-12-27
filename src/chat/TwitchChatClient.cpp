@@ -78,7 +78,20 @@ void TwitchChatClient::sendMessage(const QString& message) {
         return;
     }
     
-    QString cmd = QStringLiteral("PRIVMSG #%1 :%2").arg(m_channel, message);
+    // Sanitize message to prevent IRC injection
+    QString sanitized = message;
+    sanitized.remove(QLatin1Char('\r'));
+    sanitized.remove(QLatin1Char('\n'));
+    sanitized = sanitized.trimmed();
+    
+    // Validate message length (Twitch limit is 500 characters)
+    constexpr int kMaxMessageLength = 500;
+    if (sanitized.isEmpty() || sanitized.length() > kMaxMessageLength) {
+        qWarning() << "[TwitchChatClient] Message rejected - empty or exceeds" << kMaxMessageLength << "chars";
+        return;
+    }
+    
+    QString cmd = QStringLiteral("PRIVMSG #%1 :%2").arg(m_channel, sanitized);
     qDebug() << "[TwitchChatClient] Sending PRIVMSG:" << cmd;
     sendRaw(cmd);
     qDebug() << "[TwitchChatClient] Sent message to" << m_channel;
@@ -88,7 +101,7 @@ void TwitchChatClient::sendMessage(const QString& message) {
     localMsg.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
     localMsg.username = m_username;
     localMsg.displayName = m_username;
-    localMsg.message = message;
+    localMsg.message = sanitized;
     localMsg.color = QStringLiteral("#8A2BE2"); // Default color
     localMsg.timestamp = QDateTime::currentMSecsSinceEpoch();
     emit messageReceived(localMsg.toVariantMap());

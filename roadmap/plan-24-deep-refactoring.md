@@ -376,12 +376,12 @@ void TwitchService::refreshStreams() {
 
 ## Checklist de Validation Globale
 
-### Sécurité (Sprint 1)
-- [ ] 24.1 - Keychain implémenté et testé
-- [ ] 24.2 - Tous les debug logs supprimés
-- [ ] 24.3 - Logger::error corrigé
-- [ ] 24.4 - Validation chat implémentée
-- [ ] 24.5 - Bools atomiques
+### Sécurité (Sprint 1) - Terminé v0.11.0
+- [x] 24.1 - Keychain implémenté et testé
+- [x] 24.2 - Tous les debug logs supprimés
+- [x] 24.3 - Logger::error corrigé
+- [x] 24.4 - Validation chat implémentée
+- [x] 24.5 - Bools atomiques
 
 ### Refactoring QML (Sprints 2-4)
 - [ ] 24.6-24.9 - PlayerView refactoré

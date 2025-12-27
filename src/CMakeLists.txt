@@ -73,6 +73,11 @@ target_link_libraries(blueplayer_core
     CURL::libcurl
     # Qt6::Multimedia retiré car Application utilise maintenant des forward declarations
 )
+
+# macOS Security framework for Keychain access
+if(APPLE)
+  target_link_libraries(blueplayer_core PUBLIC "-framework Security")
+endif()
 # Appliquer les flags de couverture si activés
 if(BLUEPLAYER_COVERAGE_ENABLED)
     target_compile_options(blueplayer_core PRIVATE ${BLUEPLAYER_COVERAGE_FLAGS})
