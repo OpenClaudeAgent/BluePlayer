@@ -37,6 +37,7 @@ class TwitchService : public QObject {
   Q_PROPERTY(QString selectedStreamUrl READ selectedStreamUrl NOTIFY selectedStreamChanged)
   Q_PROPERTY(QString userId READ userId NOTIFY userIdChanged)
   Q_PROPERTY(QString userName READ userName NOTIFY userNameChanged)
+  Q_PROPERTY(QString accessToken READ accessToken NOTIFY accessTokenChanged)
 
 public:
   /**
@@ -139,6 +140,12 @@ public:
    * @return Le nom d'utilisateur
    */
   [[nodiscard]] QString userName() const;
+
+  /**
+   * @brief Obtient le token d'accès OAuth
+   * @return Le token d'accès
+   */
+  [[nodiscard]] QString accessToken() const;
 
   /**
    * @brief Lance le processus d'authentification OAuth
@@ -245,6 +252,7 @@ signals:
   void selectedStreamChanged();
   void userIdChanged();
   void userNameChanged();
+  void accessTokenChanged();
   void hlsUrlReady(const QString& url);
   void errorOccurred(const QString& message);
   void adsDetected(int segmentCount);

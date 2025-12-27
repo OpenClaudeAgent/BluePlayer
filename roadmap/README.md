@@ -88,7 +88,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 4 | Layout barre de contrôle | [plan-04](./plan-04-controlbar-layout.md) | `feature/controlbar-layout` | v0.4.0 | 🟢 Terminé |
 | 5 | Gestion Cache/VOD | [plan-05](./plan-05-cache-vod.md) | `feature/cache-vod` | v0.5.0 | 🟢 Terminé |
 | 6 | Barre de recherche Twitch | [plan-06](./plan-06-search.md) | `feature/search` | v0.6.0 | 🟢 Terminé |
-| 7 | Chat Twitch intégré | [plan-07](./plan-07-chat.md) | `feature/chat` | - | 🔴 En attente |
+| 7 | Chat Twitch intégré | [plan-07](./plan-07-chat.md) | `feature/chat` | v0.7.0 | 🟢 Terminé |
 | 8 | Fix ligne vide Home | [plan-08](./plan-08-home-empty-row.md) | `feature/fix-home-row` | - | 🔴 En attente |
 | 9 | Vitesse lecture intelligente | [plan-09](./plan-09-playback-speed.md) | `feature/playback-speed` | - | 🔴 En attente |
 | 10 | Animations & Transitions | [plan-10](./plan-10-animations.md) | `feature/animations` | - | 🔴 En attente |
@@ -122,3 +122,4 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 2025-12-27 | Correction numérotation : plans 9-12 synchronisés avec fichiers réels |
 | 2025-12-27 | Ajout tâche 13 - Internationalisation (i18n) avec 7 sous-tâches |
 | 2025-12-27 | Tâche 6 terminée - Barre de recherche Twitch (channels live + cache local) |
+| 2025-12-27 | Tâche 7 terminée - Chat Twitch intégré (lecture, envoi, emotes, badges) |

@@ -23,7 +23,7 @@ namespace twitch {
   constexpr quint16 kDefaultRedirectPort = 8443;
   constexpr int kDefaultStreamLimit = 100;
   constexpr int kDefaultStreamListLimit = 12;
-  constexpr const char* kDefaultScope = "user:read:email user:read:follows";
+  constexpr const char* kDefaultScope = "user:read:email user:read:follows chat:read chat:edit";
   constexpr int kThumbnailWidth = 320;
   constexpr int kThumbnailHeight = 180;
   constexpr int kDefaultClipsCount = 20;

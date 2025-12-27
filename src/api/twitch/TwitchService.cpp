@@ -565,6 +565,7 @@ void TwitchService::onAccessTokenChanged(const QString &token) {
   } else {
     Logger::error(LogCategory::Twitch, QStringLiteral("API client is null"));
   }
+  emit accessTokenChanged();
 }
 
 bool TwitchService::isAuthenticated() const {
@@ -608,6 +609,10 @@ QString TwitchService::selectedStreamUrl() const { return m_selectedStreamUrl; }
 QString TwitchService::userId() const { return m_userId; }
 
 QString TwitchService::userName() const { return m_userName; }
+
+QString TwitchService::accessToken() const {
+  return m_authManager ? m_authManager->accessToken() : QString();
+}
 
 void TwitchService::login() {
   if (m_authManager) {
