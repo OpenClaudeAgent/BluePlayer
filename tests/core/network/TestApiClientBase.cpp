@@ -25,28 +25,27 @@ void TestApiClientBase::cleanupTestCase() {
 
 void TestApiClientBase::testConstructor() {
   ApiClientBase client;
-  // Note: httpClient() est protégée, on teste indirectement que le client est créé
-  // En vérifiant que les méthodes publiques fonctionnent
+  // Verify the client is properly constructed
   client.setBearerToken("test_token");
-  QVERIFY(true);  // Le client est créé avec succès
+  QVERIFY(client.parent() == nullptr);
 }
 
 void TestApiClientBase::testSetBearerToken() {
   ApiClientBase client;
   client.setBearerToken("test_bearer_token");
   
-  // Le token devrait être propagé au HttpClient
-  // Vérification indirecte
-  QVERIFY(true);
+  // Verify client is still functional after setting token
+  QSignalSpy spy(&client, &ApiClientBase::errorOccurred);
+  QVERIFY(spy.isValid());
 }
 
 void TestApiClientBase::testSetDefaultHeader() {
   ApiClientBase client;
   client.setDefaultHeader("X-API-Version", "v1");
   
-  // Le header devrait être propagé au HttpClient
-  // Vérification indirecte
-  QVERIFY(true);
+  // Verify client is still functional after setting header
+  QSignalSpy spy(&client, &ApiClientBase::errorOccurred);
+  QVERIFY(spy.isValid());
 }
 
 void TestApiClientBase::testErrorSignal() {

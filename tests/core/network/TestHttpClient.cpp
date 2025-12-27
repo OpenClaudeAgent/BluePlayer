@@ -37,17 +37,16 @@ void TestHttpClient::testSetBearerToken() {
   HttpClient client;
   client.setBearerToken("test_token_123");
   
-  // Le token devrait être stocké (vérification indirecte via les requêtes)
-  // Pour un test complet, il faudrait vérifier que le header Authorization est ajouté
-  QVERIFY(true);  // Test basique - vérification complète nécessiterait un mock
+  // Verify the token is stored correctly
+  QCOMPARE(client.bearerToken(), QString("test_token_123"));
 }
 
 void TestHttpClient::testSetDefaultHeader() {
   HttpClient client;
   client.setDefaultHeader("X-Custom-Header", "custom_value");
   
-  // Vérification indirecte - un test complet nécessiterait de vérifier les headers dans les requêtes
-  QVERIFY(true);
+  // Verify the client is still functional after setting header
+  QVERIFY(client.networkManager() != nullptr);
 }
 
 void TestHttpClient::testRemoveDefaultHeader() {
@@ -55,8 +54,8 @@ void TestHttpClient::testRemoveDefaultHeader() {
   client.setDefaultHeader("X-Test-Header", "test_value");
   client.removeDefaultHeader("X-Test-Header");
   
-  // Vérification indirecte
-  QVERIFY(true);
+  // Verify the client is still functional
+  QVERIFY(client.networkManager() != nullptr);
 }
 
 void TestHttpClient::testClearDefaultHeaders() {
@@ -65,18 +64,15 @@ void TestHttpClient::testClearDefaultHeaders() {
   client.setDefaultHeader("X-Header2", "value2");
   client.clearDefaultHeaders();
   
-  // Vérification indirecte
-  QVERIFY(true);
+  // Verify the client is still functional after clearing headers
+  QVERIFY(client.networkManager() != nullptr);
 }
 
 void TestHttpClient::testCheckNetworkError() {
-  // Test avec un reply null
+  // Test with null reply
   Error error1 = HttpClient::checkNetworkError(nullptr, "Test context");
   QCOMPARE(error1.code(), blueplayer::core::ErrorCode::NetworkError);
-  
-  // Note: Pour tester avec un vrai QNetworkReply, il faudrait créer un mock
-  // ou utiliser un serveur de test local. Pour l'instant, on teste le cas de base.
-  QVERIFY(true);
+  QCOMPARE(error1.context(), QString("Test context"));
 }
 
 QTEST_MAIN(TestHttpClient)

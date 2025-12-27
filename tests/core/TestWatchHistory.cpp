@@ -87,7 +87,8 @@ void TestWatchHistory::cleanup() {
 
 void TestWatchHistory::testConstructor() {
   WatchHistory history;
-  QVERIFY(&history != nullptr);
+  // Verify initial state - no positions saved yet
+  QCOMPARE(history.getWatchPosition("nonexistent"), qint64(0));
 }
 
 // ===== Tests de sauvegarde de position =====

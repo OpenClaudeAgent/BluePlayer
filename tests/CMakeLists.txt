@@ -292,3 +292,31 @@ target_include_directories(test_curl_http_client PRIVATE ${TEST_INCLUDE_DIRS})
 target_link_directories(test_curl_http_client PRIVATE /opt/homebrew/lib)
 apply_coverage_flags(test_curl_http_client)
 add_test(NAME CurlHttpClient COMMAND test_curl_http_client)
+
+# Tests unitaires pour TwitchChatClient
+add_executable(test_twitch_chat_client
+  chat/TestTwitchChatClient.cpp
+)
+target_link_libraries(test_twitch_chat_client PRIVATE
+  ${TEST_LIBS}
+  Qt6::WebSockets
+  blueplayer_core
+)
+target_include_directories(test_twitch_chat_client PRIVATE ${TEST_INCLUDE_DIRS})
+target_link_directories(test_twitch_chat_client PRIVATE /opt/homebrew/lib)
+apply_coverage_flags(test_twitch_chat_client)
+add_test(NAME TwitchChatClient COMMAND test_twitch_chat_client)
+
+# Tests unitaires pour TwitchService (complet)
+add_executable(test_twitch_service
+  api/twitch/TestTwitchService.cpp
+)
+target_link_libraries(test_twitch_service PRIVATE
+  test_helpers
+  ${TEST_LIBS}
+  blueplayer_core
+)
+target_include_directories(test_twitch_service PRIVATE ${TEST_INCLUDE_DIRS})
+target_link_directories(test_twitch_service PRIVATE /opt/homebrew/lib ${FFMPEG_LIBS_LIBRARY_DIRS})
+apply_coverage_flags(test_twitch_service)
+add_test(NAME TwitchService COMMAND test_twitch_service)

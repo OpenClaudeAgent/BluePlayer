@@ -75,7 +75,8 @@ void TestNetworkCache::cleanup() {
 
 void TestNetworkCache::testConstructor() {
   NetworkCache cache;
-  QVERIFY(true); // Cache created successfully
+  // Verify default TTL is set
+  QCOMPARE(cache.cacheTTL(), 300);
 }
 
 void TestNetworkCache::testConstructorDefaultTTL() {

@@ -68,7 +68,9 @@ void TestHlsAdFilter::cleanup() {
 
 void TestHlsAdFilter::testConstructor() {
   HlsAdFilter filter;
-  QVERIFY(&filter != nullptr);
+  // Verify initial state after construction
+  QVERIFY(!filter.hasAds());
+  QCOMPARE(filter.adSegmentCount(), 0);
 }
 
 void TestHlsAdFilter::testInitialState() {

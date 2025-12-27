@@ -103,7 +103,8 @@ void TestCacheManagerViewModel::cleanup() {
 
 void TestCacheManagerViewModel::testConstructor() {
   CacheManagerViewModel viewModel;
-  QVERIFY(&viewModel != nullptr);
+  // Verify initial state after construction
+  QVERIFY(viewModel.vodList().isEmpty());
 }
 
 void TestCacheManagerViewModel::testInitialize() {
@@ -111,15 +112,16 @@ void TestCacheManagerViewModel::testInitialize() {
   CacheManager cacheManager;
   
   viewModel.initialize(&cacheManager);
-  QVERIFY(&viewModel != nullptr);
+  // After initialization, vodList should still be empty (no cached VODs)
+  QVERIFY(viewModel.vodList().isEmpty());
 }
 
 void TestCacheManagerViewModel::testInitializeWithNull() {
   CacheManagerViewModel viewModel;
   viewModel.initialize(nullptr);
   
-  // Ne doit pas crasher
-  QVERIFY(&viewModel != nullptr);
+  // Should not crash - verify we can still access properties
+  QVERIFY(viewModel.vodList().isEmpty());
 }
 
 // ===== Tests des propriétés initiales =====

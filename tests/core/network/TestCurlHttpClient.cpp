@@ -63,7 +63,8 @@ void TestCurlHttpClient::cleanup() {
 
 void TestCurlHttpClient::testConstructor() {
   CurlHttpClient client;
-  QVERIFY(&client != nullptr);
+  // Verify object is properly constructed by checking it has no parent
+  QVERIFY(client.parent() == nullptr);
 }
 
 void TestCurlHttpClient::testConstructorWithParent() {
