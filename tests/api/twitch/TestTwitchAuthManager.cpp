@@ -77,7 +77,7 @@ void TestTwitchAuthManager::cleanupTestCase() {
 
 void TestTwitchAuthManager::init() {
   qputenv("TWITCH_CLIENT_ID", "test_client_id");
-  m_authManager = new TwitchAuthManager(this);
+  m_authManager = new TwitchAuthManager(nullptr, this);
 }
 
 void TestTwitchAuthManager::cleanup() {
@@ -195,7 +195,7 @@ void TestTwitchAuthManager::testCodeChallengeIsBase64Url() {
 void TestTwitchAuthManager::testCreationWithEmptyClientId() {
   qputenv("TWITCH_CLIENT_ID", "");
   
-  TwitchAuthManager* invalidAuth = new TwitchAuthManager(this);
+  TwitchAuthManager* invalidAuth = new TwitchAuthManager(nullptr, this);
   
   // Doit être créé sans crasher
   QVERIFY(invalidAuth != nullptr);
@@ -212,7 +212,7 @@ void TestTwitchAuthManager::testCreationWithEmptyClientId() {
 void TestTwitchAuthManager::testCreationWithValidClientId() {
   qputenv("TWITCH_CLIENT_ID", "valid_test_client_id");
   
-  TwitchAuthManager* validAuth = new TwitchAuthManager(this);
+  TwitchAuthManager* validAuth = new TwitchAuthManager(nullptr, this);
   
   QVERIFY(validAuth != nullptr);
   

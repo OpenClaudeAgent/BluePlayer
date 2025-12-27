@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/network/HttpClient.hpp"
+#include "core/network/IHttpClient.hpp"
 #include <QtGlobal>
 #include <QObject>
 #include <QDateTime>
@@ -12,6 +12,10 @@ class QNetworkReply;
 class QTcpServer;
 class QUrl;
 QT_END_NAMESPACE
+
+namespace blueplayer::core::network {
+class HttpClient;
+}
 
 namespace blueplayer::api::twitch {
 
@@ -28,10 +32,11 @@ class TwitchAuthManager final : public QObject {
 
 public:
   /**
-   * @brief Constructeur
+   * @brief Constructeur avec injection de dépendances
+   * @param httpClient Client HTTP à utiliser (nullptr = création interne)
    * @param parent Le parent QObject
    */
-  explicit TwitchAuthManager(QObject* parent = nullptr);
+  explicit TwitchAuthManager(blueplayer::core::network::IHttpClient* httpClient = nullptr, QObject* parent = nullptr);
   ~TwitchAuthManager() override;
 
   /**
@@ -102,7 +107,7 @@ private:
   QString m_tlsCertPath;
   QString m_tlsKeyPath;
   QSslConfiguration m_sslConfig;
-  blueplayer::core::network::HttpClient* m_httpClient = nullptr;
+  blueplayer::core::network::IHttpClient* m_httpClient = nullptr;
   QTcpServer* m_server = nullptr;
   bool m_isAuthenticated = false;
   bool m_isRefreshing = false;  // Pour éviter les rafraîchissements multiples simultanés

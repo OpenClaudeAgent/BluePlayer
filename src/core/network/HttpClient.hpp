@@ -2,6 +2,7 @@
 
 #include "core/Error.hpp"
 #include "core/NetworkCache.hpp"
+#include "core/network/IHttpClient.hpp"
 
 #include <QObject>
 #include <QNetworkAccessManager>
@@ -25,8 +26,10 @@ namespace blueplayer::core::network {
  * - Support des headers personnalisés et authentification
  * - Gestion d'erreurs standardisée avec la classe Error
  * - Méthodes génériques pour GET, POST, PUT, DELETE
+ * 
+ * Implémente l'interface IHttpClient pour permettre l'injection de dépendances.
  */
-class HttpClient : public QObject {
+class HttpClient : public QObject, public IHttpClient {
   Q_OBJECT
 
 public:
@@ -47,7 +50,7 @@ public:
    * @param headers Headers HTTP optionnels
    * @return Le QNetworkReply pour suivre la requête
    */
-  QNetworkReply* get(const QUrl& url, const QHash<QString, QString>& headers = {});
+  QNetworkReply* get(const QUrl& url, const QHash<QString, QString>& headers = {}) override;
 
   /**
    * @brief Effectue une requête POST
@@ -56,7 +59,7 @@ public:
    * @param headers Headers HTTP optionnels
    * @return Le QNetworkReply pour suivre la requête
    */
-  QNetworkReply* post(const QUrl& url, const QByteArray& data = {}, const QHash<QString, QString>& headers = {});
+  QNetworkReply* post(const QUrl& url, const QByteArray& data = {}, const QHash<QString, QString>& headers = {}) override;
 
   /**
    * @brief Effectue une requête PUT
@@ -65,7 +68,7 @@ public:
    * @param headers Headers HTTP optionnels
    * @return Le QNetworkReply pour suivre la requête
    */
-  QNetworkReply* put(const QUrl& url, const QByteArray& data = {}, const QHash<QString, QString>& headers = {});
+  QNetworkReply* put(const QUrl& url, const QByteArray& data = {}, const QHash<QString, QString>& headers = {}) override;
 
   /**
    * @brief Effectue une requête DELETE
@@ -73,20 +76,20 @@ public:
    * @param headers Headers HTTP optionnels
    * @return Le QNetworkReply pour suivre la requête
    */
-  QNetworkReply* deleteResource(const QUrl& url, const QHash<QString, QString>& headers = {});
+  QNetworkReply* deleteResource(const QUrl& url, const QHash<QString, QString>& headers = {}) override;
 
   /**
    * @brief Configure le token Bearer pour l'authentification
    * @param token Le token Bearer
    */
-  void setBearerToken(const QString& token);
+  void setBearerToken(const QString& token) override;
 
   /**
    * @brief Configure un header personnalisé par défaut
    * @param name Le nom du header
    * @param value La valeur du header
    */
-  void setDefaultHeader(const QString& name, const QString& value);
+  void setDefaultHeader(const QString& name, const QString& value) override;
 
   /**
    * @brief Supprime un header par défaut
@@ -117,7 +120,7 @@ public:
    * @brief Obtient le bearer token actuel
    * @return Le bearer token, ou QString() si non défini
    */
-  [[nodiscard]] QString bearerToken() const { return m_bearerToken; }
+  [[nodiscard]] QString bearerToken() const override { return m_bearerToken; }
 
 signals:
   /**
