@@ -122,6 +122,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 20 | Filtres Catégorie/Jeu | [plan-20](./plan-20-category-filters.md) | `feature/category-filters` | - | 🔴 En attente |
 | **21** | **Dette Technique** | [plan-21](./plan-21-technical-debt.md) | `refactor/tech-debt` | - | 🔴 En attente |
 | 22 | Page succès OAuth | [plan-22](./plan-22-oauth-success-page.md) | `fix/oauth-success-page` | - | 🔴 En attente |
+| 23 | Auto-refresh Home | [plan-23](./plan-23-auto-refresh.md) | `feature/auto-refresh` | - | 🔴 En attente |
 
 ### Plans spéciaux
 
@@ -168,3 +169,4 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 2025-12-27 | Tâche 7 terminée - Chat Twitch intégré (lecture, envoi, emotes, badges) |
 | 2025-12-27 | Ajout plan 22 - Page succès OAuth (amélioration UX authentification) |
 | 2025-12-27 | Tâche 8 terminée - Suppression section redondante Home (5 sections au lieu de 6) |
+| 2025-12-27 | Ajout plan 23 - Auto-refresh Home (30s streams/clips, retour premier plan, gestion erreur) |
