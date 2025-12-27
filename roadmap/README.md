@@ -82,6 +82,20 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 
 ---
 
+## Milestones suggérés
+
+| Milestone | Plans inclus | Objectif |
+|-----------|--------------|----------|
+| **v0.7 - Core Features** | 7, 8, 11 | Chat + Qualité + Bugfix |
+| **v0.8 - UX Polish** | 9, 10, 12 | Animations + Préférences |
+| **v0.9 - i18n** | 13 | Internationalisation |
+| **v1.0 - Release** | 21 (audit) | Stabilité + Performance |
+| **v1.x - Enhancements** | 14-20 | Nouvelles fonctionnalités |
+
+> **Recommandation** : Exécuter le Plan 21 (Dette Technique) avant chaque release majeure.
+
+---
+
 ## Suivi des tâches
 
 | # | Tâche | Plan | Branche | Version | Statut |
@@ -106,6 +120,14 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 18 | Thème Clair/Sombre | [plan-18](./plan-18-theme-switcher.md) | `feature/theme` | - | 🔴 En attente |
 | 19 | Twitch Tracker Stats | [plan-19](./plan-19-twitch-tracker.md) | `feature/twitch-tracker` | - | 🔴 En attente |
 | 20 | Filtres Catégorie/Jeu | [plan-20](./plan-20-category-filters.md) | `feature/category-filters` | - | 🔴 En attente |
+| **21** | **Dette Technique** | [plan-21](./plan-21-technical-debt.md) | `refactor/tech-debt` | - | 🔴 En attente |
+
+### Plans spéciaux
+
+| Type | Plan | Description |
+|------|------|-------------|
+| 🔄 Récurrent | Plan 21 | À exécuter après chaque milestone majeur |
+| 📝 Placeholder | Plan 20 | Design à définir dans une future session |
 
 ### Légende des statuts
 
@@ -141,3 +163,4 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 2025-12-27 | Ajout plan 18 - Thème Clair/Sombre (auto système + override manuel) |
 | 2025-12-27 | Ajout plan 19 - Twitch Tracker Stats (accès stats externes) |
 | 2025-12-27 | Ajout plan 20 - Filtres Catégorie/Jeu (placeholder - design à définir) |
+| 2025-12-27 | Ajout plan 21 - Dette Technique (audit, refactoring, performance) - plan récurrent |
