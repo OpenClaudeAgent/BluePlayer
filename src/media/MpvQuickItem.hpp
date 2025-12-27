@@ -55,6 +55,15 @@ public:
   double playbackRate() const { return m_playbackRate; }
   bool hardwareDecoding() const { return m_hwDecoding; }
   bool cropVideo() const { return m_cropVideo; }
+  
+  // Live edge detection (timing-based, not UI mode)
+  Q_INVOKABLE bool isNearLiveEdge() const;
+  Q_INVOKABLE bool isApproachingLiveEdge() const;
+  
+  // Speed thresholds
+  static constexpr double LIVE_EDGE_THRESHOLD = 2.0;       // < 2s = at live edge
+  static constexpr double APPROACHING_LIVE_THRESHOLD = 5.0; // < 5s = approaching
+  static constexpr double MAX_SPEED_AT_LIVE = 1.2;         // Max speed allowed at live
 
   // MPV access
   mpv_handle *mpvHandle() const { return m_mpv; }
@@ -101,6 +110,8 @@ signals:
   void playbackRateChanged(double rate);
   void hardwareDecodingChanged(bool enabled);
   void cropVideoChanged(bool crop);
+  void speedAutoReset(const QString &reason);
+  void leftLiveEdge();
 
 private slots:
   void handleMpvEvents();
@@ -132,6 +143,7 @@ private:
   std::atomic<bool> m_isLiveMode{false};
   std::atomic<double> m_streamStart{-1.0}; // -1.0 means not observed or not a live stream
   bool m_userInitiatedSeek{false}; // Track if user initiated a seek (to allow leaving live mode)
+  bool m_wasAtLiveEdgeBeforePause{false}; // Track if we were at live edge before pause
 
   // Playback tweaks
   double m_playbackRate = 1.0;

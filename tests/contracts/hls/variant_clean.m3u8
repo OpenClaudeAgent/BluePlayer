@@ -1,0 +1,16 @@
+#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:2
+#EXT-X-MEDIA-SEQUENCE:12345
+#EXT-X-TWITCH-ELAPSED-SECS:3600.000
+#EXT-X-TWITCH-TOTAL-SECS:3600.000
+#EXTINF:2.000,live
+https://video-edge-123.abc.hls.ttvnw.net/v1/segment/Segment1.ts
+#EXTINF:2.000,live
+https://video-edge-123.abc.hls.ttvnw.net/v1/segment/Segment2.ts
+#EXTINF:2.000,live
+https://video-edge-123.abc.hls.ttvnw.net/v1/segment/Segment3.ts
+#EXTINF:2.000,live
+https://video-edge-123.abc.hls.ttvnw.net/v1/segment/Segment4.ts
+#EXTINF:2.000,live
+https://video-edge-123.abc.hls.ttvnw.net/v1/segment/Segment5.ts

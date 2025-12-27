@@ -1,0 +1,7 @@
+{
+  "access_token": "cfabdegwdoklmawdzdo98xt2fo512y",
+  "refresh_token": "eyJfMzUtNDU0OC4MWYwLTQ5MDY5ODY4ZGNlMSJ9",
+  "expires_in": 14400,
+  "scope": ["user:read:email", "user:read:follows", "chat:read", "chat:edit"],
+  "token_type": "bearer"
+}

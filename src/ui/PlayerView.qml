@@ -406,11 +406,19 @@ Item {
         // #endregion
       }
       onBufferingChanged: function(isBuffering) { playerRoot.buffering = isBuffering }
+      onPlaybackRateChanged: function(rate) { playerRoot.playbackRate = rate }
       onErrorOccurred: function(message) {
         playerRoot.updateStatus(qsTr("Erreur: %1").arg(message))
         playerRoot.errorMessage = message
         playerRoot.showError = true
         errorHideTimer.restart()
+      }
+      onSpeedAutoReset: function(reason) {
+        toast.show(reason)
+        playerRoot.playbackRate = 1.0
+      }
+      onLeftLiveEdge: {
+        toast.show(qsTr("Mode replay (stream en cours)"))
       }
     }
     

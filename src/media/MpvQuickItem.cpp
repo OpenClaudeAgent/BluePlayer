@@ -294,6 +294,14 @@ void MpvQuickItem::processPropertyChange(const char *name, void *data,
           emit isLiveModeChanged(true);
         }
       }
+      
+      // Auto-reset speed when approaching live edge with speed > 1.0
+      if (m_playbackRate > 1.0 && isCloseToLive) {
+        m_playbackRate = 1.0;
+        mpv_set_property(m_mpv, "speed", MPV_FORMAT_DOUBLE, &m_playbackRate);
+        emit playbackRateChanged(1.0);
+        emit speedAutoReset(tr("Vitesse réinitialisée (live)"));
+      }
     }
   } else if (strcmp(name, "duration") == 0 && format == MPV_FORMAT_DOUBLE) {
     double dur = *static_cast<double *>(data);
@@ -376,6 +384,12 @@ void MpvQuickItem::stop() {
 void MpvQuickItem::pause() {
   if (!m_mpv)
     return;
+  
+  // Track if we were at live edge before pausing
+  if (isNearLiveEdge()) {
+    m_wasAtLiveEdgeBeforePause = true;
+  }
+  
   int flag = 1;
   mpv_set_property(m_mpv, "pause", MPV_FORMAT_FLAG, &flag);
 }
@@ -383,6 +397,16 @@ void MpvQuickItem::pause() {
 void MpvQuickItem::resume() {
   if (!m_mpv)
     return;
+  
+  // If we were at live edge before pause, we're no longer there
+  // because the stream continued without us
+  if (m_wasAtLiveEdgeBeforePause) {
+    m_wasAtLiveEdgeBeforePause = false;
+    m_isLiveMode = false;
+    emit isLiveModeChanged(false);
+    emit leftLiveEdge();
+  }
+  
   int flag = 0;
   mpv_set_property(m_mpv, "pause", MPV_FORMAT_FLAG, &flag);
 }
@@ -421,6 +445,20 @@ void MpvQuickItem::seekToLive() {
 
 double MpvQuickItem::liveOffset() const {
   return m_duration.load() - m_position.load();
+}
+
+bool MpvQuickItem::isNearLiveEdge() const {
+  double dur = m_duration.load();
+  if (dur <= 0) return false;
+  double delta = dur - m_position.load();
+  return delta < MpvQuickItem::LIVE_EDGE_THRESHOLD;
+}
+
+bool MpvQuickItem::isApproachingLiveEdge() const {
+  double dur = m_duration.load();
+  if (dur <= 0) return false;
+  double delta = dur - m_position.load();
+  return delta < MpvQuickItem::APPROACHING_LIVE_THRESHOLD;
 }
 
 void MpvQuickItem::setVolume(float vol) {
@@ -472,6 +510,19 @@ void MpvQuickItem::setPlaybackRate(double rate) {
   if (!m_mpv)
     return;
   double clamped = qBound(0.25, rate, 3.0);
+  
+  // If at live edge, limit max speed to prevent stuttering
+  if (isNearLiveEdge() && clamped > MAX_SPEED_AT_LIVE) {
+    clamped = MAX_SPEED_AT_LIVE;
+    emit speedAutoReset(tr("Vitesse limitée (déjà au live)"));
+  }
+  
+  // If slowing down from live edge, we'll fall behind - exit live mode
+  if (isNearLiveEdge() && clamped < 1.0 && m_isLiveMode.load()) {
+    m_isLiveMode = false;
+    emit isLiveModeChanged(false);
+  }
+  
   if (qFuzzyCompare(m_playbackRate, clamped))
     return;
 

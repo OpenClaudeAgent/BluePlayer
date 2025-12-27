@@ -1,0 +1,1 @@
+@badge-info=subscriber/24;badges=moderator/1,subscriber/24,bits/1000;color=#00FF00;display-name=ModUser;emotes=;id=a1b2c3d4-e5f6-7890-abcd-ef1234567890;mod=1;room-id=12345678;subscriber=1;tmi-sent-ts=1705330900000;turbo=0;user-id=11223344;user-type=mod :moduser!moduser@moduser.tmi.twitch.tv PRIVMSG #channel :Hello everyone!

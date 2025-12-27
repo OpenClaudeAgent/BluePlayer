@@ -1,0 +1,1 @@
+@badge-info=subscriber/12;badges=subscriber/12,premium/1;color=#FF0000;display-name=TestUser;emotes=25:0-4,6-10/1902:12-16;id=b34ccfc7-4977-403a-8a94-33c6bac34fb8;mod=0;room-id=12345678;subscriber=1;tmi-sent-ts=1705330800000;turbo=0;user-id=87654321;user-type= :testuser!testuser@testuser.tmi.twitch.tv PRIVMSG #channel :Kappa Kappa PogChamp
