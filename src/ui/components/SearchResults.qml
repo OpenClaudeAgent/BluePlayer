@@ -8,6 +8,7 @@ Rectangle {
   property var channelResults: []      // Chaînes LIVE uniquement
   property var cacheResults: []        // VODs en cache
   property bool isVisible: false
+  property bool hasSearchQuery: false  // True si une recherche a été effectuée
   property int selectedIndex: -1
   property int totalCount: (channelResults ? channelResults.length : 0) + (cacheResults ? cacheResults.length : 0)
   
@@ -15,14 +16,15 @@ Rectangle {
   signal cacheVodClicked(string vodId, string filePath, string streamerName)
   signal closeRequested()
   
-  visible: isVisible && totalCount > 0
+  // Visible si: recherche effectuée ET (résultats OU pas de résultats à montrer)
+  visible: isVisible && hasSearchQuery
   color: AppleTheme.surface
   border.color: AppleTheme.divider
   border.width: 1
   radius: 16
   clip: true
   
-  implicitHeight: Math.min(contentColumn.height + 16, 400)
+  implicitHeight: totalCount > 0 ? Math.min(contentColumn.height + 16, 400) : 60
   
   function navigateUp() {
     if (selectedIndex > 0) selectedIndex--

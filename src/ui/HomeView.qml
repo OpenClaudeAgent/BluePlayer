@@ -20,6 +20,9 @@ Item {
   // Signal pour ouvrir le player de stream
   signal openStreamPlayer(string streamerLogin, string streamerName, string streamTitle, string thumbnailUrl)
   
+  // Signal pour ouvrir une VOD en cache
+  signal playVodRequested(string id, string filePath, var metadata)
+  
   // Signal pour ouvrir le gestionnaire de cache
   signal openCacheManager()
   
@@ -242,10 +245,53 @@ Item {
   MouseArea {
     id: searchOverlay
     anchors.fill: parent
-    visible: searchResultsPopup.visible
-    z: 5  // Au-dessus du contenu mais en-dessous de la barre de recherche
+    visible: searchResultsPopup.visible || searchField.activeFocus
+    z: 5  // Au-dessus du contenu mais en-dessous du popup de résultats
     onClicked: {
       console.log("[HomeView] Click outside search results - closing")
+      closeSearchResults()
+    }
+  }
+  
+  // Popup des résultats de recherche - HORS du ColumnLayout pour z-index correct
+  SearchResults {
+    id: searchResultsPopup
+    // Centré horizontalement, juste en dessous de la barre de recherche
+    anchors.horizontalCenter: parent.horizontalCenter
+    y: {
+      var pos = searchBarBackground.mapToItem(homeRoot, 0, searchBarBackground.height)
+      return pos.y + 20
+    }
+    width: searchBarBackground.width
+    z: 10  // Au-dessus de l'overlay
+    
+    isVisible: homeRoot.searchResultsVisible
+    hasSearchQuery: searchField.text.length > 0
+    channelResults: {
+      var service = getTwitchService()
+      return service ? service.searchChannelResults : []
+    }
+    cacheResults: []  // Updated via searchDebounceTimer
+    
+    onChannelClicked: function(broadcasterLogin, displayName, isLive, thumbnailUrl) {
+      console.log("[HomeView] Search result channel clicked:", displayName, "login:", broadcasterLogin, "isLive:", isLive)
+      searchField.text = ""
+      clearSearchResults()
+      searchField.focus = false
+      // Ouvrir le player pour le stream en direct (only live channels are shown)
+      homeRoot.openStreamPlayer(broadcasterLogin, displayName, "", thumbnailUrl)
+    }
+    
+    onCacheVodClicked: function(vodId, filePath, streamerName) {
+      console.log("[HomeView] Cache VOD clicked:", streamerName, "path:", filePath)
+      searchField.text = ""
+      clearSearchResults()
+      searchField.focus = false
+      // Ouvrir le player pour la VOD en cache avec le bon signal
+      homeRoot.playVodRequested(vodId, filePath, { streamerName: streamerName, streamTitle: "VOD en cache" })
+    }
+    
+    onCloseRequested: {
       closeSearchResults()
     }
   }
@@ -315,6 +361,9 @@ Item {
             selectByMouse: true
             leftPadding: 0
             rightPadding: 0
+            topPadding: 0
+            bottomPadding: 0
+            clip: true
               onTextChanged: {
                 // Annuler le timer précédent si l'utilisateur tape encore
                 searchDebounceTimer.stop()
@@ -370,45 +419,6 @@ Item {
         }
       }
       
-      // Popup des résultats de recherche
-      SearchResults {
-        id: searchResultsPopup
-        anchors.top: searchBarBackground.bottom
-        anchors.topMargin: 8
-        anchors.horizontalCenter: searchBarBackground.horizontalCenter
-        width: searchBarBackground.width
-        
-        isVisible: homeRoot.searchResultsVisible
-        channelResults: {
-          var service = getTwitchService()
-          return service ? service.searchChannelResults : []
-        }
-        cacheResults: []  // Updated via searchDebounceTimer
-        
-        onChannelClicked: function(broadcasterLogin, displayName, isLive, thumbnailUrl) {
-          console.log("[HomeView] Search result channel clicked:", displayName, "login:", broadcasterLogin, "isLive:", isLive)
-          searchField.text = ""
-          clearSearchResults()
-          searchField.focus = false
-          // Ouvrir le player pour le stream en direct (only live channels are shown)
-          homeRoot.openStreamPlayer(broadcasterLogin, displayName, "", thumbnailUrl)
-        }
-        
-        onCacheVodClicked: function(vodId, filePath, streamerName) {
-          console.log("[HomeView] Cache VOD clicked:", streamerName, "path:", filePath)
-          searchField.text = ""
-          clearSearchResults()
-          searchField.focus = false
-          // Ouvrir le player pour la VOD en cache
-          // Le signal openStreamPlayer peut être réutilisé avec le filePath comme "login"
-          // On utilise "file://" + filePath comme URL de stream
-          homeRoot.openStreamPlayer("cache:" + vodId, streamerName, "VOD en cache", "")
-        }
-        
-        onCloseRequested: {
-          closeSearchResults()
-        }
-      }
     }
 
     // Zone de contenu scrollable verticalement
