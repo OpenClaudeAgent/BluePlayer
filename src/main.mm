@@ -2,7 +2,6 @@
 #include <QByteArray>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
-
 #include <QStringLiteral>
 #include <QWindow>
 #include <QtQml>
@@ -20,7 +19,9 @@
 #include "core/Application.hpp"
 // #include "media/FFmpegMediaService.hpp" // Removed
 
+#include "chat/TwitchChatClient.hpp"
 #include "core/CacheManager.hpp"
+#include "core/FileLogger.hpp"
 #include "media/MpvQuickItem.hpp"
 #include "ui/CacheManagerViewModel.hpp"
 #include "ui/HomeViewModel.hpp"
@@ -98,6 +99,9 @@ int main(int argc, char *argv[]) {
   qputenv("QT_QUICK_CONTROLS_STYLE", "Material");
   QApplication app(argc, argv);
 
+  // Initialize file logging (logs to logs/blueplayer_YYYY-MM-DD_HH-MM-SS.log)
+  blueplayer::core::FileLogger::initialize();
+
   // Fix for MPV: Ensure standard C locale for number parsing
   // Must be called AFTER QApplication because QApp resets locale to system
   // default
@@ -115,6 +119,8 @@ int main(int argc, char *argv[]) {
                                                   "HomeViewModel");
   qmlRegisterType<blueplayer::ui::CacheManagerViewModel>(
       "BluePlayer.UI", 1, 0, "CacheManagerViewModel");
+  qmlRegisterType<BluePlayer::TwitchChatClient>(
+      "BluePlayer.Chat", 1, 0, "TwitchChatClient");
   Application coreApp;
   coreApp.initialize();
 
@@ -142,5 +148,7 @@ int main(int argc, char *argv[]) {
   ensureMacPreferencesMenu(showPreferences);
 #endif
 
-  return app.exec();
+  int result = app.exec();
+  blueplayer::core::FileLogger::shutdown();
+  return result;
 }

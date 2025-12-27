@@ -21,6 +21,8 @@ set(BLUEPLAYER_CORE_SOURCES
   core/StateMachineLiveReplay.hpp
   core/CacheManager.cpp
   core/CacheManager.hpp
+  core/FileLogger.cpp
+  core/FileLogger.hpp
   core/network/HttpClient.cpp
   core/network/HttpClient.hpp
   core/network/ApiClientBase.cpp
@@ -33,6 +35,9 @@ set(BLUEPLAYER_CORE_SOURCES
   api/twitch/TwitchAuthManager.hpp
   api/twitch/TwitchService.cpp
   api/twitch/TwitchService.hpp
+  chat/TwitchChatClient.cpp
+  chat/TwitchChatClient.hpp
+  chat/ChatMessage.hpp
   ui/HomeViewModel.cpp
   ui/HomeViewModel.hpp
   ui/CacheManagerViewModel.cpp
@@ -61,6 +66,7 @@ target_link_libraries(blueplayer_core
     Qt6::Core
     Qt6::Quick
     Qt6::Network
+    Qt6::WebSockets
     CURL::libcurl
     # Qt6::Multimedia retiré car Application utilise maintenant des forward declarations
 )
@@ -131,6 +137,8 @@ qt_add_qml_module(BluePlayer
     ui/components/PlayerControlBar.qml
     ui/components/SearchResults.qml
     ui/components/SearchResultItem.qml
+    ui/components/ChatPanel.qml
+    ui/components/ChatMessage.qml
 )
 
 target_link_libraries(BluePlayer

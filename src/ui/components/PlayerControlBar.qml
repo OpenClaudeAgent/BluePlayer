@@ -26,6 +26,8 @@ Rectangle {
   property real playbackRate: 1.0
   property bool hardwareDecoding: true
   property bool cropVideo: false
+  property bool chatVisible: false
+  property bool chatEnabled: true  // Disabled in VOD mode
   
   // Chip button dimensions (for consistent sizing)
   readonly property int chipWidth: 64
@@ -47,6 +49,7 @@ Rectangle {
   signal playbackRateRequested(real rate)
   signal hardwareToggleClicked()
   signal cropToggleClicked()
+  signal chatToggleClicked()
   
   height: 80
   
@@ -454,7 +457,71 @@ Rectangle {
           onClicked: controlBar.cropToggleClicked()
         }
         ToolTip.visible: cropMouse.containsMouse
-        ToolTip.text: cropVideo ? qsTr("Rognage (panscan)") : qsTr("Adapter")
+        ToolTip.text: cropVideo ? qsTr("Rognage (panscan) (V)") : qsTr("Adapter (V)")
+        ToolTip.delay: 800
+      }
+
+      // Chat Toggle Button (hidden in VOD mode)
+      Rectangle {
+        id: chatButton
+        visible: chatEnabled
+        width: chipHeight; height: chipHeight; radius: chipRadius
+        color: chatVisible ? AppleTheme.accent : (chatMouse.containsMouse ? "#33FFFFFF" : "#1AFFFFFF")
+        border.color: chatVisible ? AppleTheme.accent : "#4DFFFFFF"
+        border.width: 1
+        Behavior on color { ColorAnimation { duration: 150 } }
+
+        // Chat bubble icon
+        Canvas {
+          anchors.centerIn: parent
+          width: 16
+          height: 16
+          onPaint: {
+            var ctx = getContext("2d")
+            ctx.reset()
+            ctx.strokeStyle = "#FFFFFF"
+            ctx.fillStyle = "transparent"
+            ctx.lineWidth = 1.5
+            ctx.lineCap = "round"
+            ctx.lineJoin = "round"
+
+            // Chat bubble shape
+            ctx.beginPath()
+            ctx.moveTo(2, 3)
+            ctx.lineTo(14, 3)
+            ctx.quadraticCurveTo(15, 3, 15, 4)
+            ctx.lineTo(15, 10)
+            ctx.quadraticCurveTo(15, 11, 14, 11)
+            ctx.lineTo(6, 11)
+            ctx.lineTo(3, 14)
+            ctx.lineTo(3, 11)
+            ctx.lineTo(2, 11)
+            ctx.quadraticCurveTo(1, 11, 1, 10)
+            ctx.lineTo(1, 4)
+            ctx.quadraticCurveTo(1, 3, 2, 3)
+            ctx.stroke()
+
+            // Chat lines
+            ctx.beginPath()
+            ctx.moveTo(4, 6)
+            ctx.lineTo(12, 6)
+            ctx.stroke()
+            ctx.beginPath()
+            ctx.moveTo(4, 9)
+            ctx.lineTo(9, 9)
+            ctx.stroke()
+          }
+        }
+
+        MouseArea {
+          id: chatMouse
+          anchors.fill: parent
+          hoverEnabled: true
+          cursorShape: Qt.PointingHandCursor
+          onClicked: controlBar.chatToggleClicked()
+        }
+        ToolTip.visible: chatMouse.containsMouse
+        ToolTip.text: chatVisible ? qsTr("Hide chat (C)") : qsTr("Show chat (C)")
         ToolTip.delay: 800
       }
 

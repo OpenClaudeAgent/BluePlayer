@@ -5,6 +5,7 @@ import QtQuick.Window 2.2
 import Qt.labs.settings 1.1
 
 import BluePlayer.Media 1.0
+import BluePlayer.Chat 1.0
 import "themes/AppleTheme.js" as AppleTheme
 import "components"
 
@@ -49,6 +50,8 @@ Item {
   property string errorMessage: ""
   property bool showError: false
   property bool settingsApplied: false  // avoid double applying settings on load
+  property bool chatVisible: false
+  property bool chatEnabled: !isVodMode  // Chat disabled in VOD mode
   
   signal backRequested()
   
@@ -105,10 +108,24 @@ Item {
   }
   
   function requestStop() {
+    // Déconnecter le chat
+    if (chatClient) {
+      chatClient.disconnect()
+    }
+    chatVisible = false
     // Sauvegarder l'enregistrement si en cours
     saveRecordingIfNeeded()
     mpvPlayer.stop()
     statusText = qsTr("Lecture arrêtée")
+  }
+  
+  function updateChatCredentials() {
+    if (twitchService && twitchService.accessToken && twitchService.userName) {
+      console.log("[PlayerView] Setting chat credentials for:", twitchService.userName)
+      chatClient.setCredentials(twitchService.accessToken, twitchService.userName)
+    } else {
+      console.log("[PlayerView] Cannot set chat credentials - missing token or username")
+    }
   }
   
   function startAutoRecording() {
@@ -291,12 +308,42 @@ Item {
     anchors.fill: parent
     color: "#000000"
 
+    // Chat client (created once, reused)
+    TwitchChatClient {
+      id: chatClient
+    }
+
     // 1. Video Layer Container - player will be reparented here when not fullscreen
     Item {
       id: videoContainer
-      anchors.fill: parent
+      anchors.top: parent.top
+      anchors.left: parent.left
+      anchors.bottom: parent.bottom
+      anchors.right: chatVisible ? chatPanel.left : parent.right
       
       // The player is defined below and reparented dynamically
+    }
+
+    // Chat Panel (right side) - z:100 to be above mouse area
+    ChatPanel {
+      id: chatPanel
+      anchors.top: parent.top
+      anchors.right: parent.right
+      anchors.bottom: parent.bottom  // Full height for better integration
+      width: chatVisible ? chatPanel.currentWidth : 0
+      visible: chatVisible
+      z: 100  // Above mouse interaction layer
+      chatClient: chatClient
+      channelName: playerRoot.streamerLogin
+      
+      onCloseRequested: {
+        playerRoot.chatVisible = false
+        chatClient.disconnect()
+      }
+
+      Behavior on width {
+        NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+      }
     }
 
     MpvQuickItem {
@@ -369,9 +416,13 @@ Item {
     
     // 2. Mouse Interaction Layer (Background)
     // Placed here so it is BEHIND interface overlays (TopBar, ControlBar)
+    // Only covers video area, not chat panel
     MouseArea {
       id: backgroundMouseArea
-      anchors.fill: parent
+      anchors.top: parent.top
+      anchors.left: parent.left
+      anchors.bottom: parent.bottom
+      anchors.right: chatVisible ? chatPanel.left : parent.right
       hoverEnabled: true
       propagateComposedEvents: true
       // Hide cursor in fullscreen when controls are hidden
@@ -608,11 +659,11 @@ Item {
       }
     }
     
-    // Bottom Control Bar
+    // Bottom Control Bar - adapts to chat panel
     PlayerControlBar {
       id: playerControlBar
       anchors.left: parent.left
-      anchors.right: parent.right
+      anchors.right: chatVisible ? chatPanel.left : parent.right
       anchors.bottom: parent.bottom
       
       playing: playerRoot.playing
@@ -629,6 +680,8 @@ Item {
       playbackRate: playerRoot.playbackRate
       hardwareDecoding: playerRoot.hardwareDecodingEnabled
       cropVideo: playerRoot.cropMode
+      chatVisible: playerRoot.chatVisible
+      chatEnabled: playerRoot.chatEnabled
       
       onPlayPauseClicked: togglePlayPause()
       onStopClicked: {
@@ -670,6 +723,15 @@ Item {
       onPlaybackRateRequested: function(rate) { adjustPlaybackRate(rate) }
       onHardwareToggleClicked: toggleHardwareDecoding()
       onCropToggleClicked: toggleCropMode()
+      onChatToggleClicked: {
+        playerRoot.chatVisible = !playerRoot.chatVisible
+        if (playerRoot.chatVisible && playerRoot.streamerLogin) {
+          updateChatCredentials()
+          chatClient.connectToChannel(playerRoot.streamerLogin)
+        } else {
+          chatClient.disconnect()
+        }
+      }
     }
 
     // Buffering badge (when already en lecture)
@@ -835,6 +897,19 @@ Item {
         event.accepted = true
         break
       case Qt.Key_C:
+        // Toggle chat (only in live mode)
+        if (chatEnabled) {
+          playerRoot.chatVisible = !playerRoot.chatVisible
+          if (playerRoot.chatVisible && playerRoot.streamerLogin) {
+            updateChatCredentials()
+            chatClient.connectToChannel(playerRoot.streamerLogin)
+          } else {
+            chatClient.disconnect()
+          }
+        }
+        event.accepted = true
+        break
+      case Qt.Key_V:
         toggleCropMode()
         event.accepted = true
         break
