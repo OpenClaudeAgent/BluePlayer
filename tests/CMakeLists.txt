@@ -224,3 +224,71 @@ add_test(NAME HomeViewModel COMMAND test_home_view_model)
 
 include(CTest)
 enable_testing()
+
+# ===== Nouveaux tests ajoutés =====
+
+# Tests unitaires pour HlsAdFilter
+add_executable(test_hls_ad_filter
+  media/TestHlsAdFilter.cpp
+)
+target_link_libraries(test_hls_ad_filter PRIVATE
+  ${TEST_LIBS}
+  blueplayer_core
+  blueplayer_media
+)
+target_include_directories(test_hls_ad_filter PRIVATE ${TEST_INCLUDE_DIRS})
+target_link_directories(test_hls_ad_filter PRIVATE /opt/homebrew/lib ${FFMPEG_LIBS_LIBRARY_DIRS})
+apply_coverage_flags(test_hls_ad_filter)
+add_test(NAME HlsAdFilter COMMAND test_hls_ad_filter)
+
+# Tests unitaires pour WatchHistory
+add_executable(test_watch_history
+  core/TestWatchHistory.cpp
+)
+target_link_libraries(test_watch_history PRIVATE
+  ${TEST_LIBS}
+  blueplayer_core
+)
+target_include_directories(test_watch_history PRIVATE ${TEST_INCLUDE_DIRS})
+target_link_directories(test_watch_history PRIVATE /opt/homebrew/lib)
+apply_coverage_flags(test_watch_history)
+add_test(NAME WatchHistory COMMAND test_watch_history)
+
+# Tests unitaires pour CacheManagerViewModel
+add_executable(test_cache_manager_view_model
+  ui/TestCacheManagerViewModel.cpp
+)
+target_link_libraries(test_cache_manager_view_model PRIVATE
+  ${TEST_LIBS}
+  blueplayer_core
+)
+target_include_directories(test_cache_manager_view_model PRIVATE ${TEST_INCLUDE_DIRS})
+target_link_directories(test_cache_manager_view_model PRIVATE /opt/homebrew/lib)
+apply_coverage_flags(test_cache_manager_view_model)
+add_test(NAME CacheManagerViewModel COMMAND test_cache_manager_view_model)
+
+# Tests unitaires pour Logger
+add_executable(test_logger
+  core/TestLogger.cpp
+)
+target_link_libraries(test_logger PRIVATE
+  ${TEST_LIBS}
+  blueplayer_core
+)
+target_include_directories(test_logger PRIVATE ${TEST_INCLUDE_DIRS})
+target_link_directories(test_logger PRIVATE /opt/homebrew/lib)
+apply_coverage_flags(test_logger)
+add_test(NAME Logger COMMAND test_logger)
+
+# Tests unitaires pour CurlHttpClient
+add_executable(test_curl_http_client
+  core/network/TestCurlHttpClient.cpp
+)
+target_link_libraries(test_curl_http_client PRIVATE
+  ${TEST_LIBS}
+  blueplayer_core
+)
+target_include_directories(test_curl_http_client PRIVATE ${TEST_INCLUDE_DIRS})
+target_link_directories(test_curl_http_client PRIVATE /opt/homebrew/lib)
+apply_coverage_flags(test_curl_http_client)
+add_test(NAME CurlHttpClient COMMAND test_curl_http_client)

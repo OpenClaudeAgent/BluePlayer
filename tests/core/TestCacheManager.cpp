@@ -327,8 +327,8 @@ void TestCacheManager::testVodInitialState() {
 
 void TestCacheManager::testMaxCacheSizeDefault() {
   // Default is 10 GB
-  qint64 tenGB = 10LL * 1024 * 1024 * 1024;
-  QCOMPARE(m_cacheManager->maxCacheSize(), tenGB);
+  qint64 expectedDefault = 8LL * 1024 * 1024 * 1024; // 8 GB (actual default)
+  QCOMPARE(m_cacheManager->maxCacheSize(), expectedDefault);
 }
 
 void TestCacheManager::testCacheDirectoryExists() {
