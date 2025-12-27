@@ -2,6 +2,7 @@
 #include <QSettings>
 #include <QStandardPaths>
 #include <QDir>
+#include <QUuid>
 
 #include "core/WatchHistory.hpp"
 
@@ -55,9 +56,10 @@ private:
 };
 
 void TestWatchHistory::initTestCase() {
-  // Utiliser un chemin de test isolé
+  // Use a unique path per test process to avoid conflicts during parallel execution
+  QString uniqueId = QUuid::createUuid().toString(QUuid::Id128);
   m_testSettingsPath = QStandardPaths::writableLocation(QStandardPaths::TempLocation) 
-                       + "/BluePlayerWatchHistoryTest";
+                       + "/BluePlayerWatchHistoryTest_" + uniqueId;
   QDir().mkpath(m_testSettingsPath);
   QSettings::setPath(QSettings::NativeFormat, QSettings::UserScope, m_testSettingsPath);
 }

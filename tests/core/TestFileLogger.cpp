@@ -7,6 +7,7 @@
 #include <QWaitCondition>
 #include <QStandardPaths>
 #include <QRegularExpression>
+#include <QUuid>
 
 #include "core/FileLogger.hpp"
 
@@ -16,6 +17,8 @@ class TestFileLogger : public QObject {
   Q_OBJECT
 
 private slots:
+  void initTestCase();
+  void cleanupTestCase();
   void init();
   void cleanup();
 
@@ -70,7 +73,40 @@ private slots:
 private:
   QString readLogFileContent();
   void waitForLogFlush();
+  
+  QString m_originalAppName;
+  QString m_testCacheDir;
 };
+
+void TestFileLogger::initTestCase() {
+  // Save original app name
+  m_originalAppName = QCoreApplication::applicationName();
+  
+  // Use a unique app name per test process to isolate cache directories
+  // This ensures parallel test runs don't conflict
+  QString uniqueId = QUuid::createUuid().toString(QUuid::Id128);
+  QString uniqueAppName = QString("test_file_logger_%1").arg(uniqueId);
+  QCoreApplication::setApplicationName(uniqueAppName);
+  
+  // Store the cache dir for cleanup
+  m_testCacheDir = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
+}
+
+void TestFileLogger::cleanupTestCase() {
+  // Ensure logger is shut down
+  FileLogger::shutdown();
+  
+  // Clean up the test cache directory
+  if (!m_testCacheDir.isEmpty()) {
+    QDir cacheDir(m_testCacheDir);
+    if (cacheDir.exists()) {
+      cacheDir.removeRecursively();
+    }
+  }
+  
+  // Restore original app name
+  QCoreApplication::setApplicationName(m_originalAppName);
+}
 
 void TestFileLogger::init() {
   // Clean state before each test
