@@ -97,6 +97,7 @@ make test
 
 | Version | Date | Description |
 |---------|------|-------------|
+| v0.8.0 | 2025-12-27 | Fix Home : suppression section redondante "En direct maintenant" |
 | v0.7.0 | 2025-12-27 | Chat Twitch intégré (lecture, envoi, emotes, badges) |
 | v0.6.0 | 2025-12-27 | Barre de recherche Twitch (channels live + cache local) |
 | v0.5.0 | 2025-12-26 | Gestion Cache/VOD (enregistrement auto, thumbnails, mode replay) |

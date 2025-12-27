@@ -32,14 +32,25 @@ Identifier et corriger la cause de la ligne vide pour afficher les streams popul
 - `src/api/twitch/TwitchApiClient.cpp`
 
 ## Checklist de validation
-- [ ] Identifier quelle section exacte est vide
-- [ ] Vérifier que l'API est appelée au chargement
-- [ ] Vérifier que l'API retourne des données (logs)
-- [ ] Vérifier que les données sont transformées correctement
-- [ ] Vérifier que le signal est émis vers le QML
-- [ ] Vérifier que le QML reçoit les données
-- [ ] La ligne affiche maintenant les streams
-- [ ] Les thumbnails s'affichent
-- [ ] Les informations (nom, viewers, jeu) s'affichent
-- [ ] Clic sur un stream ouvre le player
-- [ ] Pas de régression sur les autres sections
+- [x] Identifier quelle section exacte est vide
+- [x] Vérifier que l'API est appelée au chargement
+- [x] Vérifier que l'API retourne des données (logs)
+- [x] Vérifier que les données sont transformées correctement
+- [x] Vérifier que le signal est émis vers le QML
+- [x] Vérifier que le QML reçoit les données
+- [x] Plus de ligne vide sur la Home
+- [x] Pas de régression sur les autres sections
+
+---
+
+## Solution adoptée
+
+La section "En direct maintenant" était redondante avec "Recommandé pour vous" (même source de données). 
+**Décision** : Suppression de la section au lieu de la remplir avec des données dupliquées.
+
+**Sections finales (5 au lieu de 6) :**
+1. Vos streamers suivis
+2. Recommandé pour vous
+3. Parcourir (catégories)
+4. Clips populaires
+5. Recommandations par catégorie

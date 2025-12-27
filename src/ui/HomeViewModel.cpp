@@ -47,28 +47,28 @@ void HomeViewModel::updateSectionsData() {
     sections[2] = browseSection;
   }
   
-  // Section 5: Clips populaires
-  if (sections.size() > 4) {
-    QVariantMap popularClipsSection = sections[4].toMap();
+  // Section 4: Clips populaires
+  if (sections.size() > 3) {
+    QVariantMap popularClipsSection = sections[3].toMap();
     QVariantList clipsCards = m_popularClips.isEmpty() 
       ? popularClipsSection["cards"].toList() 
       : m_popularClips;
     popularClipsSection["cards"] = clipsCards;
-    sections[4] = popularClipsSection;
+    sections[3] = popularClipsSection;
   }
   
-  // Section 6: Recommandations par catégorie
-  if (sections.size() > 5) {
-    QVariantMap categoryStreamsSection = sections[5].toMap();
-    Logger::debug(LogCategory::UI, QStringLiteral("Updating section 6: %1 category streams").arg(m_categoryStreams.size()));
+  // Section 5: Recommandations par catégorie
+  if (sections.size() > 4) {
+    QVariantMap categoryStreamsSection = sections[4].toMap();
+    Logger::debug(LogCategory::UI, QStringLiteral("Updating section 5: %1 category streams").arg(m_categoryStreams.size()));
     QVariantList categoryStreamsCards = m_categoryStreams.isEmpty() 
       ? categoryStreamsSection["cards"].toList() 
       : m_categoryStreams;
-    Logger::debug(LogCategory::UI, QStringLiteral("Section 6 cards: %1").arg(categoryStreamsCards.size()));
+    Logger::debug(LogCategory::UI, QStringLiteral("Section 5 cards: %1").arg(categoryStreamsCards.size()));
     categoryStreamsSection["cards"] = categoryStreamsCards;
-    sections[5] = categoryStreamsSection;
+    sections[4] = categoryStreamsSection;
   } else {
-    Logger::warning(LogCategory::UI, QStringLiteral("Sections size is %1, cannot update section 6").arg(sections.size()));
+    Logger::warning(LogCategory::UI, QStringLiteral("Sections size is %1, cannot update section 5").arg(sections.size()));
   }
   
   m_sectionsData = sections;
@@ -360,29 +360,21 @@ QVariantList HomeViewModel::createDefaultSections() const {
   section3[QStringLiteral("cards")] = categoryCards;
   sections.append(section3);
   
-  // Section 4: En direct maintenant (utilisera m_recommendedStreams)
+  // Section 4: Clips populaires
   QVariantMap section4;
-  section4[QStringLiteral("title")] = QStringLiteral("En direct maintenant");
-  section4[QStringLiteral("subtitle")] = QStringLiteral("Les streams les plus populaires");
-  section4[QStringLiteral("type")] = QStringLiteral("streams");
-  section4[QStringLiteral("cards")] = m_placeholderCards;  // Sera remplacé par de vraies données dans updateSectionsData()
+  section4[QStringLiteral("title")] = QStringLiteral("Clips populaires");
+  section4[QStringLiteral("subtitle")] = QStringLiteral("Les meilleurs moments");
+  section4[QStringLiteral("type")] = QStringLiteral("clips");
+  section4[QStringLiteral("cards")] = m_placeholderCards;
   sections.append(section4);
   
-  // Section 5: Clips populaires
+  // Section 5: Recommandations par catégorie (dynamique)
   QVariantMap section5;
-  section5[QStringLiteral("title")] = QStringLiteral("Clips populaires");
-  section5[QStringLiteral("subtitle")] = QStringLiteral("Les meilleurs moments");
-  section5[QStringLiteral("type")] = QStringLiteral("clips");
+  section5[QStringLiteral("title")] = QStringLiteral("Recommandations par catégorie");
+  section5[QStringLiteral("subtitle")] = QStringLiteral("Découvrez par jeu");
+  section5[QStringLiteral("type")] = QStringLiteral("streams");
   section5[QStringLiteral("cards")] = m_placeholderCards;
   sections.append(section5);
-  
-  // Section 6: Recommandations par catégorie (dynamique)
-  QVariantMap section6;
-  section6[QStringLiteral("title")] = QStringLiteral("Recommandations par catégorie");
-  section6[QStringLiteral("subtitle")] = QStringLiteral("Découvrez par jeu");
-  section6[QStringLiteral("type")] = QStringLiteral("streams");
-  section6[QStringLiteral("cards")] = m_placeholderCards;
-  sections.append(section6);
   
   return sections;
 }

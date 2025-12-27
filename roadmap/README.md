@@ -107,7 +107,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 5 | Gestion Cache/VOD | [plan-05](./plan-05-cache-vod.md) | `feature/cache-vod` | v0.5.0 | 🟢 Terminé |
 | 6 | Barre de recherche Twitch | [plan-06](./plan-06-search.md) | `feature/search` | v0.6.0 | 🟢 Terminé |
 | 7 | Chat Twitch intégré | [plan-07](./plan-07-chat.md) | `feature/chat` | v0.7.0 | 🟢 Terminé |
-| 8 | Fix ligne vide Home | [plan-08](./plan-08-home-empty-row.md) | `feature/fix-home-row` | - | 🔴 En attente |
+| 8 | Fix ligne vide Home | [plan-08](./plan-08-home-empty-row.md) | `feature/fix-home-row` | v0.8.0 | 🟢 Terminé |
 | 9 | Vitesse lecture intelligente | [plan-09](./plan-09-playback-speed.md) | `feature/playback-speed` | - | 🔴 En attente |
 | 10 | Animations & Transitions | [plan-10](./plan-10-animations.md) | `feature/animations` | - | 🔴 En attente |
 | 11 | Sélecteur Qualité Stream | [plan-11](./plan-11-quality-selector.md) | `feature/quality-selector` | - | 🔴 En attente |
@@ -167,3 +167,4 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 2025-12-27 | Ajout plan 21 - Dette Technique (audit, refactoring, performance) - plan récurrent |
 | 2025-12-27 | Tâche 7 terminée - Chat Twitch intégré (lecture, envoi, emotes, badges) |
 | 2025-12-27 | Ajout plan 22 - Page succès OAuth (amélioration UX authentification) |
+| 2025-12-27 | Tâche 8 terminée - Suppression section redondante Home (5 sections au lieu de 6) |
