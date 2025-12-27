@@ -436,3 +436,47 @@ target_include_directories(test_hls_contracts PRIVATE ${CONTRACT_TEST_INCLUDE_DI
 target_link_directories(test_hls_contracts PRIVATE /opt/homebrew/lib)
 apply_coverage_flags(test_hls_contracts)
 add_test(NAME HlsContracts COMMAND test_hls_contracts)
+
+# ===== Tests Fonctionnels UI (Qt Quick Test) =====
+
+# Find Qt Quick Test module
+find_package(Qt6 6.5 COMPONENTS QuickTest QUIET)
+
+if(Qt6QuickTest_FOUND)
+  message(STATUS "Qt6 QuickTest found - enabling functional UI tests")
+
+  add_executable(test_functional_ui
+    functional/main.cpp
+  )
+
+  target_link_libraries(test_functional_ui PRIVATE
+    Qt6::Core
+    Qt6::Quick
+    Qt6::Gui
+    Qt6::QuickTest
+    Qt6::Test
+  )
+
+  # Define the source directory for QML test files
+  target_compile_definitions(test_functional_ui PRIVATE
+    QUICK_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/functional"
+  )
+
+  target_include_directories(test_functional_ui PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src
+  )
+
+  target_link_directories(test_functional_ui PRIVATE /opt/homebrew/lib)
+  apply_coverage_flags(test_functional_ui)
+
+  # Register with CTest
+  add_test(NAME FunctionalUI COMMAND test_functional_ui)
+
+  # Set test properties for better CI integration
+  set_tests_properties(FunctionalUI PROPERTIES
+    LABELS "functional;ui"
+    TIMEOUT 60
+  )
+else()
+  message(WARNING "Qt6 QuickTest not found - functional UI tests disabled. Install Qt6 QuickTest module to enable.")
+endif()

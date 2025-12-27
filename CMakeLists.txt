@@ -74,6 +74,12 @@ include(cmake/CompilerWarnings.cmake OPTIONAL)
 
 find_package(Qt6 6.5 COMPONENTS Core Quick Gui Multimedia QuickControls2 Widgets WebSockets REQUIRED)
 
+# QuickTest is optional (for functional UI tests)
+find_package(Qt6 6.5 COMPONENTS QuickTest QUIET)
+if(Qt6QuickTest_FOUND)
+  message(STATUS "Qt6 QuickTest found - functional UI tests will be available")
+endif()
+
 # FFmpeg dependencies removed
 
 
