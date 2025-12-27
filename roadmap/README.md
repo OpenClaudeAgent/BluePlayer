@@ -127,6 +127,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 22 | Page succès OAuth | [plan-22](./plan-22-oauth-success-page.md) | `fix/oauth-success-page` | - | 🔴 En attente |
 | 23 | Auto-refresh Home | [plan-23](./plan-23-auto-refresh.md) | `feature/auto-refresh` | - | 🔴 En attente |
 | **24** | **Refactoring Profond** | [plan-24](./plan-24-deep-refactoring.md) | `refactor/deep-analysis` | - | 🔴 En attente |
+| **25** | **Audit UI/UX Design** | [plan-25](./plan-25-ui-design-audit.md) | `design/ui-audit` | - | 🔴 En attente |
 
 ### Plans spéciaux
 
@@ -134,7 +135,8 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 |------|------|-------------|
 | 🔄 Récurrent | Plan 21 | À exécuter après chaque milestone majeur |
 | 📝 Placeholder | Plan 20 | Design à définir dans une future session |
-| 🚨 Critique | Plan 24 | Refactoring profond issu d'analyse complète (30 sous-tâches) |
+| 🚨 Critique | Plan 24 | Refactoring technique issu d'analyse complète (25 sous-tâches) |
+| 🎨 Design | Plan 25 | Audit UI/UX & Design System (20 sous-tâches) |
 
 ### Légende des statuts
 
@@ -176,4 +178,5 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 2025-12-27 | Tâche 8 terminée - Suppression section redondante Home (5 sections au lieu de 6) |
 | 2025-12-27 | Ajout plan 23 - Auto-refresh Home (30s streams/clips, retour premier plan, gestion erreur) |
 | 2025-12-27 | Tâche 9 terminée - Vitesse lecture intelligente (auto-reset, protection live edge, mode replay) |
-| 2025-12-27 | Ajout plan 24 - Refactoring Profond (30 sous-tâches issues d'analyse complète : sécurité, QML, C++, thème, tests) |
+| 2025-12-27 | Ajout plan 24 - Refactoring Technique (25 sous-tâches : sécurité, QML refactoring, C++ refactoring, tests) |
+| 2025-12-27 | Ajout plan 25 - Audit UI/UX Design (20 sous-tâches : palette, typographie, radius, composants, accessibilité) |

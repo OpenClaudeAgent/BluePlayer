@@ -59,20 +59,13 @@ Suite à une analyse approfondie de la codebase BluePlayer (27 décembre 2025), 
 - **24.20** - Créer MpvPlayerBase.cpp pour init partagée
 - **24.21** - Rendre downloadThumbnail() asynchrone
 
-### Sprint 7 - Expansion Thème
-- **24.22** - Ajouter 15+ couleurs manquantes dans BlueTheme.js
-- **24.23** - Migrer toutes les valeurs hardcodées vers le thème
+### Sprint 7 - Tests & CI
+- **24.22** - Créer TestApplication.cpp
+- **24.23** - Ajouter 3-5 tests d'intégration
+- **24.24** - Configurer GitHub Actions CI/CD
+- **24.25** - Créer 2-3 tests E2E basiques
 
-### Sprint 8 - Accessibilité
-- **24.24** - Ajouter Accessible.role sur tous les boutons
-- **24.25** - Ajouter Accessible.name descriptifs
-- **24.26** - Ajouter indicateurs de focus visibles
-
-### Sprint 9 - Tests & CI
-- **24.27** - Créer TestApplication.cpp
-- **24.28** - Ajouter 3-5 tests d'intégration
-- **24.29** - Configurer GitHub Actions CI/CD
-- **24.30** - Créer 2-3 tests E2E basiques
+> **Note:** Les tâches Thème et Accessibilité ont été déplacées vers le Plan 25 (Audit UI/UX Design).
 
 ---
 
@@ -87,7 +80,6 @@ Suite à une analyse approfondie de la codebase BluePlayer (27 décembre 2025), 
 | 1 | 24.5 | S | Stabilité | Aucune |
 | 2 | 24.10 | S | Maintenabilité | Aucune |
 | 2 | 24.14 | M | Maintenabilité | Aucune |
-| 2 | 24.22 | S | Cohérence | Aucune |
 | 3 | 24.6 | S | Maintenabilité | Aucune |
 | 3 | 24.7 | S | Maintenabilité | Aucune |
 | 3 | 24.8 | S | Maintenabilité | Aucune |
@@ -95,7 +87,6 @@ Suite à une analyse approfondie de la codebase BluePlayer (27 décembre 2025), 
 | 3 | 24.12 | M | Maintenabilité | 24.10 |
 | 4 | 24.15 | M | Maintenabilité | 24.14 |
 | 4 | 24.16 | S | DRY | Aucune |
-| 4 | 24.23 | M | Cohérence | 24.22 |
 | 5 | 24.9 | L | Architecture | 24.6-24.8 |
 | 5 | 24.13 | M | Performance | 24.11, 24.12 |
 | 5 | 24.17 | L | Architecture | 24.16 |
@@ -103,13 +94,10 @@ Suite à une analyse approfondie de la codebase BluePlayer (27 décembre 2025), 
 | 5 | 24.19 | L | Architecture | 24.16 |
 | 6 | 24.20 | M | DRY | Aucune |
 | 6 | 24.21 | M | Performance | Aucune |
-| 7 | 24.24 | S | Accessibilité | Aucune |
-| 7 | 24.25 | S | Accessibilité | 24.24 |
-| 7 | 24.26 | M | Accessibilité | 24.24 |
-| 8 | 24.27 | M | Tests | Aucune |
-| 8 | 24.28 | L | Tests | 24.27 |
-| 8 | 24.29 | M | CI/CD | Aucune |
-| 8 | 24.30 | L | Tests | 24.28 |
+| 7 | 24.22 | M | Tests | Aucune |
+| 7 | 24.23 | L | Tests | 24.22 |
+| 7 | 24.24 | M | CI/CD | Aucune |
+| 7 | 24.25 | L | Tests | 24.23 |
 
 **Légende effort:** S = Small (<1h), M = Medium (1-4h), L = Large (4h+)
 
@@ -347,39 +335,6 @@ void TwitchService::refreshStreams() {
 
 ---
 
-### 24.22 à 24.23 - Expansion BlueTheme.js
-
-**Fichier:** `src/ui/themes/BlueTheme.js`
-
-**Couleurs à ajouter:**
-```javascript
-// Player
-var playerBackground = "#000000"
-var semiTransparentDark = "#CC000000"
-var semiTransparentMedium = "#80000000"
-var semiTransparentLight = "#4D000000"
-
-// Controls
-var controlButtonBg = "#1AFFFFFF"
-var controlButtonHover = "#33FFFFFF"
-var controlButtonBorder = "#4DFFFFFF"
-
-// Chat
-var chatBackground = "#1C1C1E"
-var chatSurface = "#2C2C2E"
-var chatDivider = "#3A3A3C"
-
-// Search
-var searchBarBg = "#0d1117"
-var searchBarFocusBg = "#161d28"
-
-// Cards
-var hoverTint = "#1a2230"
-var hoverTintLight = "#252d3d"
-```
-
----
-
 ## Fichiers Concernés (Résumé)
 
 ### C++ (Priorité haute)
@@ -402,7 +357,8 @@ var hoverTintLight = "#252d3d"
 - `src/ui/components/ClipCard.qml` - Duplication
 - `src/ui/components/ChannelCard.qml` - Duplication
 - `src/ui/components/CategoryCard.qml` - Duplication
-- `src/ui/themes/BlueTheme.js` - Extension
+
+> **Note:** BlueTheme.js → voir Plan 25
 
 ---
 
@@ -413,7 +369,6 @@ var hoverTintLight = "#252d3d"
 | PlayerView.qml | 994 lignes | < 400 lignes | -60% |
 | PlayerControlBar.qml | 789 lignes | < 250 lignes | -68% |
 | TwitchService.cpp | 1125 lignes | < 400 lignes | -65% |
-| Valeurs hardcodées QML | ~40 | 0 | -100% |
 | Duplication Cards | ~250 lignes | ~50 lignes | -80% |
 | Score sécurité | 4/10 | 9/10 | +125% |
 
@@ -437,12 +392,10 @@ var hoverTintLight = "#252d3d"
 - [ ] 24.16-24.19 - TwitchService splitté
 - [ ] 24.20-24.21 - Media refactoré
 
-### Thème & Accessibilité (Sprints 7-8)
-- [ ] 24.22-24.23 - BlueTheme complété
-- [ ] 24.24-24.26 - Accessibilité ajoutée
+### Tests (Sprint 7)
+- [ ] 24.22-24.25 - Tests et CI ajoutés
 
-### Tests (Sprint 9)
-- [ ] 24.27-24.30 - Tests et CI ajoutés
+> **Note:** Thème & Accessibilité → voir Plan 25
 
 ### Qualité Finale
 - [ ] Tous les tests passent
@@ -454,14 +407,16 @@ var hoverTintLight = "#252d3d"
 
 ## Notes
 
-Ce plan est le résultat d'une **analyse approfondie** de la codebase.
+Ce plan est le résultat d'une **analyse approfondie** de la codebase (volet technique).
+
+> Les tâches Thème et Accessibilité ont été déplacées vers le **Plan 25 - Audit UI/UX Design**.
 
 **Priorité absolue:** Les tâches 24.1 à 24.3 sont **CRITIQUES** et doivent être traitées avant toute autre chose.
 
 **Ordre recommandé:**
 1. Sprint 1 (Sécurité) - Immédiat
-2. Sprints 2-4 (QML) - Court terme
-3. Sprints 5-6 (C++) - Moyen terme
-4. Sprints 7-9 (Polish) - Long terme
+2. Sprints 2-4 (QML Refactoring) - Court terme
+3. Sprints 5-6 (C++ Refactoring) - Moyen terme
+4. Sprint 7 (Tests & CI) - Long terme
 
-**Estimation totale:** 40-60 heures de travail
+**Estimation totale:** 30-45 heures de travail (technique uniquement)
