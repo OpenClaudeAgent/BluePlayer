@@ -56,3 +56,5 @@ usr/
 .aider*
 .env
 .env
+
+.DS_Store
