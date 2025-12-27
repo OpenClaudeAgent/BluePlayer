@@ -72,9 +72,13 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 
 | Tâche | Dépend de | Raison |
 |-------|-----------|--------|
-| 9 (Vitesse lecture) | 5 (Cache/VOD) | Utilise le mode replay pour ajuster la vitesse |
+| 9 (Vitesse lecture) | 5 (Cache/VOD) ✅ | Utilise le mode replay pour ajuster la vitesse |
 | 12 (Préférences) | 11 (Sélecteur qualité) - partiel | Qualité par défaut nécessite le sélecteur |
 | 13.7 (Sélecteur langue) | 12 (Préférences) | Le sélecteur sera dans le panel préférences |
+| 15 (Historique VOD) | 5 (Cache/VOD) ✅ | Étend les métadonnées du cache existant |
+| 16 (Audio only) | 11 (Qualité) - optionnel | Peut utiliser le même système de sélection |
+| 18 (Thème) | 12 (Préférences) | Sélecteur de thème dans les préférences |
+| 19.2-19.3 (Channels offline) | 6 (Search) ✅ | Étend la recherche existante |
 
 ---
 
@@ -95,6 +99,13 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 11 | Sélecteur Qualité Stream | [plan-11](./plan-11-quality-selector.md) | `feature/quality-selector` | - | 🔴 En attente |
 | 12 | Panel Préférences | [plan-12](./plan-12-preferences.md) | `feature/preferences` | - | 🔴 En attente |
 | 13 | Internationalisation (i18n) | [plan-13](./plan-13-internationalization.md) | `feature/i18n` | - | 🔴 En attente |
+| 14 | Bouton Follow/Unfollow | [plan-14](./plan-14-follow-button.md) | `feature/follow-button` | - | 🔴 En attente |
+| 15 | Historique VOD cachés | [plan-15](./plan-15-watch-history.md) | `feature/watch-history` | - | 🔴 En attente |
+| 16 | Mode Audio uniquement | [plan-16](./plan-16-audio-only.md) | `feature/audio-only` | - | 🔴 En attente |
+| 17 | Picture-in-Picture | [plan-17](./plan-17-picture-in-picture.md) | `feature/pip` | - | 🔴 En attente |
+| 18 | Thème Clair/Sombre | [plan-18](./plan-18-theme-switcher.md) | `feature/theme` | - | 🔴 En attente |
+| 19 | Twitch Tracker Stats | [plan-19](./plan-19-twitch-tracker.md) | `feature/twitch-tracker` | - | 🔴 En attente |
+| 20 | Filtres Catégorie/Jeu | [plan-20](./plan-20-category-filters.md) | `feature/category-filters` | - | 🔴 En attente |
 
 ### Légende des statuts
 
@@ -122,3 +133,11 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 2025-12-27 | Correction numérotation : plans 9-12 synchronisés avec fichiers réels |
 | 2025-12-27 | Ajout tâche 13 - Internationalisation (i18n) avec 7 sous-tâches |
 | 2025-12-27 | Tâche 6 terminée - Barre de recherche Twitch (channels live + cache local) |
+| 2025-12-27 | Session d'idéation - Définition des nouvelles fonctionnalités (plans 14-20) |
+| 2025-12-27 | Ajout plan 14 - Bouton Follow/Unfollow (PlayerView, coeur toggle) |
+| 2025-12-27 | Ajout plan 15 - Historique VOD cachés (position reprise + date visionnage) |
+| 2025-12-27 | Ajout plan 16 - Mode Audio uniquement (extension toggle HW/SW) |
+| 2025-12-27 | Ajout plan 17 - Picture-in-Picture (fenêtre flottante macOS) |
+| 2025-12-27 | Ajout plan 18 - Thème Clair/Sombre (auto système + override manuel) |
+| 2025-12-27 | Ajout plan 19 - Twitch Tracker Stats (accès stats externes) |
+| 2025-12-27 | Ajout plan 20 - Filtres Catégorie/Jeu (placeholder - design à définir) |
