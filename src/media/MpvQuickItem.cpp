@@ -278,11 +278,12 @@ void MpvQuickItem::processPropertyChange(const char *name, void *data,
     // - VOD mode: return to live if user seeks close to live edge
     double dur = m_duration.load();
     if (dur > 1.0) {
-      bool isCloseToLive = (dur - pos) < 5.0;
+      double liveEdgeDelta = dur - pos;
+      bool isCloseToLive = liveEdgeDelta < 5.0;
       
       if (m_isLiveMode.load()) {
         // Exit live mode only if user explicitly seeked AND is far from live edge
-        if (m_userInitiatedSeek && (dur - pos) > 5.0) {
+        if (m_userInitiatedSeek && liveEdgeDelta > 5.0) {
           m_isLiveMode = false;
           emit isLiveModeChanged(false);
           m_userInitiatedSeek = false;
@@ -296,11 +297,16 @@ void MpvQuickItem::processPropertyChange(const char *name, void *data,
       }
       
       // Auto-reset speed when approaching live edge with speed > 1.0
-      if (m_playbackRate > 1.0 && isCloseToLive) {
-        m_playbackRate = 1.0;
-        mpv_set_property(m_mpv, "speed", MPV_FORMAT_DOUBLE, &m_playbackRate);
-        emit playbackRateChanged(1.0);
-        emit speedAutoReset(tr("Vitesse réinitialisée (live)"));
+      // Threshold is proportional to playback rate to avoid buffer underrun
+      // At 3x, we consume buffer 3x faster, so need 3x more margin
+      if (m_playbackRate > 1.0) {
+        double speedResetThreshold = APPROACHING_LIVE_THRESHOLD * m_playbackRate;
+        if (liveEdgeDelta < speedResetThreshold) {
+          m_playbackRate = 1.0;
+          mpv_set_property(m_mpv, "speed", MPV_FORMAT_DOUBLE, &m_playbackRate);
+          emit playbackRateChanged(1.0);
+          emit speedAutoReset(tr("Vitesse réinitialisée (live)"));
+        }
       }
     }
   } else if (strcmp(name, "duration") == 0 && format == MPV_FORMAT_DOUBLE) {
@@ -385,8 +391,9 @@ void MpvQuickItem::pause() {
   if (!m_mpv)
     return;
   
-  // Track if we were at live edge before pausing
-  if (isNearLiveEdge()) {
+  // Track if we were in live mode before pausing
+  // Use m_isLiveMode (UI state) which is reliably tracked
+  if (m_isLiveMode.load()) {
     m_wasAtLiveEdgeBeforePause = true;
   }
   
@@ -511,14 +518,14 @@ void MpvQuickItem::setPlaybackRate(double rate) {
     return;
   double clamped = qBound(0.25, rate, 3.0);
   
-  // If at live edge, limit max speed to prevent stuttering
-  if (isNearLiveEdge() && clamped > MAX_SPEED_AT_LIVE) {
+  // If in live mode, limit max speed to prevent stuttering
+  if (m_isLiveMode.load() && clamped > MAX_SPEED_AT_LIVE) {
     clamped = MAX_SPEED_AT_LIVE;
     emit speedAutoReset(tr("Vitesse limitée (déjà au live)"));
   }
   
-  // If slowing down from live edge, we'll fall behind - exit live mode
-  if (isNearLiveEdge() && clamped < 1.0 && m_isLiveMode.load()) {
+  // If slowing down while in live mode, we'll fall behind - exit live mode
+  if (m_isLiveMode.load() && clamped < 1.0) {
     m_isLiveMode = false;
     emit isLiveModeChanged(false);
   }
