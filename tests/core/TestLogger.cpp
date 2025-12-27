@@ -16,36 +16,24 @@ private slots:
   void testInitialize();
   void testInitializeMultipleTimes();
 
-  // Tests des catégories
-  void testLogCategoryMedia();
-  void testLogCategoryTwitch();
-  void testLogCategoryUI();
-  void testLogCategoryCore();
-  void testLogCategoryNetwork();
+  // Tests des catégories (data-driven)
+  void testLogCategory_data();
+  void testLogCategory();
 
-  // Tests des niveaux de log
-  void testLogLevelDebug();
-  void testLogLevelInfo();
-  void testLogLevelWarning();
-  void testLogLevelError();
-  void testLogLevelCritical();
+  // Tests des niveaux de log (data-driven)
+  void testLogLevel_data();
+  void testLogLevel();
 
   // Tests de setLevel
   void testSetLevel();
 
-  // Tests de levelFromEnvironment
-  void testLevelFromEnvironmentDefault();
-  void testLevelFromEnvironmentDebug();
-  void testLevelFromEnvironmentInfo();
-  void testLevelFromEnvironmentWarning();
-  void testLevelFromEnvironmentError();
+  // Tests de levelFromEnvironment (data-driven)
+  void testLevelFromEnvironment_data();
+  void testLevelFromEnvironment();
 
-  // Tests des méthodes de logging
-  void testDebugLog();
-  void testInfoLog();
-  void testWarningLog();
-  void testErrorLog();
-  void testCriticalLog();
+  // Tests des méthodes de logging (data-driven)
+  void testLogMethod_data();
+  void testLogMethod();
 
   // Tests avec messages spéciaux
   void testLogEmptyMessage();
@@ -65,58 +53,53 @@ void TestLogger::cleanupTestCase() {
 void TestLogger::testInitialize() {
   // Ne doit pas crasher même appelé plusieurs fois
   Logger::initialize();
-  QVERIFY(true);
 }
 
 void TestLogger::testInitializeMultipleTimes() {
   Logger::initialize();
   Logger::initialize();
   Logger::initialize();
-  QVERIFY(true);
 }
 
-// ===== Tests des catégories =====
+// ===== Tests des catégories (data-driven) =====
 
-void TestLogger::testLogCategoryMedia() {
-  QVERIFY(LogCategory::Media.categoryName() != nullptr);
+void TestLogger::testLogCategory_data() {
+  QTest::addColumn<int>("categoryIndex");
+
+  QTest::newRow("Media") << 0;
+  QTest::newRow("Twitch") << 1;
+  QTest::newRow("UI") << 2;
+  QTest::newRow("Core") << 3;
+  QTest::newRow("Network") << 4;
 }
 
-void TestLogger::testLogCategoryTwitch() {
-  QVERIFY(LogCategory::Twitch.categoryName() != nullptr);
+void TestLogger::testLogCategory() {
+  QFETCH(int, categoryIndex);
+
+  const QLoggingCategory *categories[] = {
+      &LogCategory::Media, &LogCategory::Twitch, &LogCategory::UI, &LogCategory::Core, &LogCategory::Network};
+
+  QVERIFY(categories[categoryIndex]->categoryName() != nullptr);
 }
 
-void TestLogger::testLogCategoryUI() {
-  QVERIFY(LogCategory::UI.categoryName() != nullptr);
+// ===== Tests des niveaux de log (data-driven) =====
+
+void TestLogger::testLogLevel_data() {
+  QTest::addColumn<LogLevel>("level");
+  QTest::addColumn<int>("expectedValue");
+
+  QTest::newRow("Debug") << LogLevel::Debug << 0;
+  QTest::newRow("Info") << LogLevel::Info << 1;
+  QTest::newRow("Warning") << LogLevel::Warning << 2;
+  QTest::newRow("Error") << LogLevel::Error << 3;
+  QTest::newRow("Critical") << LogLevel::Critical << 4;
 }
 
-void TestLogger::testLogCategoryCore() {
-  QVERIFY(LogCategory::Core.categoryName() != nullptr);
-}
+void TestLogger::testLogLevel() {
+  QFETCH(LogLevel, level);
+  QFETCH(int, expectedValue);
 
-void TestLogger::testLogCategoryNetwork() {
-  QVERIFY(LogCategory::Network.categoryName() != nullptr);
-}
-
-// ===== Tests des niveaux de log =====
-
-void TestLogger::testLogLevelDebug() {
-  QCOMPARE(static_cast<int>(LogLevel::Debug), 0);
-}
-
-void TestLogger::testLogLevelInfo() {
-  QCOMPARE(static_cast<int>(LogLevel::Info), 1);
-}
-
-void TestLogger::testLogLevelWarning() {
-  QCOMPARE(static_cast<int>(LogLevel::Warning), 2);
-}
-
-void TestLogger::testLogLevelError() {
-  QCOMPARE(static_cast<int>(LogLevel::Error), 3);
-}
-
-void TestLogger::testLogLevelCritical() {
-  QCOMPARE(static_cast<int>(LogLevel::Critical), 4);
+  QCOMPARE(static_cast<int>(level), expectedValue);
 }
 
 // ===== Tests de setLevel =====
@@ -128,88 +111,93 @@ void TestLogger::testSetLevel() {
   Logger::setLevel(LogCategory::Core, LogLevel::Warning);
   Logger::setLevel(LogCategory::Core, LogLevel::Error);
   Logger::setLevel(LogCategory::Core, LogLevel::Critical);
-  QVERIFY(true);
 }
 
-// ===== Tests de levelFromEnvironment =====
+// ===== Tests de levelFromEnvironment (data-driven) =====
 
-void TestLogger::testLevelFromEnvironmentDefault() {
-  LogLevel level = Logger::levelFromEnvironment("NONEXISTENT_ENV_VAR", LogLevel::Warning);
-  QCOMPARE(level, LogLevel::Warning);
+void TestLogger::testLevelFromEnvironment_data() {
+  QTest::addColumn<QByteArray>("envValue");
+  QTest::addColumn<LogLevel>("defaultLevel");
+  QTest::addColumn<LogLevel>("expectedLevel");
+  QTest::addColumn<bool>("setEnv");
+
+  QTest::newRow("Default (no env)") << QByteArray() << LogLevel::Warning << LogLevel::Warning << false;
+  QTest::newRow("debug") << QByteArray("debug") << LogLevel::Error << LogLevel::Debug << true;
+  QTest::newRow("info") << QByteArray("info") << LogLevel::Error << LogLevel::Info << true;
+  QTest::newRow("warning") << QByteArray("warning") << LogLevel::Error << LogLevel::Warning << true;
+  QTest::newRow("error") << QByteArray("error") << LogLevel::Debug << LogLevel::Error << true;
 }
 
-void TestLogger::testLevelFromEnvironmentDebug() {
-  qputenv("TEST_LOG_LEVEL", "debug");
-  LogLevel level = Logger::levelFromEnvironment("TEST_LOG_LEVEL", LogLevel::Error);
-  QCOMPARE(level, LogLevel::Debug);
-  qunsetenv("TEST_LOG_LEVEL");
+void TestLogger::testLevelFromEnvironment() {
+  QFETCH(QByteArray, envValue);
+  QFETCH(LogLevel, defaultLevel);
+  QFETCH(LogLevel, expectedLevel);
+  QFETCH(bool, setEnv);
+
+  const char *envVar = setEnv ? "TEST_LOG_LEVEL" : "NONEXISTENT_ENV_VAR";
+
+  if (setEnv) {
+    qputenv("TEST_LOG_LEVEL", envValue);
+  }
+
+  LogLevel level = Logger::levelFromEnvironment(envVar, defaultLevel);
+  QCOMPARE(level, expectedLevel);
+
+  if (setEnv) {
+    qunsetenv("TEST_LOG_LEVEL");
+  }
 }
 
-void TestLogger::testLevelFromEnvironmentInfo() {
-  qputenv("TEST_LOG_LEVEL", "info");
-  LogLevel level = Logger::levelFromEnvironment("TEST_LOG_LEVEL", LogLevel::Error);
-  QCOMPARE(level, LogLevel::Info);
-  qunsetenv("TEST_LOG_LEVEL");
+// ===== Tests des méthodes de logging (data-driven) =====
+
+void TestLogger::testLogMethod_data() {
+  QTest::addColumn<LogLevel>("level");
+  QTest::addColumn<QString>("message");
+
+  QTest::newRow("Debug") << LogLevel::Debug << "Test debug message";
+  QTest::newRow("Info") << LogLevel::Info << "Test info message";
+  QTest::newRow("Warning") << LogLevel::Warning << "Test warning message";
+  QTest::newRow("Error") << LogLevel::Error << "Test error message";
+  QTest::newRow("Critical") << LogLevel::Critical << "Test critical message";
 }
 
-void TestLogger::testLevelFromEnvironmentWarning() {
-  qputenv("TEST_LOG_LEVEL", "warning");
-  LogLevel level = Logger::levelFromEnvironment("TEST_LOG_LEVEL", LogLevel::Error);
-  QCOMPARE(level, LogLevel::Warning);
-  qunsetenv("TEST_LOG_LEVEL");
-}
+void TestLogger::testLogMethod() {
+  QFETCH(LogLevel, level);
+  QFETCH(QString, message);
 
-void TestLogger::testLevelFromEnvironmentError() {
-  qputenv("TEST_LOG_LEVEL", "error");
-  LogLevel level = Logger::levelFromEnvironment("TEST_LOG_LEVEL", LogLevel::Debug);
-  QCOMPARE(level, LogLevel::Error);
-  qunsetenv("TEST_LOG_LEVEL");
-}
-
-// ===== Tests des méthodes de logging =====
-
-void TestLogger::testDebugLog() {
   // Ne doit pas crasher
-  Logger::debug(LogCategory::Core, "Test debug message");
-  QVERIFY(true);
-}
-
-void TestLogger::testInfoLog() {
-  Logger::info(LogCategory::Core, "Test info message");
-  QVERIFY(true);
-}
-
-void TestLogger::testWarningLog() {
-  Logger::warning(LogCategory::Core, "Test warning message");
-  QVERIFY(true);
-}
-
-void TestLogger::testErrorLog() {
-  Logger::error(LogCategory::Core, "Test error message");
-  QVERIFY(true);
-}
-
-void TestLogger::testCriticalLog() {
-  Logger::critical(LogCategory::Core, "Test critical message");
-  QVERIFY(true);
+  switch (level) {
+  case LogLevel::Debug:
+    Logger::debug(LogCategory::Core, message);
+    break;
+  case LogLevel::Info:
+    Logger::info(LogCategory::Core, message);
+    break;
+  case LogLevel::Warning:
+    Logger::warning(LogCategory::Core, message);
+    break;
+  case LogLevel::Error:
+    Logger::error(LogCategory::Core, message);
+    break;
+  case LogLevel::Critical:
+    Logger::critical(LogCategory::Core, message);
+    break;
+  }
 }
 
 // ===== Tests avec messages spéciaux =====
 
 void TestLogger::testLogEmptyMessage() {
   Logger::info(LogCategory::Core, "");
-  QVERIFY(true);
 }
 
 void TestLogger::testLogLongMessage() {
   QString longMessage = QString(10000, 'x');
   Logger::info(LogCategory::Core, longMessage);
-  QVERIFY(true);
 }
 
 void TestLogger::testLogUnicodeMessage() {
-  Logger::info(LogCategory::Core, "Test unicode: Bonjour! Привет! 你好! 🎮");
-  QVERIFY(true);
+  Logger::info(LogCategory::Core, "Test unicode: Bonjour! Привет! 你好!");
 }
 
 QTEST_MAIN(TestLogger)

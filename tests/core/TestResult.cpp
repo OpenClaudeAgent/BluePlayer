@@ -17,10 +17,8 @@ private slots:
   void testFailureCreation();
 
   // ===== Tests Result<T> - isSuccess/isFailure =====
-  void testIsSuccessOnSuccess();
-  void testIsSuccessOnFailure();
-  void testIsFailureOnSuccess();
-  void testIsFailureOnFailure();
+  void testSuccessStateConsistency();
+  void testFailureStateConsistency();
 
   // ===== Tests Result<T> - value() =====
   void testValueOnSuccess();
@@ -45,10 +43,8 @@ private slots:
   // ===== Tests Result<void> =====
   void testVoidSuccessCreation();
   void testVoidFailureCreation();
-  void testVoidIsSuccessOnSuccess();
-  void testVoidIsSuccessOnFailure();
-  void testVoidIsFailureOnSuccess();
-  void testVoidIsFailureOnFailure();
+  void testVoidSuccessStateConsistency();
+  void testVoidFailureStateConsistency();
   void testVoidErrorOnFailure();
 
   // ===== Tests avec types complexes =====
@@ -82,23 +78,15 @@ void TestResult::testFailureCreation() {
 
 // ===== Tests Result<T> - isSuccess/isFailure =====
 
-void TestResult::testIsSuccessOnSuccess() {
+void TestResult::testSuccessStateConsistency() {
   auto result = Result<int>::success(10);
   QVERIFY(result.isSuccess());
-}
-
-void TestResult::testIsSuccessOnFailure() {
-  auto result = Result<int>::failure(Error(ErrorCode::Unknown));
-  QVERIFY(!result.isSuccess());
-}
-
-void TestResult::testIsFailureOnSuccess() {
-  auto result = Result<int>::success(10);
   QVERIFY(!result.isFailure());
 }
 
-void TestResult::testIsFailureOnFailure() {
+void TestResult::testFailureStateConsistency() {
   auto result = Result<int>::failure(Error(ErrorCode::Unknown));
+  QVERIFY(!result.isSuccess());
   QVERIFY(result.isFailure());
 }
 
@@ -225,23 +213,15 @@ void TestResult::testVoidFailureCreation() {
   QVERIFY(result.isFailure());
 }
 
-void TestResult::testVoidIsSuccessOnSuccess() {
+void TestResult::testVoidSuccessStateConsistency() {
   auto result = Result<void>::success();
   QVERIFY(result.isSuccess());
-}
-
-void TestResult::testVoidIsSuccessOnFailure() {
-  auto result = Result<void>::failure(Error(ErrorCode::Unknown));
-  QVERIFY(!result.isSuccess());
-}
-
-void TestResult::testVoidIsFailureOnSuccess() {
-  auto result = Result<void>::success();
   QVERIFY(!result.isFailure());
 }
 
-void TestResult::testVoidIsFailureOnFailure() {
+void TestResult::testVoidFailureStateConsistency() {
   auto result = Result<void>::failure(Error(ErrorCode::Unknown));
+  QVERIFY(!result.isSuccess());
   QVERIFY(result.isFailure());
 }
 

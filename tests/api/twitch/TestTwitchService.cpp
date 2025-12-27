@@ -18,58 +18,22 @@ private slots:
   void testConstructor();
   void testInitialState();
 
-  // Tests des propriétés - État initial
-  void testIsAuthenticatedInitially();
-  void testStreamsInitiallyEmpty();
-  void testRecommendedStreamsInitiallyEmpty();
-  void testCategoriesInitiallyEmpty();
-  void testPopularClipsInitiallyEmpty();
-  void testFollowedClipsInitiallyEmpty();
-  void testVideosInitiallyEmpty();
-  void testFollowedChannelsInitiallyEmpty();
-  void testNewStreamersInitiallyEmpty();
-  void testCategoryStreamsInitiallyEmpty();
-  void testSearchResultsInitiallyEmpty();
-  void testUserIdInitiallyEmpty();
-  void testUserNameInitiallyEmpty();
-  void testSelectedStreamUrlInitiallyEmpty();
-  void testCurrentHlsUrlInitiallyEmpty();
+  // Data-driven test: properties initially empty (consolidates 14 tests)
+  void testPropertyInitiallyEmpty_data();
+  void testPropertyInitiallyEmpty();
 
-  // Tests des signaux
-  void testAuthenticatedChangedSignal();
-  void testStreamsChangedSignal();
-  void testRecommendedStreamsChangedSignal();
-  void testCategoriesChangedSignal();
-  void testPopularClipsChangedSignal();
-  void testFollowedClipsChangedSignal();
-  void testVideosChangedSignal();
-  void testFollowedChannelsChangedSignal();
-  void testNewStreamersChangedSignal();
-  void testCategoryStreamsChangedSignal();
-  void testSearchChannelResultsChangedSignal();
-  void testSearchCategoryResultsChangedSignal();
-  void testUserIdChangedSignal();
-  void testUserNameChangedSignal();
-  void testHlsUrlReadySignal();
-  void testErrorOccurredSignal();
-  void testAdsDetectedSignal();
-  void testAdsFinishedSignal();
+  // Data-driven test: signal validity (consolidates 18 tests)
+  void testSignalValidity_data();
+  void testSignalValidity();
 
   // Tests de logout
   void testLogout();
   void testLogoutClearsAuthentication();
   void testLogoutIsIdempotent();
 
-  // Tests des opérations sans authentification
-  void testRefreshStreamsWithoutAuth();
-  void testRefreshRecommendedStreamsWithoutAuth();
-  void testRefreshCategoriesWithoutAuth();
-  void testRefreshPopularClipsWithoutAuth();
-  void testRefreshFollowedClipsWithoutAuth();
-  void testRefreshVideosWithoutAuth();
-  void testRefreshFollowedChannelsWithoutAuth();
-  void testRefreshNewStreamersWithoutAuth();
-  void testRefreshCategoryStreamsWithoutAuth();
+  // Data-driven test: refresh without auth (consolidates 9 tests)
+  void testRefreshWithoutAuth_data();
+  void testRefreshWithoutAuth();
 
   // Tests de recherche
   void testSearchWithoutAuth();
@@ -125,162 +89,102 @@ void TestTwitchService::testInitialState() {
   QVERIFY(m_service->categories().isEmpty());
 }
 
-// ===== Tests des propriétés - État initial =====
+// ===== Data-driven test: properties initially empty =====
 
-void TestTwitchService::testIsAuthenticatedInitially() {
-  m_service->logout();
-  QVERIFY(!m_service->isAuthenticated());
+void TestTwitchService::testPropertyInitiallyEmpty_data() {
+  QTest::addColumn<QString>("propertyName");
+  QTest::addColumn<bool>("requiresLogout");
+
+  // List properties
+  QTest::newRow("streams") << "streams" << false;
+  QTest::newRow("recommendedStreams") << "recommendedStreams" << false;
+  QTest::newRow("categories") << "categories" << false;
+  QTest::newRow("popularClips") << "popularClips" << false;
+  QTest::newRow("followedClips") << "followedClips" << false;
+  QTest::newRow("videos") << "videos" << false;
+  QTest::newRow("followedChannels") << "followedChannels" << false;
+  QTest::newRow("newStreamers") << "newStreamers" << false;
+  QTest::newRow("categoryStreams") << "categoryStreams" << false;
+  QTest::newRow("searchChannelResults") << "searchChannelResults" << false;
+  QTest::newRow("searchCategoryResults") << "searchCategoryResults" << false;
+
+  // String properties
+  QTest::newRow("userId") << "userId" << true;
+  QTest::newRow("userName") << "userName" << true;
+  QTest::newRow("selectedStreamUrl") << "selectedStreamUrl" << false;
+  // Bool property
+  QTest::newRow("authenticated") << "authenticated" << true;
 }
 
-void TestTwitchService::testStreamsInitiallyEmpty() {
-  QVERIFY(m_service->streams().isEmpty());
+void TestTwitchService::testPropertyInitiallyEmpty() {
+  QFETCH(QString, propertyName);
+  QFETCH(bool, requiresLogout);
+
+  if (requiresLogout) {
+    m_service->logout();
+  }
+
+  QVariant value = m_service->property(propertyName.toLatin1().constData());
+  QVERIFY2(value.isValid(), qPrintable("Property " + propertyName + " not found"));
+
+  if (value.typeId() == QMetaType::Bool) {
+    QVERIFY2(!value.toBool(), qPrintable(propertyName + " should be false"));
+  } else if (value.typeId() == QMetaType::QString) {
+    QVERIFY2(value.toString().isEmpty(), qPrintable(propertyName + " should be empty"));
+  } else if (value.canConvert<QVariantList>()) {
+    QVERIFY2(value.toList().isEmpty(), qPrintable(propertyName + " should be empty"));
+  } else {
+    QFAIL(qPrintable("Unknown property type for " + propertyName));
+  }
 }
 
-void TestTwitchService::testRecommendedStreamsInitiallyEmpty() {
-  QVERIFY(m_service->recommendedStreams().isEmpty());
+// ===== Data-driven test: signal validity =====
+
+void TestTwitchService::testSignalValidity_data() {
+  QTest::addColumn<QString>("signalName");
+
+  QTest::newRow("authenticatedChanged") << "authenticatedChanged";
+  QTest::newRow("streamsChanged") << "streamsChanged";
+  QTest::newRow("recommendedStreamsChanged") << "recommendedStreamsChanged";
+  QTest::newRow("categoriesChanged") << "categoriesChanged";
+  QTest::newRow("popularClipsChanged") << "popularClipsChanged";
+  QTest::newRow("followedClipsChanged") << "followedClipsChanged";
+  QTest::newRow("videosChanged") << "videosChanged";
+  QTest::newRow("followedChannelsChanged") << "followedChannelsChanged";
+  QTest::newRow("newStreamersChanged") << "newStreamersChanged";
+  QTest::newRow("categoryStreamsChanged") << "categoryStreamsChanged";
+  QTest::newRow("searchChannelResultsChanged") << "searchChannelResultsChanged";
+  QTest::newRow("searchCategoryResultsChanged") << "searchCategoryResultsChanged";
+  QTest::newRow("userIdChanged") << "userIdChanged";
+  QTest::newRow("userNameChanged") << "userNameChanged";
+  QTest::newRow("hlsUrlReady") << "hlsUrlReady";
+  QTest::newRow("errorOccurred") << "errorOccurred";
+  QTest::newRow("adsDetected") << "adsDetected";
+  QTest::newRow("adsFinished") << "adsFinished";
 }
 
-void TestTwitchService::testCategoriesInitiallyEmpty() {
-  QVERIFY(m_service->categories().isEmpty());
-}
+void TestTwitchService::testSignalValidity() {
+  QFETCH(QString, signalName);
 
-void TestTwitchService::testPopularClipsInitiallyEmpty() {
-  QVERIFY(m_service->popularClips().isEmpty());
-}
+  const QMetaObject* metaObject = m_service->metaObject();
+  int signalIndex = -1;
 
-void TestTwitchService::testFollowedClipsInitiallyEmpty() {
-  QVERIFY(m_service->followedClips().isEmpty());
-}
+  for (int i = metaObject->methodOffset(); i < metaObject->methodCount(); ++i) {
+    QMetaMethod method = metaObject->method(i);
+    if (method.methodType() == QMetaMethod::Signal &&
+        QString(method.name()) == signalName) {
+      signalIndex = i;
+      break;
+    }
+  }
 
-void TestTwitchService::testVideosInitiallyEmpty() {
-  QVERIFY(m_service->videos().isEmpty());
-}
+  QVERIFY2(signalIndex >= 0, qPrintable("Signal " + signalName + " not found"));
 
-void TestTwitchService::testFollowedChannelsInitiallyEmpty() {
-  QVERIFY(m_service->followedChannels().isEmpty());
-}
+  QMetaMethod signalMethod = metaObject->method(signalIndex);
+  QString normalizedSignal = QString("2") + signalMethod.methodSignature();
+  QSignalSpy spy(m_service, normalizedSignal.toLatin1().constData());
 
-void TestTwitchService::testNewStreamersInitiallyEmpty() {
-  QVERIFY(m_service->newStreamers().isEmpty());
-}
-
-void TestTwitchService::testCategoryStreamsInitiallyEmpty() {
-  QVERIFY(m_service->categoryStreams().isEmpty());
-}
-
-void TestTwitchService::testSearchResultsInitiallyEmpty() {
-  QVERIFY(m_service->searchChannelResults().isEmpty());
-  QVERIFY(m_service->searchCategoryResults().isEmpty());
-}
-
-void TestTwitchService::testUserIdInitiallyEmpty() {
-  m_service->logout();
-  QVERIFY(m_service->userId().isEmpty());
-}
-
-void TestTwitchService::testUserNameInitiallyEmpty() {
-  m_service->logout();
-  QVERIFY(m_service->userName().isEmpty());
-}
-
-void TestTwitchService::testSelectedStreamUrlInitiallyEmpty() {
-  QVERIFY(m_service->selectedStreamUrl().isEmpty());
-}
-
-void TestTwitchService::testCurrentHlsUrlInitiallyEmpty() {
-  QVERIFY(m_service->currentHlsUrl().isEmpty());
-}
-
-// ===== Tests des signaux =====
-
-void TestTwitchService::testAuthenticatedChangedSignal() {
-  QSignalSpy spy(m_service, &TwitchService::authenticatedChanged);
-  QVERIFY(spy.isValid());
-}
-
-void TestTwitchService::testStreamsChangedSignal() {
-  QSignalSpy spy(m_service, &TwitchService::streamsChanged);
-  QVERIFY(spy.isValid());
-}
-
-void TestTwitchService::testRecommendedStreamsChangedSignal() {
-  QSignalSpy spy(m_service, &TwitchService::recommendedStreamsChanged);
-  QVERIFY(spy.isValid());
-}
-
-void TestTwitchService::testCategoriesChangedSignal() {
-  QSignalSpy spy(m_service, &TwitchService::categoriesChanged);
-  QVERIFY(spy.isValid());
-}
-
-void TestTwitchService::testPopularClipsChangedSignal() {
-  QSignalSpy spy(m_service, &TwitchService::popularClipsChanged);
-  QVERIFY(spy.isValid());
-}
-
-void TestTwitchService::testFollowedClipsChangedSignal() {
-  QSignalSpy spy(m_service, &TwitchService::followedClipsChanged);
-  QVERIFY(spy.isValid());
-}
-
-void TestTwitchService::testVideosChangedSignal() {
-  QSignalSpy spy(m_service, &TwitchService::videosChanged);
-  QVERIFY(spy.isValid());
-}
-
-void TestTwitchService::testFollowedChannelsChangedSignal() {
-  QSignalSpy spy(m_service, &TwitchService::followedChannelsChanged);
-  QVERIFY(spy.isValid());
-}
-
-void TestTwitchService::testNewStreamersChangedSignal() {
-  QSignalSpy spy(m_service, &TwitchService::newStreamersChanged);
-  QVERIFY(spy.isValid());
-}
-
-void TestTwitchService::testCategoryStreamsChangedSignal() {
-  QSignalSpy spy(m_service, &TwitchService::categoryStreamsChanged);
-  QVERIFY(spy.isValid());
-}
-
-void TestTwitchService::testSearchChannelResultsChangedSignal() {
-  QSignalSpy spy(m_service, &TwitchService::searchChannelResultsChanged);
-  QVERIFY(spy.isValid());
-}
-
-void TestTwitchService::testSearchCategoryResultsChangedSignal() {
-  QSignalSpy spy(m_service, &TwitchService::searchCategoryResultsChanged);
-  QVERIFY(spy.isValid());
-}
-
-void TestTwitchService::testUserIdChangedSignal() {
-  QSignalSpy spy(m_service, &TwitchService::userIdChanged);
-  QVERIFY(spy.isValid());
-}
-
-void TestTwitchService::testUserNameChangedSignal() {
-  QSignalSpy spy(m_service, &TwitchService::userNameChanged);
-  QVERIFY(spy.isValid());
-}
-
-void TestTwitchService::testHlsUrlReadySignal() {
-  QSignalSpy spy(m_service, &TwitchService::hlsUrlReady);
-  QVERIFY(spy.isValid());
-}
-
-void TestTwitchService::testErrorOccurredSignal() {
-  QSignalSpy spy(m_service, &TwitchService::errorOccurred);
-  QVERIFY(spy.isValid());
-}
-
-void TestTwitchService::testAdsDetectedSignal() {
-  QSignalSpy spy(m_service, &TwitchService::adsDetected);
-  QVERIFY(spy.isValid());
-}
-
-void TestTwitchService::testAdsFinishedSignal() {
-  QSignalSpy spy(m_service, &TwitchService::adsFinished);
-  QVERIFY(spy.isValid());
+  QVERIFY2(spy.isValid(), qPrintable("Signal " + signalName + " spy is not valid"));
 }
 
 // ===== Tests de logout =====
@@ -292,7 +196,7 @@ void TestTwitchService::testLogout() {
 
 void TestTwitchService::testLogoutClearsAuthentication() {
   m_service->logout();
-  
+
   QVERIFY(!m_service->isAuthenticated());
   QVERIFY(m_service->userId().isEmpty());
   QVERIFY(m_service->userName().isEmpty());
@@ -302,73 +206,48 @@ void TestTwitchService::testLogoutIsIdempotent() {
   m_service->logout();
   m_service->logout();
   m_service->logout();
-  
+
   QVERIFY(!m_service->isAuthenticated());
 }
 
-// ===== Tests des opérations sans authentification =====
+// ===== Data-driven test: refresh without auth =====
 
-void TestTwitchService::testRefreshStreamsWithoutAuth() {
-  m_service->logout();
-  m_service->refreshStreams();
-  
-  QVERIFY(m_service->streams().isEmpty());
+void TestTwitchService::testRefreshWithoutAuth_data() {
+  QTest::addColumn<QString>("refreshMethod");
+  QTest::addColumn<QString>("propertyName");
+  QTest::addColumn<QString>("categoryId");
+
+  QTest::newRow("streams") << "refreshStreams" << "streams" << "";
+  QTest::newRow("recommendedStreams") << "refreshRecommendedStreams" << "recommendedStreams" << "";
+  QTest::newRow("categories") << "refreshCategories" << "categories" << "";
+  QTest::newRow("popularClips") << "refreshPopularClips" << "popularClips" << "";
+  QTest::newRow("followedClips") << "refreshFollowedClips" << "followedClips" << "";
+  QTest::newRow("videos") << "refreshVideos" << "videos" << "";
+  QTest::newRow("followedChannels") << "refreshFollowedChannels" << "followedChannels" << "";
+  QTest::newRow("newStreamers") << "refreshNewStreamers" << "newStreamers" << "";
+  QTest::newRow("categoryStreams") << "refreshCategoryStreams" << "categoryStreams" << "12345";
 }
 
-void TestTwitchService::testRefreshRecommendedStreamsWithoutAuth() {
-  m_service->logout();
-  m_service->refreshRecommendedStreams();
-  
-  QVERIFY(m_service->recommendedStreams().isEmpty());
-}
+void TestTwitchService::testRefreshWithoutAuth() {
+  QFETCH(QString, refreshMethod);
+  QFETCH(QString, propertyName);
+  QFETCH(QString, categoryId);
 
-void TestTwitchService::testRefreshCategoriesWithoutAuth() {
   m_service->logout();
-  m_service->refreshCategories();
-  
-  QVERIFY(m_service->categories().isEmpty());
-}
 
-void TestTwitchService::testRefreshPopularClipsWithoutAuth() {
-  m_service->logout();
-  m_service->refreshPopularClips();
-  
-  QVERIFY(m_service->popularClips().isEmpty());
-}
+  // Invoke the refresh method
+  if (categoryId.isEmpty()) {
+    QMetaObject::invokeMethod(m_service, refreshMethod.toLatin1().constData());
+  } else {
+    QMetaObject::invokeMethod(m_service, refreshMethod.toLatin1().constData(),
+                              Q_ARG(QString, categoryId));
+  }
 
-void TestTwitchService::testRefreshFollowedClipsWithoutAuth() {
-  m_service->logout();
-  m_service->refreshFollowedClips();
-  
-  QVERIFY(m_service->followedClips().isEmpty());
-}
-
-void TestTwitchService::testRefreshVideosWithoutAuth() {
-  m_service->logout();
-  m_service->refreshVideos();
-  
-  QVERIFY(m_service->videos().isEmpty());
-}
-
-void TestTwitchService::testRefreshFollowedChannelsWithoutAuth() {
-  m_service->logout();
-  m_service->refreshFollowedChannels();
-  
-  QVERIFY(m_service->followedChannels().isEmpty());
-}
-
-void TestTwitchService::testRefreshNewStreamersWithoutAuth() {
-  m_service->logout();
-  m_service->refreshNewStreamers();
-  
-  QVERIFY(m_service->newStreamers().isEmpty());
-}
-
-void TestTwitchService::testRefreshCategoryStreamsWithoutAuth() {
-  m_service->logout();
-  m_service->refreshCategoryStreams("12345");
-  
-  QVERIFY(m_service->categoryStreams().isEmpty());
+  // Verify property is still empty
+  QVariant value = m_service->property(propertyName.toLatin1().constData());
+  QVERIFY2(value.isValid(), qPrintable("Property " + propertyName + " not found"));
+  QVERIFY2(value.toList().isEmpty(),
+           qPrintable(propertyName + " should be empty after refresh without auth"));
 }
 
 // ===== Tests de recherche =====
@@ -376,21 +255,21 @@ void TestTwitchService::testRefreshCategoryStreamsWithoutAuth() {
 void TestTwitchService::testSearchWithoutAuth() {
   m_service->logout();
   m_service->search("test");
-  
+
   QVERIFY(m_service->searchChannelResults().isEmpty());
   QVERIFY(m_service->searchCategoryResults().isEmpty());
 }
 
 void TestTwitchService::testSearchEmptyQuery() {
   m_service->search("");
-  
+
   // Ne doit pas crasher
   QVERIFY(m_service != nullptr);
 }
 
 void TestTwitchService::testClearSearchResults() {
   m_service->clearSearchResults();
-  
+
   QVERIFY(m_service->searchChannelResults().isEmpty());
   QVERIFY(m_service->searchCategoryResults().isEmpty());
 }
@@ -399,7 +278,7 @@ void TestTwitchService::testClearSearchResultsIdempotent() {
   m_service->clearSearchResults();
   m_service->clearSearchResults();
   m_service->clearSearchResults();
-  
+
   QVERIFY(m_service->searchChannelResults().isEmpty());
   QVERIFY(m_service->searchCategoryResults().isEmpty());
 }
@@ -408,19 +287,19 @@ void TestTwitchService::testClearSearchResultsIdempotent() {
 
 void TestTwitchService::testPlayStreamWithInvalidIndex() {
   m_service->playStream(999);
-  
+
   QVERIFY(m_service->selectedStreamUrl().isEmpty());
 }
 
 void TestTwitchService::testPlayStreamNegativeIndex() {
   m_service->playStream(-1);
-  
+
   QVERIFY(m_service->selectedStreamUrl().isEmpty());
 }
 
 void TestTwitchService::testPlayStreamWithoutStreams() {
   m_service->playStream(0);
-  
+
   QVERIFY(m_service->selectedStreamUrl().isEmpty());
 }
 
@@ -428,16 +307,16 @@ void TestTwitchService::testPlayStreamWithoutStreams() {
 
 void TestTwitchService::testGetStreamHlsUrlEmptyLogin() {
   m_service->getStreamHlsUrl("");
-  
+
   // Ne doit pas crasher
   QVERIFY(m_service != nullptr);
 }
 
 void TestTwitchService::testGetStreamHlsUrlValidLogin() {
   QSignalSpy spy(m_service, &TwitchService::hlsUrlReady);
-  
+
   m_service->getStreamHlsUrl("teststreamer");
-  
+
   // La requête est asynchrone, on vérifie juste qu'on n'a pas crashé
   QVERIFY(m_service != nullptr);
 }
@@ -446,7 +325,7 @@ void TestTwitchService::testGetStreamHlsUrlValidLogin() {
 
 void TestTwitchService::testAccessTokenProperty() {
   m_service->logout();
-  
+
   QString token = m_service->accessToken();
   QVERIFY(token.isEmpty());
 }

@@ -24,6 +24,8 @@ endfunction()
 # Chemins d'inclusion communs
 set(TEST_INCLUDE_DIRS
   ${CMAKE_CURRENT_SOURCE_DIR}/../src
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/mocks
   ${FFmpeg_INCLUDE_DIRS}
 )
 
@@ -37,16 +39,20 @@ set(TEST_LIBS
 )
 
 # Helpers et fixtures pour les tests
+# Note: Mocks are header-only and included directly where needed
 add_library(test_helpers STATIC
   TestHelpers.cpp
 )
-target_link_libraries(test_helpers PRIVATE 
+target_link_libraries(test_helpers PUBLIC 
   ${TEST_LIBS}
+  blueplayer_core
   Qt6::Network  # Nécessaire pour QNetworkAccessManager dans TestHelpers
 )
 target_include_directories(test_helpers PUBLIC
   ${TEST_INCLUDE_DIRS}
   ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/mocks
+  ${CMAKE_CURRENT_SOURCE_DIR}/helpers
 )
 
 # Tests unitaires pour les services API Twitch
@@ -279,6 +285,19 @@ target_include_directories(test_logger PRIVATE ${TEST_INCLUDE_DIRS})
 target_link_directories(test_logger PRIVATE /opt/homebrew/lib)
 apply_coverage_flags(test_logger)
 add_test(NAME Logger COMMAND test_logger)
+
+# Tests unitaires pour FileLogger
+add_executable(test_file_logger
+  core/TestFileLogger.cpp
+)
+target_link_libraries(test_file_logger PRIVATE
+  ${TEST_LIBS}
+  blueplayer_core
+)
+target_include_directories(test_file_logger PRIVATE ${TEST_INCLUDE_DIRS})
+target_link_directories(test_file_logger PRIVATE /opt/homebrew/lib)
+apply_coverage_flags(test_file_logger)
+add_test(NAME FileLogger COMMAND test_file_logger)
 
 # Tests unitaires pour CurlHttpClient
 add_executable(test_curl_http_client

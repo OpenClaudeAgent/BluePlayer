@@ -32,34 +32,19 @@ private slots:
   void testToStringWithoutContext();
   void testToStringWithContext();
 
-  // ===== Tests des opérateurs =====
+  // ===== Tests des operateurs =====
   void testOperatorEqual();
   void testOperatorEqualDifferentCodes();
   void testIsCode();
   void testExplicitStringConversion();
   void testToQString();
 
-  // ===== Tests de localizedMessage =====
-  void testLocalizedMessageUnknown();
-  void testLocalizedMessageInvalidArgument();
-  void testLocalizedMessageInvalidState();
-  void testLocalizedMessageNotInitialized();
-  void testLocalizedMessageNetworkError();
-  void testLocalizedMessageNetworkTimeout();
-  void testLocalizedMessageNetworkConnectionRefused();
-  void testLocalizedMessageInvalidResponse();
-  void testLocalizedMessageTwitchNotAuthenticated();
-  void testLocalizedMessageTwitchInvalidToken();
-  void testLocalizedMessageTwitchApiError();
-  void testLocalizedMessageTwitchRateLimitExceeded();
-  void testLocalizedMessageMediaFileNotFound();
-  void testLocalizedMessageMediaFormatNotSupported();
-  void testLocalizedMessageMediaDecodeError();
-  void testLocalizedMessageMediaDeviceError();
-  void testLocalizedMessageConfigNotFound();
-  void testLocalizedMessageConfigInvalid();
+  // ===== Tests de localizedMessage (data-driven) =====
+  void testLocalizedMessage_data();
+  void testLocalizedMessage();
 
-  // ===== Tests des ErrorCodes =====
+  // ===== Tests des ErrorCodes (data-driven) =====
+  void testErrorCodeValues_data();
   void testErrorCodeValues();
 };
 
@@ -140,7 +125,7 @@ void TestError::testToStringWithContext() {
   QVERIFY(error.toString().contains("context info"));
 }
 
-// ===== Tests des opérateurs =====
+// ===== Tests des operateurs =====
 
 void TestError::testOperatorEqual() {
   Error error1(ErrorCode::NetworkError);
@@ -171,128 +156,85 @@ void TestError::testToQString() {
   QCOMPARE(error.toQString(), QString("QML test"));
 }
 
-// ===== Tests de localizedMessage =====
+// ===== Tests de localizedMessage (data-driven) =====
 
-void TestError::testLocalizedMessageUnknown() {
-  QString msg = Error::localizedMessage(ErrorCode::Unknown);
+void TestError::testLocalizedMessage_data() {
+  QTest::addColumn<ErrorCode>("code");
+
+  // General errors
+  QTest::newRow("Unknown") << ErrorCode::Unknown;
+  QTest::newRow("InvalidArgument") << ErrorCode::InvalidArgument;
+  QTest::newRow("InvalidState") << ErrorCode::InvalidState;
+  QTest::newRow("NotInitialized") << ErrorCode::NotInitialized;
+
+  // Network errors
+  QTest::newRow("NetworkError") << ErrorCode::NetworkError;
+  QTest::newRow("NetworkTimeout") << ErrorCode::NetworkTimeout;
+  QTest::newRow("NetworkConnectionRefused") << ErrorCode::NetworkConnectionRefused;
+  QTest::newRow("InvalidResponse") << ErrorCode::InvalidResponse;
+
+  // Twitch errors
+  QTest::newRow("TwitchNotAuthenticated") << ErrorCode::TwitchNotAuthenticated;
+  QTest::newRow("TwitchInvalidToken") << ErrorCode::TwitchInvalidToken;
+  QTest::newRow("TwitchApiError") << ErrorCode::TwitchApiError;
+  QTest::newRow("TwitchRateLimitExceeded") << ErrorCode::TwitchRateLimitExceeded;
+
+  // Media errors
+  QTest::newRow("MediaFileNotFound") << ErrorCode::MediaFileNotFound;
+  QTest::newRow("MediaFormatNotSupported") << ErrorCode::MediaFormatNotSupported;
+  QTest::newRow("MediaDecodeError") << ErrorCode::MediaDecodeError;
+  QTest::newRow("MediaDeviceError") << ErrorCode::MediaDeviceError;
+
+  // Config errors
+  QTest::newRow("ConfigNotFound") << ErrorCode::ConfigNotFound;
+  QTest::newRow("ConfigInvalid") << ErrorCode::ConfigInvalid;
+}
+
+void TestError::testLocalizedMessage() {
+  QFETCH(ErrorCode, code);
+  QString msg = Error::localizedMessage(code);
   QVERIFY(!msg.isEmpty());
 }
 
-void TestError::testLocalizedMessageInvalidArgument() {
-  QString msg = Error::localizedMessage(ErrorCode::InvalidArgument);
-  QVERIFY(!msg.isEmpty());
-}
+// ===== Tests des ErrorCodes (data-driven) =====
 
-void TestError::testLocalizedMessageInvalidState() {
-  QString msg = Error::localizedMessage(ErrorCode::InvalidState);
-  QVERIFY(!msg.isEmpty());
-}
+void TestError::testErrorCodeValues_data() {
+  QTest::addColumn<ErrorCode>("code");
+  QTest::addColumn<int>("expectedValue");
 
-void TestError::testLocalizedMessageNotInitialized() {
-  QString msg = Error::localizedMessage(ErrorCode::NotInitialized);
-  QVERIFY(!msg.isEmpty());
-}
-
-void TestError::testLocalizedMessageNetworkError() {
-  QString msg = Error::localizedMessage(ErrorCode::NetworkError);
-  QVERIFY(!msg.isEmpty());
-}
-
-void TestError::testLocalizedMessageNetworkTimeout() {
-  QString msg = Error::localizedMessage(ErrorCode::NetworkTimeout);
-  QVERIFY(!msg.isEmpty());
-}
-
-void TestError::testLocalizedMessageNetworkConnectionRefused() {
-  QString msg = Error::localizedMessage(ErrorCode::NetworkConnectionRefused);
-  QVERIFY(!msg.isEmpty());
-}
-
-void TestError::testLocalizedMessageInvalidResponse() {
-  QString msg = Error::localizedMessage(ErrorCode::InvalidResponse);
-  QVERIFY(!msg.isEmpty());
-}
-
-void TestError::testLocalizedMessageTwitchNotAuthenticated() {
-  QString msg = Error::localizedMessage(ErrorCode::TwitchNotAuthenticated);
-  QVERIFY(!msg.isEmpty());
-}
-
-void TestError::testLocalizedMessageTwitchInvalidToken() {
-  QString msg = Error::localizedMessage(ErrorCode::TwitchInvalidToken);
-  QVERIFY(!msg.isEmpty());
-}
-
-void TestError::testLocalizedMessageTwitchApiError() {
-  QString msg = Error::localizedMessage(ErrorCode::TwitchApiError);
-  QVERIFY(!msg.isEmpty());
-}
-
-void TestError::testLocalizedMessageTwitchRateLimitExceeded() {
-  QString msg = Error::localizedMessage(ErrorCode::TwitchRateLimitExceeded);
-  QVERIFY(!msg.isEmpty());
-}
-
-void TestError::testLocalizedMessageMediaFileNotFound() {
-  QString msg = Error::localizedMessage(ErrorCode::MediaFileNotFound);
-  QVERIFY(!msg.isEmpty());
-}
-
-void TestError::testLocalizedMessageMediaFormatNotSupported() {
-  QString msg = Error::localizedMessage(ErrorCode::MediaFormatNotSupported);
-  QVERIFY(!msg.isEmpty());
-}
-
-void TestError::testLocalizedMessageMediaDecodeError() {
-  QString msg = Error::localizedMessage(ErrorCode::MediaDecodeError);
-  QVERIFY(!msg.isEmpty());
-}
-
-void TestError::testLocalizedMessageMediaDeviceError() {
-  QString msg = Error::localizedMessage(ErrorCode::MediaDeviceError);
-  QVERIFY(!msg.isEmpty());
-}
-
-void TestError::testLocalizedMessageConfigNotFound() {
-  QString msg = Error::localizedMessage(ErrorCode::ConfigNotFound);
-  QVERIFY(!msg.isEmpty());
-}
-
-void TestError::testLocalizedMessageConfigInvalid() {
-  QString msg = Error::localizedMessage(ErrorCode::ConfigInvalid);
-  QVERIFY(!msg.isEmpty());
-}
-
-// ===== Tests des ErrorCodes =====
-
-void TestError::testErrorCodeValues() {
   // General errors: 0-99
-  QCOMPARE(static_cast<int>(ErrorCode::Unknown), 0);
-  QCOMPARE(static_cast<int>(ErrorCode::InvalidArgument), 1);
-  QCOMPARE(static_cast<int>(ErrorCode::InvalidState), 2);
-  QCOMPARE(static_cast<int>(ErrorCode::NotInitialized), 3);
+  QTest::newRow("Unknown") << ErrorCode::Unknown << 0;
+  QTest::newRow("InvalidArgument") << ErrorCode::InvalidArgument << 1;
+  QTest::newRow("InvalidState") << ErrorCode::InvalidState << 2;
+  QTest::newRow("NotInitialized") << ErrorCode::NotInitialized << 3;
 
   // Network errors: 100-199
-  QCOMPARE(static_cast<int>(ErrorCode::NetworkError), 100);
-  QCOMPARE(static_cast<int>(ErrorCode::NetworkTimeout), 101);
-  QCOMPARE(static_cast<int>(ErrorCode::NetworkConnectionRefused), 102);
-  QCOMPARE(static_cast<int>(ErrorCode::InvalidResponse), 103);
+  QTest::newRow("NetworkError") << ErrorCode::NetworkError << 100;
+  QTest::newRow("NetworkTimeout") << ErrorCode::NetworkTimeout << 101;
+  QTest::newRow("NetworkConnectionRefused") << ErrorCode::NetworkConnectionRefused << 102;
+  QTest::newRow("InvalidResponse") << ErrorCode::InvalidResponse << 103;
 
   // Twitch errors: 200-299
-  QCOMPARE(static_cast<int>(ErrorCode::TwitchNotAuthenticated), 200);
-  QCOMPARE(static_cast<int>(ErrorCode::TwitchInvalidToken), 201);
-  QCOMPARE(static_cast<int>(ErrorCode::TwitchApiError), 202);
-  QCOMPARE(static_cast<int>(ErrorCode::TwitchRateLimitExceeded), 203);
+  QTest::newRow("TwitchNotAuthenticated") << ErrorCode::TwitchNotAuthenticated << 200;
+  QTest::newRow("TwitchInvalidToken") << ErrorCode::TwitchInvalidToken << 201;
+  QTest::newRow("TwitchApiError") << ErrorCode::TwitchApiError << 202;
+  QTest::newRow("TwitchRateLimitExceeded") << ErrorCode::TwitchRateLimitExceeded << 203;
 
   // Media errors: 300-399
-  QCOMPARE(static_cast<int>(ErrorCode::MediaFileNotFound), 300);
-  QCOMPARE(static_cast<int>(ErrorCode::MediaFormatNotSupported), 301);
-  QCOMPARE(static_cast<int>(ErrorCode::MediaDecodeError), 302);
-  QCOMPARE(static_cast<int>(ErrorCode::MediaDeviceError), 303);
+  QTest::newRow("MediaFileNotFound") << ErrorCode::MediaFileNotFound << 300;
+  QTest::newRow("MediaFormatNotSupported") << ErrorCode::MediaFormatNotSupported << 301;
+  QTest::newRow("MediaDecodeError") << ErrorCode::MediaDecodeError << 302;
+  QTest::newRow("MediaDeviceError") << ErrorCode::MediaDeviceError << 303;
 
   // Config errors: 400-499
-  QCOMPARE(static_cast<int>(ErrorCode::ConfigNotFound), 400);
-  QCOMPARE(static_cast<int>(ErrorCode::ConfigInvalid), 401);
+  QTest::newRow("ConfigNotFound") << ErrorCode::ConfigNotFound << 400;
+  QTest::newRow("ConfigInvalid") << ErrorCode::ConfigInvalid << 401;
+}
+
+void TestError::testErrorCodeValues() {
+  QFETCH(ErrorCode, code);
+  QFETCH(int, expectedValue);
+  QCOMPARE(static_cast<int>(code), expectedValue);
 }
 
 QTEST_MAIN(TestError)

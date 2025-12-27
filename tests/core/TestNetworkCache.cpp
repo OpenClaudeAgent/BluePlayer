@@ -18,8 +18,7 @@ private slots:
   void cleanup();
   
   // Tests du constructeur
-  void testConstructor();
-  void testConstructorDefaultTTL();
+  void testConstructorDefaults();
   
   // Tests de configuration
   void testConfigure();
@@ -28,15 +27,13 @@ private slots:
   void testConfigureMultipleTimes();
   
   // Tests du TTL
-  void testCacheTTLDefault();
   void testCacheTTLAfterConfigure();
   void testCacheTTLCustomValue();
   
-  // Tests de la taille maximale
+  // Tests de la taille maximale (data-driven)
   void testMaximumCacheSizeDefault();
-  void testMaximumCacheSizeAfterConfigure();
-  void testMaximumCacheSizeLarge();
-  void testMaximumCacheSizeSmall();
+  void testMaximumCacheSizeConfigure_data();
+  void testMaximumCacheSizeConfigure();
   
   // Tests des métadonnées
   void testMetadataCreation();
@@ -73,15 +70,12 @@ void TestNetworkCache::cleanup() {
 
 // ===== Tests du constructeur =====
 
-void TestNetworkCache::testConstructor() {
+void TestNetworkCache::testConstructorDefaults() {
   NetworkCache cache;
-  // Verify default TTL is set
+  // Verify default TTL is 5 minutes
   QCOMPARE(cache.cacheTTL(), 300);
-}
-
-void TestNetworkCache::testConstructorDefaultTTL() {
-  NetworkCache cache;
-  QCOMPARE(cache.cacheTTL(), 300);  // 5 minutes par défaut
+  // Verify default size is positive
+  QVERIFY(cache.maximumCacheSize() > 0);
 }
 
 // ===== Tests de configuration =====
@@ -121,11 +115,6 @@ void TestNetworkCache::testConfigureMultipleTimes() {
 
 // ===== Tests du TTL =====
 
-void TestNetworkCache::testCacheTTLDefault() {
-  NetworkCache cache;
-  QCOMPARE(cache.cacheTTL(), 300);
-}
-
 void TestNetworkCache::testCacheTTLAfterConfigure() {
   m_cache->configure(50 * 1024 * 1024, 900);
   QCOMPARE(m_cache->cacheTTL(), 900);
@@ -145,22 +134,20 @@ void TestNetworkCache::testMaximumCacheSizeDefault() {
   QVERIFY(defaultSize > 0);
 }
 
-void TestNetworkCache::testMaximumCacheSizeAfterConfigure() {
-  qint64 expectedSize = 75 * 1024 * 1024;  // 75 MB
-  m_cache->configure(expectedSize, 300);
-  QCOMPARE(m_cache->maximumCacheSize(), expectedSize);
+void TestNetworkCache::testMaximumCacheSizeConfigure_data() {
+  QTest::addColumn<qint64>("size");
+  QTest::addColumn<QString>("description");
+
+  QTest::newRow("small (1 MB)") << qint64(1024 * 1024) << "1 MB";
+  QTest::newRow("medium (75 MB)") << qint64(75 * 1024 * 1024) << "75 MB";
+  QTest::newRow("large (1 GB)") << qint64(1024LL * 1024 * 1024) << "1 GB";
 }
 
-void TestNetworkCache::testMaximumCacheSizeLarge() {
-  qint64 largeSize = 1024LL * 1024 * 1024;  // 1 GB
-  m_cache->configure(largeSize, 300);
-  QCOMPARE(m_cache->maximumCacheSize(), largeSize);
-}
-
-void TestNetworkCache::testMaximumCacheSizeSmall() {
-  qint64 smallSize = 1024 * 1024;  // 1 MB
-  m_cache->configure(smallSize, 300);
-  QCOMPARE(m_cache->maximumCacheSize(), smallSize);
+void TestNetworkCache::testMaximumCacheSizeConfigure() {
+  QFETCH(qint64, size);
+  
+  m_cache->configure(size, 300);
+  QCOMPARE(m_cache->maximumCacheSize(), size);
 }
 
 // ===== Tests des métadonnées =====
