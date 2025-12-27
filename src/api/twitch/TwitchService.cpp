@@ -2,6 +2,7 @@
 
 #include "api/twitch/TwitchApiClient.hpp"
 #include "api/twitch/TwitchAuthManager.hpp"
+#include "core/ISecureStorage.hpp"
 #include "core/InputValidator.hpp"
 #include "core/Logger.hpp"
 #include "media/HlsAdFilter.hpp"
@@ -26,8 +27,8 @@ using blueplayer::core::Logger;
 
 namespace blueplayer::api::twitch {
 
-TwitchService::TwitchService(QObject *parent)
-    : QObject(parent), m_authManager(new TwitchAuthManager(nullptr, this)),
+TwitchService::TwitchService(blueplayer::core::ISecureStorage* secureStorage, QObject *parent)
+    : QObject(parent), m_authManager(new TwitchAuthManager(nullptr, secureStorage, this)),
       m_apiClient(new TwitchApiClient(
           QString::fromUtf8(qgetenv("TWITCH_CLIENT_ID")), this)),
       m_adFilter(new blueplayer::media::HlsAdFilter(this)) {

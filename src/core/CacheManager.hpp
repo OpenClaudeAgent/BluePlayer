@@ -238,6 +238,34 @@ class CacheManager : public QObject {
    */
   void loadMetadata();
 
+  // ===== Recording helpers (pour simplifier QML) =====
+
+  /**
+   * @brief Prépare un enregistrement et télécharge le thumbnail
+   * @param streamerLogin Login du streamer
+   * @param thumbnailUrl URL du thumbnail (optionnel)
+   * @return Structure avec recordingPath et thumbnailPath
+   */
+  Q_INVOKABLE QVariantMap prepareRecording(const QString& streamerLogin, 
+                                            const QString& thumbnailUrl = QString());
+
+  /**
+   * @brief Finalise un enregistrement et l'ajoute aux métadonnées VOD
+   * @param recordingPath Chemin du fichier enregistré
+   * @param streamerLogin Login du streamer
+   * @param streamerName Nom du streamer
+   * @param streamTitle Titre du stream
+   * @param thumbnailPath Chemin du thumbnail
+   * @param recordingStartMs Timestamp de début (ms depuis epoch)
+   * @return true si finalisé avec succès (durée >= 30s)
+   */
+  Q_INVOKABLE bool finalizeRecording(const QString& recordingPath,
+                                      const QString& streamerLogin,
+                                      const QString& streamerName,
+                                      const QString& streamTitle,
+                                      const QString& thumbnailPath,
+                                      qint64 recordingStartMs);
+
  signals:
   // ===== Signaux existants =====
   void cacheDurationChanged(double duration);

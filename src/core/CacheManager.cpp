@@ -10,6 +10,7 @@
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QStandardPaths>
+#include <QUuid>
 #include <algorithm>
 
 #include "Logger.hpp"
@@ -704,6 +705,98 @@ QString CacheManager::downloadThumbnail(const QString& url, const QString& filen
 
   LOG_INFO(Core, QString("Thumbnail saved to: %1").arg(localPath));
   return localPath;
+}
+
+QVariantMap CacheManager::prepareRecording(const QString& streamerLogin, 
+                                            const QString& thumbnailUrl) {
+  QVariantMap result;
+  result[QStringLiteral("recordingPath")] = QString();
+  result[QStringLiteral("thumbnailPath")] = QString();
+  result[QStringLiteral("startTime")] = QDateTime::currentMSecsSinceEpoch();
+  
+  if (streamerLogin.isEmpty()) {
+    LOG_WARNING(Core, "prepareRecording: empty streamerLogin");
+    return result;
+  }
+  
+  ensureCacheDirectoryExists();
+  
+  // Generate unique filename with timestamp
+  QString timestamp = QDateTime::currentDateTime().toString(QStringLiteral("yyyy-MM-dd_HH-mm-ss"));
+  QString videoFilename = QStringLiteral("%1_%2.ts").arg(streamerLogin, timestamp);
+  QString thumbFilename = QStringLiteral("%1_%2.jpg").arg(streamerLogin, timestamp);
+  
+  QString recordingPath = m_cacheDirectory + QStringLiteral("/") + videoFilename;
+  result[QStringLiteral("recordingPath")] = recordingPath;
+  
+  LOG_INFO(Core, QString("Prepared recording path: %1").arg(recordingPath));
+  
+  // Download thumbnail if URL provided
+  if (!thumbnailUrl.isEmpty()) {
+    QString thumbPath = downloadThumbnail(thumbnailUrl, thumbFilename);
+    result[QStringLiteral("thumbnailPath")] = thumbPath;
+    LOG_DEBUG(Core, QString("Thumbnail path: %1").arg(thumbPath));
+  }
+  
+  return result;
+}
+
+bool CacheManager::finalizeRecording(const QString& recordingPath,
+                                      const QString& streamerLogin,
+                                      const QString& streamerName,
+                                      const QString& streamTitle,
+                                      const QString& thumbnailPath,
+                                      qint64 recordingStartMs) {
+  if (recordingPath.isEmpty()) {
+    LOG_WARNING(Core, "finalizeRecording: empty recordingPath");
+    return false;
+  }
+  
+  // Check if file exists
+  if (!QFile::exists(recordingPath)) {
+    LOG_WARNING(Core, QString("finalizeRecording: file does not exist: %1").arg(recordingPath));
+    return false;
+  }
+  
+  // Calculate duration
+  qint64 nowMs = QDateTime::currentMSecsSinceEpoch();
+  qint64 durationSecs = (nowMs - recordingStartMs) / 1000;
+  
+  // Reject recordings shorter than 30 seconds
+  constexpr qint64 kMinRecordingDuration = 30;
+  if (durationSecs < kMinRecordingDuration) {
+    LOG_INFO(Core, QString("Recording too short (%1s < %2s), not saving")
+                       .arg(durationSecs).arg(kMinRecordingDuration));
+    // Delete the file
+    QFile::remove(recordingPath);
+    if (!thumbnailPath.isEmpty()) {
+      QFile::remove(thumbnailPath);
+    }
+    return false;
+  }
+  
+  // Get file size
+  QFileInfo fileInfo(recordingPath);
+  qint64 fileSize = fileInfo.size();
+  
+  // Create metadata
+  VodMetadata metadata;
+  metadata.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+  metadata.streamerLogin = streamerLogin;
+  metadata.streamerName = streamerName.isEmpty() ? streamerLogin : streamerName;
+  metadata.streamTitle = streamTitle.isEmpty() ? tr("Stream enregistré") : streamTitle;
+  metadata.filePath = recordingPath;
+  metadata.thumbnailPath = thumbnailPath;
+  metadata.duration = durationSecs;
+  metadata.fileSize = fileSize;
+  metadata.recordedAt = QDateTime::fromMSecsSinceEpoch(recordingStartMs);
+  metadata.gameCategory = QString();
+  metadata.watchPosition = 0;
+  
+  LOG_INFO(Core, QString("Finalizing recording: %1 (%2s, %3 bytes)")
+                     .arg(recordingPath).arg(durationSecs).arg(fileSize));
+  
+  return addVod(metadata);
 }
 
 }  // namespace blueplayer::core

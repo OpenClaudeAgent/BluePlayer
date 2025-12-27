@@ -147,6 +147,9 @@ qt_add_qml_module(BluePlayer
     ui/components/SearchResultItem.qml
     ui/components/ChatPanel.qml
     ui/components/ChatMessage.qml
+    ui/components/TopBarOverlay.qml
+    ui/components/LoadingOverlay.qml
+    ui/components/ErrorToast.qml
 )
 
 target_link_libraries(BluePlayer

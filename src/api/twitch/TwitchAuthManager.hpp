@@ -13,6 +13,10 @@ class QTcpServer;
 class QUrl;
 QT_END_NAMESPACE
 
+namespace blueplayer::core {
+class ISecureStorage;
+}
+
 namespace blueplayer::core::network {
 class HttpClient;
 }
@@ -34,9 +38,12 @@ public:
   /**
    * @brief Constructeur avec injection de dépendances
    * @param httpClient Client HTTP à utiliser (nullptr = création interne)
+   * @param secureStorage Stockage sécurisé à utiliser (nullptr = Keychain macOS)
    * @param parent Le parent QObject
    */
-  explicit TwitchAuthManager(blueplayer::core::network::IHttpClient* httpClient = nullptr, QObject* parent = nullptr);
+  explicit TwitchAuthManager(blueplayer::core::network::IHttpClient* httpClient = nullptr, 
+                             blueplayer::core::ISecureStorage* secureStorage = nullptr,
+                             QObject* parent = nullptr);
   ~TwitchAuthManager() override;
 
   /**
@@ -108,6 +115,7 @@ private:
   QString m_tlsKeyPath;
   QSslConfiguration m_sslConfig;
   blueplayer::core::network::IHttpClient* m_httpClient = nullptr;
+  blueplayer::core::ISecureStorage* m_secureStorage = nullptr;
   QTcpServer* m_server = nullptr;
   bool m_isAuthenticated = false;
   bool m_isRefreshing = false;  // Pour éviter les rafraîchissements multiples simultanés

@@ -6,7 +6,7 @@
 #include <QByteArray>
 
 #include "api/twitch/TwitchAuthManager.hpp"
-#include "TestHelpers.hpp"
+#include "mocks/MockSecureStorage.hpp"
 
 using namespace blueplayer::api::twitch;
 using namespace blueplayer::test;
@@ -49,6 +49,7 @@ private slots:
 
 private:
   TwitchAuthManager* m_authManager = nullptr;
+  MockSecureStorage* m_mockStorage = nullptr;
   QString m_testSettingsPath;
   QString m_originalClientId;
 };
@@ -77,12 +78,15 @@ void TestTwitchAuthManager::cleanupTestCase() {
 
 void TestTwitchAuthManager::init() {
   qputenv("TWITCH_CLIENT_ID", "test_client_id");
-  m_authManager = new TwitchAuthManager(nullptr, this);
+  m_mockStorage = new MockSecureStorage();
+  m_authManager = new TwitchAuthManager(nullptr, m_mockStorage, this);
 }
 
 void TestTwitchAuthManager::cleanup() {
   delete m_authManager;
   m_authManager = nullptr;
+  delete m_mockStorage;
+  m_mockStorage = nullptr;
 }
 
 void TestTwitchAuthManager::testInitialState() {
@@ -195,7 +199,8 @@ void TestTwitchAuthManager::testCodeChallengeIsBase64Url() {
 void TestTwitchAuthManager::testCreationWithEmptyClientId() {
   qputenv("TWITCH_CLIENT_ID", "");
   
-  TwitchAuthManager* invalidAuth = new TwitchAuthManager(nullptr, this);
+  auto* mockStorage = new MockSecureStorage();
+  TwitchAuthManager* invalidAuth = new TwitchAuthManager(nullptr, mockStorage, this);
   
   // Doit être créé sans crasher
   QVERIFY(invalidAuth != nullptr);
@@ -204,6 +209,7 @@ void TestTwitchAuthManager::testCreationWithEmptyClientId() {
   QVERIFY(!invalidAuth->isAuthenticated());
   
   delete invalidAuth;
+  delete mockStorage;
   
   // Restaurer
   qputenv("TWITCH_CLIENT_ID", "test_client_id");
@@ -212,11 +218,13 @@ void TestTwitchAuthManager::testCreationWithEmptyClientId() {
 void TestTwitchAuthManager::testCreationWithValidClientId() {
   qputenv("TWITCH_CLIENT_ID", "valid_test_client_id");
   
-  TwitchAuthManager* validAuth = new TwitchAuthManager(nullptr, this);
+  auto* mockStorage = new MockSecureStorage();
+  TwitchAuthManager* validAuth = new TwitchAuthManager(nullptr, mockStorage, this);
   
   QVERIFY(validAuth != nullptr);
   
   delete validAuth;
+  delete mockStorage;
   
   // Restaurer
   qputenv("TWITCH_CLIENT_ID", "test_client_id");

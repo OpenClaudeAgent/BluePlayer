@@ -4,6 +4,10 @@
 #include <QString>
 #include <QVariantList>
 
+namespace blueplayer::core {
+class ISecureStorage;
+}
+
 namespace blueplayer::media {
 class HlsAdFilter;
 }
@@ -41,10 +45,12 @@ class TwitchService : public QObject {
 
 public:
   /**
-   * @brief Constructeur
+   * @brief Constructeur avec injection de dépendances
+   * @param secureStorage Stockage sécurisé à utiliser (nullptr = Keychain macOS)
    * @param parent Le parent QObject
    */
-  explicit TwitchService(QObject* parent = nullptr);
+  explicit TwitchService(blueplayer::core::ISecureStorage* secureStorage = nullptr, 
+                         QObject* parent = nullptr);
 
   /**
    * @brief Vérifie si l'utilisateur est authentifié

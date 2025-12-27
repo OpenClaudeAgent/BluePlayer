@@ -67,9 +67,6 @@ Item {
     if (loggingEnabled) {
       console.log("[seekbar] seekTo seconds=" + seconds.toFixed(2))
     }
-    // #region agent log
-    console.log(JSON.stringify({location:'PlayerView.qml:55',message:'seekTo called',data:{seconds:seconds,liveMode:playerRoot.liveMode},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1'}));
-    // #endregion
     if (seconds >= 0) {
       mpvPlayer.seek(seconds)
     }
@@ -80,9 +77,6 @@ Item {
   }
   
   function loadStream() {
-    // #region agent log
-    console.log(JSON.stringify({location:'PlayerView.qml:66',message:'loadStream called',data:{streamerLogin:streamerLogin,liveMode:playerRoot.liveMode},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H1'}));
-    // #endregion
     console.log("[PlayerView] loadStream() called")
     console.log("[PlayerView] streamerLogin:", streamerLogin)
     console.log("[PlayerView] streamerName:", streamerName)
@@ -131,35 +125,21 @@ Item {
   function startAutoRecording() {
     if (isVodMode || !streamerLogin) return
     
-    // Générer un nom de fichier unique
-    var timestamp = new Date().toISOString().replace(/[:.]/g, "-")
-    var filename = streamerLogin + "_" + timestamp + ".ts"
-    var thumbFilename = streamerLogin + "_" + timestamp + ".jpg"
-    
     console.log("[PlayerView] startAutoRecording called")
-    console.log("[PlayerView]   streamerLogin:", streamerLogin)
-    console.log("[PlayerView]   streamThumbnailUrl:", streamThumbnailUrl)
     
-    // Obtenir le chemin du cache
+    // Utiliser CacheManager pour préparer l'enregistrement
     if (typeof cacheManager !== "undefined" && cacheManager) {
-      var cachePath = cacheManager.cacheDirectory + "/" + filename
-      console.log("[PlayerView] Starting auto-recording to:", cachePath)
+      var result = cacheManager.prepareRecording(streamerLogin, streamThumbnailUrl)
       
-      currentRecordingPath = cachePath
-      recordingStartTime = new Date()
-      recordingGameCategory = ""  // TODO: obtenir depuis twitchService si disponible
-      
-      // Télécharger le thumbnail si disponible
-      if (streamThumbnailUrl && streamThumbnailUrl.length > 0) {
-        console.log("[PlayerView] Downloading thumbnail from:", streamThumbnailUrl)
-        currentThumbnailPath = cacheManager.downloadThumbnail(streamThumbnailUrl, thumbFilename)
-        console.log("[PlayerView] Thumbnail saved to:", currentThumbnailPath)
-      } else {
-        console.log("[PlayerView] No thumbnail URL available")
-        currentThumbnailPath = ""
+      if (result.recordingPath) {
+        currentRecordingPath = result.recordingPath
+        currentThumbnailPath = result.thumbnailPath || ""
+        recordingStartTime = new Date(result.startTime)
+        recordingGameCategory = ""
+        
+        console.log("[PlayerView] Starting auto-recording to:", currentRecordingPath)
+        mpvPlayer.startRecording(currentRecordingPath)
       }
-      
-      mpvPlayer.startRecording(cachePath)
     } else {
       console.log("[PlayerView] Cannot start recording - cacheManager not available")
     }
@@ -172,35 +152,17 @@ Item {
     console.log("[PlayerView] Stopping recording and saving metadata")
     mpvPlayer.stopRecording()
     
-    // Calculer la durée
-    var durationSecs = 0
-    if (recordingStartTime) {
-      durationSecs = Math.floor((new Date() - recordingStartTime) / 1000)
-    }
-    
-    // Ne pas sauvegarder les enregistrements trop courts (< 30 secondes)
-    if (durationSecs < 30) {
-      console.log("[PlayerView] Recording too short (" + durationSecs + "s), not saving")
-      currentRecordingPath = ""
-      recordingStartTime = null
-      return
-    }
-    
-    // Ajouter au cache manager
-    if (typeof cacheManager !== "undefined" && cacheManager) {
-      console.log("[PlayerView] currentThumbnailPath:", currentThumbnailPath)
-      var metadata = {
-        "streamerLogin": streamerLogin,
-        "streamerName": streamerName || streamerLogin,
-        "streamTitle": streamTitle || qsTr("Stream enregistre"),
-        "filePath": currentRecordingPath,
-        "duration": durationSecs,
-        "gameCategory": recordingGameCategory,
-        "thumbnailPath": currentThumbnailPath
-      }
-      
-      console.log("[PlayerView] Saving VOD metadata:", JSON.stringify(metadata))
-      cacheManager.addVodFromQml(metadata)
+    // Utiliser CacheManager pour finaliser l'enregistrement
+    if (typeof cacheManager !== "undefined" && cacheManager && recordingStartTime) {
+      var startMs = recordingStartTime.getTime()
+      cacheManager.finalizeRecording(
+        currentRecordingPath,
+        streamerLogin,
+        streamerName || streamerLogin,
+        streamTitle || qsTr("Stream enregistré"),
+        currentThumbnailPath,
+        startMs
+      )
     }
     
     // Reset
@@ -359,10 +321,6 @@ Item {
         playerRoot.playing = isPlaying
         // Trigger center animation
         centerFeedback.show(isPlaying ? "\u25B6" : "\u23F8") // Play or Pause icon
-        
-        // #region agent log
-        console.log(JSON.stringify({location:'PlayerView.qml:175',message:'onPlayingChanged',data:{isPlaying:isPlaying,liveMode:playerRoot.liveMode},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H3'}));
-        // #endregion
 
         if (isPlaying) {
           playerRoot.buffering = false
@@ -405,17 +363,12 @@ Item {
       }
       onIsLiveModeChanged: function(isLive) { 
         playerRoot.liveMode = isLive
-        // #region agent log
-        console.log(JSON.stringify({location:'PlayerView.qml:215',message:'onIsLiveModeChanged',data:{isLive:isLive,playerRootLiveMode:playerRoot.liveMode},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H3'}));
-        // #endregion
       }
       onBufferingChanged: function(isBuffering) { playerRoot.buffering = isBuffering }
       onPlaybackRateChanged: function(rate) { playerRoot.playbackRate = rate }
       onErrorOccurred: function(message) {
         playerRoot.updateStatus(qsTr("Erreur: %1").arg(message))
-        playerRoot.errorMessage = message
-        playerRoot.showError = true
-        errorHideTimer.restart()
+        errorToast.show(message)
       }
       onSpeedAutoReset: function(reason) {
         toast.show(reason)
@@ -478,99 +431,22 @@ Item {
 
     // 3. Interface Layer (Overlays)
     
-    // Top Bar Overlay (Gradient)
-    Rectangle {
+    // Top Bar Overlay (extracted component)
+    TopBarOverlay {
       id: topBar
       anchors.top: parent.top
       anchors.left: parent.left
       anchors.right: parent.right
-      height: 80
       
-      gradient: Gradient {
-        GradientStop { position: 0.0; color: "#CC000000" }
-        GradientStop { position: 1.0; color: "transparent" }
-      }
+      streamerName: playerRoot.streamerName
+      streamerLogin: playerRoot.streamerLogin
+      streamTitle: playerRoot.streamTitle
+      statusText: playerRoot.statusText
+      controlsVisible: playerRoot.controlsVisible
       
-      // Visibility Animation
-      opacity: playerRoot.controlsVisible ? 1.0 : 0.0
-      visible: opacity > 0
-      Behavior on opacity { NumberAnimation { duration: BlueTheme.animControlBarDuration; easing.type: Easing.InOutCubic } }
-      
-      RowLayout {
-        anchors.fill: parent
-        anchors.leftMargin: 24
-        anchors.rightMargin: 24
-        spacing: 16
-        
-        // Back Button
-        Rectangle {
-          Layout.preferredWidth: 40
-          Layout.preferredHeight: 40
-          radius: 20
-          color: backButtonMouseArea.containsMouse ? "#4DFFFFFF" : "#1AFFFFFF"
-          
-          Text {
-            anchors.centerIn: parent
-            text: "←"
-            font.pixelSize: 22
-            color: "#FFFFFF"
-          }
-          
-          MouseArea {
-            id: backButtonMouseArea
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: {
-              requestStop()
-              playerRoot.backRequested()
-            }
-          }
-        }
-        
-        // Stream Info
-        ColumnLayout {
-          Layout.fillWidth: true
-          spacing: 2
-          
-          Text {
-            text: streamerName || streamerLogin
-            font.family: BlueTheme.fontFamily
-            font.pixelSize: 18
-            font.bold: true
-            color: "#FFFFFF"
-            style: Text.Outline; styleColor: "#80000000"
-            elide: Text.ElideRight
-            Layout.fillWidth: true
-          }
-          
-          Text {
-            text: streamTitle || qsTr("Stream en direct")
-            font.family: BlueTheme.fontFamily
-            font.pixelSize: 13
-            color: "#DDFFFFFF"
-            style: Text.Outline; styleColor: "#80000000"
-            elide: Text.ElideRight
-            Layout.fillWidth: true
-          }
-        }
-        
-        // Status Badge
-        Rectangle {
-          Layout.preferredHeight: 24
-          Layout.preferredWidth: statusLabel.width + 16
-          radius: 12
-          color: "#4D000000"
-          visible: statusText.length > 0
-          
-          Text {
-            id: statusLabel
-            anchors.centerIn: parent
-            text: statusText
-            font.pixelSize: 11
-            color: "#FFFFFF"
-          }
-        }
+      onBackClicked: {
+        requestStop()
+        playerRoot.backRequested()
       }
     }
 
@@ -617,24 +493,10 @@ Item {
       }
     }
 
-    // Loading Overlay
-    Rectangle {
+    // Loading Overlay (extracted component)
+    LoadingOverlay {
       anchors.centerIn: parent
-      width: 120; height: 120
-      radius: 20
-      color: "#80000000"
-      visible: !playing && (statusText.indexOf("Chargement") >= 0 || statusText.indexOf("Connexion") >= 0)
-      
-      ColumnLayout {
-        anchors.centerIn: parent
-        spacing: 16
-        
-        BusyIndicator {
-          Layout.alignment: Qt.AlignHCenter
-          running: true
-          palette.dark: "#FFFFFF" // Force white indicator
-        }
-      }
+      loading: !playing && (statusText.indexOf("Chargement") >= 0 || statusText.indexOf("Connexion") >= 0)
     }
     
     // Ad Badge (Top Left, under Top Bar)
@@ -805,34 +667,15 @@ Item {
       }
     }
 
-    // Erreur toast
-    Rectangle {
+    // Error Toast (extracted component)
+    ErrorToast {
       id: errorToast
       anchors.horizontalCenter: parent.horizontalCenter
       anchors.bottom: playerControlBar.top
       anchors.bottomMargin: 60
-      radius: 10
-      color: "#CCB00020"
-      border.color: "#FF5252"
-      visible: showError
-      opacity: showError ? 1.0 : 0.0
-      Behavior on opacity { NumberAnimation { duration: BlueTheme.animToastEnterDuration; easing.type: Easing.OutCubic } }
-
-      Row {
-        anchors.fill: parent
-        anchors.margins: 12
-        spacing: 8
-        Text { text: "\u26A0"; color: "#FFFFFF"; font.pixelSize: 13 }
-        Text { text: errorMessage; color: "#FFFFFF"; font.pixelSize: 13; wrapMode: Text.WordWrap; Layout.fillWidth: true }
-      }
-    }
-
-    Timer {
-      id: errorHideTimer
-      interval: 4000
-      running: false
-      repeat: false
-      onTriggered: showError = false
+      message: playerRoot.errorMessage
+      showError: playerRoot.showError
+      onShowErrorChanged: playerRoot.showError = showError
     }
 
   }

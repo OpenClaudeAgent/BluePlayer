@@ -1,14 +1,21 @@
 #include <QtTest/QtTest>
-#include "core/SecureStorage.hpp"
+#include "mocks/MockSecureStorage.hpp"
 
-using namespace blueplayer::core;
+using namespace blueplayer::test;
 
+/**
+ * @brief Tests pour MockSecureStorage
+ * 
+ * Ces tests vérifient que le mock implémente correctement l'interface ISecureStorage.
+ * Le vrai SecureStorage utilise le Keychain macOS qui demande des autorisations
+ * interactives, donc on teste le mock à la place.
+ */
 class TestSecureStorage : public QObject {
   Q_OBJECT
 
 private slots:
-  void initTestCase();
-  void cleanupTestCase();
+  void init();
+  void cleanup();
   
   void testStoreAndRetrieve();
   void testRetrieveNonExistent();
@@ -17,119 +24,122 @@ private slots:
   void testContains();
   void testClear();
   void testMultipleKeys();
+  void testStoreEmptyKey();
+  void testCount();
+
+private:
+  MockSecureStorage* m_storage = nullptr;
 };
 
-void TestSecureStorage::initTestCase() {
+void TestSecureStorage::init() {
+  m_storage = new MockSecureStorage();
 }
 
-void TestSecureStorage::cleanupTestCase() {
-  // Nettoyer les données de test
-  SecureStorage storage;
-  storage.clear();
+void TestSecureStorage::cleanup() {
+  delete m_storage;
+  m_storage = nullptr;
 }
 
 void TestSecureStorage::testStoreAndRetrieve() {
-  SecureStorage storage;
-  
   QString key = "test_key";
   QString value = "test_value_123";
   
-  QVERIFY(storage.store(key, value));
-  QCOMPARE(storage.retrieve(key), value);
+  QVERIFY(m_storage->store(key, value));
+  QCOMPARE(m_storage->retrieve(key), value);
 }
 
 void TestSecureStorage::testRetrieveNonExistent() {
-  SecureStorage storage;
-  
   QString key = "non_existent_key";
-  QCOMPARE(storage.retrieve(key), QString(""));
+  QCOMPARE(m_storage->retrieve(key), QString(""));
 }
 
 void TestSecureStorage::testRetrieveWithDefault() {
-  SecureStorage storage;
-  
   QString key = "non_existent_key";
   QString defaultValue = "default_value";
-  QCOMPARE(storage.retrieve(key, defaultValue), defaultValue);
+  QCOMPARE(m_storage->retrieve(key, defaultValue), defaultValue);
 }
 
 void TestSecureStorage::testRemove() {
-  SecureStorage storage;
-  
   QString key = "test_key_remove";
   QString value = "test_value";
   
-  storage.store(key, value);
-  QVERIFY(storage.contains(key));
+  m_storage->store(key, value);
+  QVERIFY(m_storage->contains(key));
   
-  storage.remove(key);
-  QVERIFY(!storage.contains(key));
-  QCOMPARE(storage.retrieve(key), QString(""));
+  m_storage->remove(key);
+  QVERIFY(!m_storage->contains(key));
+  QCOMPARE(m_storage->retrieve(key), QString(""));
 }
 
 void TestSecureStorage::testContains() {
-  SecureStorage storage;
-  
   QString key = "test_key_contains";
   QString value = "test_value";
   
-  QVERIFY(!storage.contains(key));
+  QVERIFY(!m_storage->contains(key));
   
-  storage.store(key, value);
-  QVERIFY(storage.contains(key));
+  m_storage->store(key, value);
+  QVERIFY(m_storage->contains(key));
   
-  storage.remove(key);
-  QVERIFY(!storage.contains(key));
+  m_storage->remove(key);
+  QVERIFY(!m_storage->contains(key));
 }
 
 void TestSecureStorage::testClear() {
-  SecureStorage storage;
+  m_storage->store("key1", "value1");
+  m_storage->store("key2", "value2");
+  m_storage->store("key3", "value3");
   
-  storage.store("key1", "value1");
-  storage.store("key2", "value2");
-  storage.store("key3", "value3");
+  QVERIFY(m_storage->contains("key1"));
+  QVERIFY(m_storage->contains("key2"));
+  QVERIFY(m_storage->contains("key3"));
   
-  QVERIFY(storage.contains("key1"));
-  QVERIFY(storage.contains("key2"));
-  QVERIFY(storage.contains("key3"));
+  m_storage->clear();
   
-  storage.clear();
-  
-  QVERIFY(!storage.contains("key1"));
-  QVERIFY(!storage.contains("key2"));
-  QVERIFY(!storage.contains("key3"));
+  QVERIFY(!m_storage->contains("key1"));
+  QVERIFY(!m_storage->contains("key2"));
+  QVERIFY(!m_storage->contains("key3"));
+  QCOMPARE(m_storage->count(), 0);
 }
 
 void TestSecureStorage::testMultipleKeys() {
-  SecureStorage storage;
+  m_storage->store("key1", "value1");
+  m_storage->store("key2", "value2");
+  m_storage->store("key3", "value3");
   
-  storage.store("key1", "value1");
-  storage.store("key2", "value2");
-  storage.store("key3", "value3");
-  
-  QCOMPARE(storage.retrieve("key1"), QString("value1"));
-  QCOMPARE(storage.retrieve("key2"), QString("value2"));
-  QCOMPARE(storage.retrieve("key3"), QString("value3"));
+  QCOMPARE(m_storage->retrieve("key1"), QString("value1"));
+  QCOMPARE(m_storage->retrieve("key2"), QString("value2"));
+  QCOMPARE(m_storage->retrieve("key3"), QString("value3"));
   
   // Modifier une valeur
-  storage.store("key2", "new_value2");
-  QCOMPARE(storage.retrieve("key2"), QString("new_value2"));
+  m_storage->store("key2", "new_value2");
+  QCOMPARE(m_storage->retrieve("key2"), QString("new_value2"));
   
   // Les autres valeurs doivent rester inchangées
-  QCOMPARE(storage.retrieve("key1"), QString("value1"));
-  QCOMPARE(storage.retrieve("key3"), QString("value3"));
+  QCOMPARE(m_storage->retrieve("key1"), QString("value1"));
+  QCOMPARE(m_storage->retrieve("key3"), QString("value3"));
+}
+
+void TestSecureStorage::testStoreEmptyKey() {
+  // Stocker avec une clé vide doit échouer
+  QVERIFY(!m_storage->store("", "value"));
+  QVERIFY(!m_storage->contains(""));
+}
+
+void TestSecureStorage::testCount() {
+  QCOMPARE(m_storage->count(), 0);
+  
+  m_storage->store("key1", "value1");
+  QCOMPARE(m_storage->count(), 1);
+  
+  m_storage->store("key2", "value2");
+  QCOMPARE(m_storage->count(), 2);
+  
+  m_storage->remove("key1");
+  QCOMPARE(m_storage->count(), 1);
+  
+  m_storage->clear();
+  QCOMPARE(m_storage->count(), 0);
 }
 
 QTEST_MAIN(TestSecureStorage)
 #include "TestSecureStorage.moc"
-
-
-
-
-
-
-
-
-
-
-

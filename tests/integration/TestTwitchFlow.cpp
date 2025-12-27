@@ -6,7 +6,7 @@
 #include "api/twitch/TwitchService.hpp"
 #include "api/twitch/TwitchAuthManager.hpp"
 #include "api/twitch/TwitchApiClient.hpp"
-#include "TestHelpers.hpp"
+#include "mocks/MockSecureStorage.hpp"
 
 using namespace blueplayer::api::twitch;
 using namespace blueplayer::test;
@@ -53,6 +53,7 @@ private slots:
 
 private:
   TwitchService* m_service = nullptr;
+  MockSecureStorage* m_mockStorage = nullptr;
 };
 
 void TestTwitchFlow::initTestCase() {
@@ -68,12 +69,15 @@ void TestTwitchFlow::cleanupTestCase() {
 }
 
 void TestTwitchFlow::init() {
-  m_service = new TwitchService(this);
+  m_mockStorage = new MockSecureStorage();
+  m_service = new TwitchService(m_mockStorage, this);
 }
 
 void TestTwitchFlow::cleanup() {
   delete m_service;
   m_service = nullptr;
+  delete m_mockStorage;
+  m_mockStorage = nullptr;
 }
 
 void TestTwitchFlow::testServiceInitialization() {

@@ -2,8 +2,10 @@
 #include <QSignalSpy>
 
 #include "api/twitch/TwitchService.hpp"
+#include "mocks/MockSecureStorage.hpp"
 
 using namespace blueplayer::api::twitch;
+using namespace blueplayer::test;
 
 class TestTwitchService : public QObject {
   Q_OBJECT
@@ -55,6 +57,7 @@ private slots:
 
 private:
   TwitchService* m_service = nullptr;
+  MockSecureStorage* m_mockStorage = nullptr;
 };
 
 void TestTwitchService::initTestCase() {
@@ -68,18 +71,22 @@ void TestTwitchService::cleanupTestCase() {
 }
 
 void TestTwitchService::init() {
-  m_service = new TwitchService(this);
+  m_mockStorage = new MockSecureStorage();
+  m_service = new TwitchService(m_mockStorage, this);
 }
 
 void TestTwitchService::cleanup() {
   delete m_service;
   m_service = nullptr;
+  delete m_mockStorage;
+  m_mockStorage = nullptr;
 }
 
 // ===== Tests d'initialisation =====
 
 void TestTwitchService::testConstructor() {
-  TwitchService service;
+  MockSecureStorage mockStorage;
+  TwitchService service(&mockStorage);
   QVERIFY(!service.isAuthenticated());
 }
 

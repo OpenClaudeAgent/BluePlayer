@@ -384,9 +384,14 @@ void TwitchService::refreshStreams() {
 - [x] 24.5 - Bools atomiques
 
 ### Refactoring QML (Sprints 2-4)
-- [ ] 24.6-24.9 - PlayerView refactoré
+- [x] 24.6-24.9 - PlayerView refactoré
 - [ ] 24.10-24.13 - PlayerControlBar refactoré
 - [ ] 24.14-24.15 - BaseCard créé et utilisé
+
+## Bonus (ajouté lors de l'implémentation Sprint 2)
+
+- **Interface ISecureStorage** : Abstraction du stockage sécurisé permettant l'injection de dépendances et le mock dans les tests
+- **MockSecureStorage** : Mock en mémoire pour les tests sans dépendance au Keychain macOS
 
 ### Refactoring C++ (Sprints 5-6)
 - [ ] 24.16-24.19 - TwitchService splitté

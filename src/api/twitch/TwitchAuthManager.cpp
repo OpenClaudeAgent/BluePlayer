@@ -3,6 +3,7 @@
 
 #include "core/Constants.hpp"
 #include "core/ErrorHandler.hpp"
+#include "core/ISecureStorage.hpp"
 #include "core/Logger.hpp"
 #include "core/SecureStorage.hpp"
 
@@ -166,11 +167,14 @@ QString buildRandomString(int length) {
 
 namespace blueplayer::api::twitch {
 
-TwitchAuthManager::TwitchAuthManager(blueplayer::core::network::IHttpClient* httpClient, QObject *parent)
+TwitchAuthManager::TwitchAuthManager(blueplayer::core::network::IHttpClient* httpClient, 
+                                     blueplayer::core::ISecureStorage* secureStorage,
+                                     QObject *parent)
     : QObject(parent), m_scope(QString::fromUtf8(
                            blueplayer::core::constants::twitch::kDefaultScope)),
       m_listenPort(blueplayer::core::constants::twitch::kDefaultRedirectPort),
-      m_httpClient(httpClient) {
+      m_httpClient(httpClient),
+      m_secureStorage(secureStorage) {
   // Si aucun client injecté, créer un HttpClient par défaut
   if (m_httpClient == nullptr) {
     auto* defaultClient = new blueplayer::core::network::HttpClient(this);
@@ -180,6 +184,11 @@ TwitchAuthManager::TwitchAuthManager(blueplayer::core::network::IHttpClient* htt
             this, [this](const blueplayer::core::Error &error) {
               emit errorOccurred(error.toString());
             });
+  }
+  
+  // Si aucun stockage sécurisé injecté, créer un SecureStorage par défaut (Keychain macOS)
+  if (m_secureStorage == nullptr) {
+    m_secureStorage = new SecureStorage(this);
   }
   m_clientId = QString::fromUtf8(qgetenv("TWITCH_CLIENT_ID"));
   m_clientSecret = QString::fromUtf8(qgetenv("TWITCH_CLIENT_SECRET"));
@@ -288,11 +297,10 @@ void TwitchAuthManager::logout() {
   m_isAuthenticated = false;
 
   // Supprimer tous les tokens et le Client-ID stocké
-  SecureStorage secureStorage(this);
-  secureStorage.remove(QStringLiteral("access_token"));
-  secureStorage.remove(QStringLiteral("refresh_token"));
-  secureStorage.remove(QStringLiteral("token_expiration"));
-  secureStorage.remove(QStringLiteral("token_client_id"));
+  m_secureStorage->remove(QStringLiteral("access_token"));
+  m_secureStorage->remove(QStringLiteral("refresh_token"));
+  m_secureStorage->remove(QStringLiteral("token_expiration"));
+  m_secureStorage->remove(QStringLiteral("token_client_id"));
 
   // Émettre explicitement le signal de déconnexion
   if (wasAuthenticated) {
@@ -502,9 +510,6 @@ void TwitchAuthManager::requestAccessToken(const QString &code) {
 }
 
 void TwitchAuthManager::persistCredentials() {
-  // Utiliser SecureStorage pour chiffrer les tokens
-  SecureStorage secureStorage(this);
-
   // Ne logger que les premiers caractères du token pour la sécurité
   QString tokenPreview = m_accessToken.isEmpty()
                              ? QStringLiteral("EMPTY")
@@ -513,18 +518,18 @@ void TwitchAuthManager::persistCredentials() {
       LogCategory::Twitch,
       QStringLiteral("Persisting access token: %1").arg(tokenPreview));
 
-  secureStorage.store(QStringLiteral("access_token"), m_accessToken);
-  secureStorage.store(QStringLiteral("refresh_token"), m_refreshToken);
+  m_secureStorage->store(QStringLiteral("access_token"), m_accessToken);
+  m_secureStorage->store(QStringLiteral("refresh_token"), m_refreshToken);
 
   // Stocker la date d'expiration (en format ISO string)
   if (m_tokenExpirationTime.isValid()) {
-    secureStorage.store(QStringLiteral("token_expiration"),
-                        m_tokenExpirationTime.toString(Qt::ISODate));
+    m_secureStorage->store(QStringLiteral("token_expiration"),
+                           m_tokenExpirationTime.toString(Qt::ISODate));
   }
 
   // IMPORTANT: Stocker le Client-ID utilisé pour générer le token
   // Cela permet de vérifier que le token correspond au Client-ID actuel
-  secureStorage.store(QStringLiteral("token_client_id"), m_clientId);
+  m_secureStorage->store(QStringLiteral("token_client_id"), m_clientId);
   Logger::debug(LogCategory::Twitch,
                 QStringLiteral("Persisting Client-ID used for token: %1")
                     .arg(m_clientId.isEmpty() ? QStringLiteral("EMPTY")
@@ -535,15 +540,12 @@ void TwitchAuthManager::loadCredentials() {
   Logger::debug(LogCategory::Twitch,
                 QStringLiteral("loadCredentials() called"));
 
-  // Utiliser SecureStorage pour déchiffrer les tokens
-  SecureStorage secureStorage(this);
-
-  m_accessToken = secureStorage.retrieve(QStringLiteral("access_token"));
-  m_refreshToken = secureStorage.retrieve(QStringLiteral("refresh_token"));
+  m_accessToken = m_secureStorage->retrieve(QStringLiteral("access_token"));
+  m_refreshToken = m_secureStorage->retrieve(QStringLiteral("refresh_token"));
 
   // Charger la date d'expiration du token
   const QString expirationStr =
-      secureStorage.retrieve(QStringLiteral("token_expiration"));
+      m_secureStorage->retrieve(QStringLiteral("token_expiration"));
   if (!expirationStr.isEmpty()) {
     m_tokenExpirationTime = QDateTime::fromString(expirationStr, Qt::ISODate);
     if (!m_tokenExpirationTime.isValid()) {
@@ -561,7 +563,7 @@ void TwitchAuthManager::loadCredentials() {
   // le token ne fonctionne pas, l'erreur 400 sera détectée lors de la première
   // requête API et le token sera invalidé à ce moment-là.
   const QString storedClientId =
-      secureStorage.retrieve(QStringLiteral("token_client_id"));
+      m_secureStorage->retrieve(QStringLiteral("token_client_id"));
   if (!m_accessToken.isEmpty() && !storedClientId.isEmpty()) {
     if (storedClientId != m_clientId) {
       Logger::warning(
@@ -578,10 +580,10 @@ void TwitchAuthManager::loadCredentials() {
       m_accessToken.clear();
       m_refreshToken.clear();
       m_tokenExpirationTime = QDateTime();
-      secureStorage.remove(QStringLiteral("access_token"));
-      secureStorage.remove(QStringLiteral("refresh_token"));
-      secureStorage.remove(QStringLiteral("token_expiration"));
-      secureStorage.remove(QStringLiteral("token_client_id"));
+      m_secureStorage->remove(QStringLiteral("access_token"));
+      m_secureStorage->remove(QStringLiteral("refresh_token"));
+      m_secureStorage->remove(QStringLiteral("token_expiration"));
+      m_secureStorage->remove(QStringLiteral("token_client_id"));
     } else {
       Logger::debug(LogCategory::Twitch,
                     QStringLiteral("Client-ID verification passed: token "
@@ -602,7 +604,7 @@ void TwitchAuthManager::loadCredentials() {
         QStringLiteral(
             "Token will be validated on first API call - if Client-ID "
             "mismatch, error 400 will trigger token invalidation"));
-    secureStorage.store(QStringLiteral("token_client_id"), m_clientId);
+    m_secureStorage->store(QStringLiteral("token_client_id"), m_clientId);
   }
 
   // Migration depuis l'ancien QSettings si SecureStorage est vide
@@ -624,10 +626,10 @@ void TwitchAuthManager::loadCredentials() {
       m_accessToken = legacyAccessToken;
       m_refreshToken = legacyRefreshToken;
       // Migrer vers SecureStorage
-      secureStorage.store(QStringLiteral("access_token"), m_accessToken);
-      secureStorage.store(QStringLiteral("refresh_token"), m_refreshToken);
+      m_secureStorage->store(QStringLiteral("access_token"), m_accessToken);
+      m_secureStorage->store(QStringLiteral("refresh_token"), m_refreshToken);
       // Stocker le Client-ID actuel avec le token migré
-      secureStorage.store(QStringLiteral("token_client_id"), m_clientId);
+      m_secureStorage->store(QStringLiteral("token_client_id"), m_clientId);
       // Supprimer les anciens tokens
       legacySettings.remove(QStringLiteral("access_token"));
       legacySettings.remove(QStringLiteral("refresh_token"));
