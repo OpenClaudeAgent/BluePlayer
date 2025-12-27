@@ -247,6 +247,20 @@ target_link_directories(test_hls_ad_filter PRIVATE /opt/homebrew/lib ${FFMPEG_LI
 apply_coverage_flags(test_hls_ad_filter)
 add_test(NAME HlsAdFilter COMMAND test_hls_ad_filter)
 
+# Tests unitaires pour PlaybackSpeedLogic
+add_executable(test_playback_speed_logic
+  media/TestPlaybackSpeedLogic.cpp
+)
+target_link_libraries(test_playback_speed_logic PRIVATE
+  ${TEST_LIBS}
+  blueplayer_core
+  blueplayer_media
+)
+target_include_directories(test_playback_speed_logic PRIVATE ${TEST_INCLUDE_DIRS})
+target_link_directories(test_playback_speed_logic PRIVATE /opt/homebrew/lib ${FFMPEG_LIBS_LIBRARY_DIRS})
+apply_coverage_flags(test_playback_speed_logic)
+add_test(NAME PlaybackSpeedLogic COMMAND test_playback_speed_logic)
+
 # Tests unitaires pour WatchHistory
 add_executable(test_watch_history
   core/TestWatchHistory.cpp
