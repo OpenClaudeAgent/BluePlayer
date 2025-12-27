@@ -3,7 +3,7 @@ import QtQuick.Controls 6.5
 import QtQuick.Layouts 1.15
 import QtQuick.Shapes 1.15
 
-import "../themes/AppleTheme.js" as AppleTheme
+import "../themes/BlueTheme.js" as BlueTheme
 
 /**
  * PlayerControlBar - Modern streaming player controls
@@ -228,8 +228,8 @@ Rectangle {
           height: parent.height
           radius: parent.radius
           gradient: Gradient {
-            GradientStop { position: 0.0; color: AppleTheme.accent }
-            GradientStop { position: 1.0; color: AppleTheme.accentSubtle }
+            GradientStop { position: 0.0; color: BlueTheme.accent }
+            GradientStop { position: 1.0; color: BlueTheme.accentSubtle }
           }
           opacity: 0.9
         }
@@ -238,7 +238,7 @@ Rectangle {
         Rectangle {
           anchors.fill: parent
           radius: parent.radius
-          color: AppleTheme.accent
+          color: BlueTheme.accent
           opacity: (seekSlider.pressed || seekSlider.userDragging) ? 0.10 : (seekSlider.hovered ? 0.06 : 0.0)
           Behavior on opacity { NumberAnimation { duration: 100 } }
         }
@@ -256,7 +256,7 @@ Rectangle {
           width: parent.width + 6
           height: parent.height + 6
           radius: width / 2
-          color: AppleTheme.accent
+          color: BlueTheme.accent
           opacity: (seekSlider.pressed || seekSlider.userDragging) ? 0.16 : (seekSlider.hovered ? 0.10 : 0.0)
           visible: opacity > 0
           antialiasing: true
@@ -269,7 +269,7 @@ Rectangle {
           height: parent.height
           radius: width / 2
           color: "#FFFFFF"
-          border.color: seekSlider.hovered || seekSlider.pressed || seekSlider.userDragging ? AppleTheme.accent : "#B3FFFFFF"
+          border.color: seekSlider.hovered || seekSlider.pressed || seekSlider.userDragging ? BlueTheme.accent : "#B3FFFFFF"
           border.width: 1
           opacity: seekSlider.enabled ? 1.0 : 0.6
           scale: seekSlider.pressed ? 1.12 : (seekSlider.hovered ? 1.06 : 1.0)
@@ -466,8 +466,8 @@ Rectangle {
         id: chatButton
         visible: chatEnabled
         width: chipHeight; height: chipHeight; radius: chipRadius
-        color: chatVisible ? AppleTheme.accent : (chatMouse.containsMouse ? "#33FFFFFF" : "#1AFFFFFF")
-        border.color: chatVisible ? AppleTheme.accent : "#4DFFFFFF"
+        color: chatVisible ? BlueTheme.accent : (chatMouse.containsMouse ? "#33FFFFFF" : "#1AFFFFFF")
+        border.color: chatVisible ? BlueTheme.accent : "#4DFFFFFF"
         border.width: 1
         Behavior on color { ColorAnimation { duration: 150 } }
 

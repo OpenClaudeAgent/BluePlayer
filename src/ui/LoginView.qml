@@ -2,7 +2,7 @@ import QtQuick 2.15
 import QtQuick.Controls 6.5
 import QtQuick.Layouts 1.15
 
-import "themes/AppleTheme.js" as AppleTheme
+import "themes/BlueTheme.js" as BlueTheme
 import "components"
 
 Item {
@@ -35,31 +35,31 @@ Item {
   ColumnLayout {
     anchors.centerIn: parent
     anchors.verticalCenterOffset: -50
-    spacing: AppleTheme.spacingLarge * 4
-    width: Math.min(520, parent.width - AppleTheme.spacingLarge * 4)
+    spacing: BlueTheme.spacingLarge * 4
+    width: Math.min(520, parent.width - BlueTheme.spacingLarge * 4)
 
     // Logo ou titre
     ColumnLayout {
       Layout.alignment: Qt.AlignHCenter
-      spacing: AppleTheme.spacingMedium
+      spacing: BlueTheme.spacingMedium
 
       Text {
         text: "BluePlayer"
-        font.family: AppleTheme.fontFamily
+        font.family: BlueTheme.fontFamily
         font.pixelSize: 56
         font.weight: 600
-        color: AppleTheme.primaryText
+        color: BlueTheme.primaryText
         horizontalAlignment: Text.AlignHCenter
         Layout.fillWidth: true
-        Layout.bottomMargin: AppleTheme.spacingSmall
+        Layout.bottomMargin: BlueTheme.spacingSmall
       }
 
       Text {
         text: qsTr("Lecteur Twitch natif")
-        font.family: AppleTheme.fontFamily
+        font.family: BlueTheme.fontFamily
         font.pixelSize: 16
         font.weight: 400
-        color: AppleTheme.mutedText
+        color: BlueTheme.mutedText
         horizontalAlignment: Text.AlignHCenter
         Layout.fillWidth: true
       }
@@ -68,7 +68,7 @@ Item {
     // Carte de connexion
     Rectangle {
       Layout.fillWidth: true
-      Layout.topMargin: AppleTheme.spacingLarge * 2
+      Layout.topMargin: BlueTheme.spacingLarge * 2
       Layout.minimumHeight: 300
       clip: true
       
@@ -77,7 +77,7 @@ Item {
       border.color: "#2a324e"
       border.width: 1
       
-      property real cardPadding: AppleTheme.spacingLarge * 1.5
+      property real cardPadding: BlueTheme.spacingLarge * 1.5
       
       ColumnLayout {
         id: cardContent
@@ -91,10 +91,10 @@ Item {
         // Section titre simplifiée
         Text {
           text: qsTr("Connexion requise")
-          font.family: AppleTheme.fontFamily
+          font.family: BlueTheme.fontFamily
           font.pixelSize: 22
           font.weight: 500
-          color: AppleTheme.primaryText
+          color: BlueTheme.primaryText
           Layout.fillWidth: true
           Layout.alignment: Qt.AlignHCenter
           horizontalAlignment: Text.AlignHCenter
@@ -104,28 +104,28 @@ Item {
         // Texte descriptif avec meilleur espacement
         Text {
           text: qsTr("Pour accéder à vos streams suivis et profiter de toutes les fonctionnalités de BluePlayer, connectez-vous avec votre compte Twitch.")
-          font.family: AppleTheme.fontFamily
+          font.family: BlueTheme.fontFamily
           font.pixelSize: 15
           font.weight: 400
-          color: AppleTheme.secondaryText
+          color: BlueTheme.secondaryText
           wrapMode: Text.WordWrap
           lineHeight: 1.6
           Layout.fillWidth: true
-          Layout.topMargin: AppleTheme.spacingMedium
+          Layout.topMargin: BlueTheme.spacingMedium
           Layout.alignment: Qt.AlignHCenter
           horizontalAlignment: Text.AlignHCenter
         }
 
         Item {
           Layout.fillHeight: true
-          Layout.minimumHeight: AppleTheme.spacingLarge
+          Layout.minimumHeight: BlueTheme.spacingLarge
         }
 
         // Bouton avec accent color
         Rectangle {
           Layout.fillWidth: true
           Layout.preferredHeight: 50
-          color: AppleTheme.accent
+          color: BlueTheme.accent
           radius: 14
           
           MouseArea {
@@ -149,7 +149,7 @@ Item {
           Text {
             anchors.centerIn: parent
             text: qsTr("Se connecter à Twitch")
-            font.family: AppleTheme.fontFamily
+            font.family: BlueTheme.fontFamily
             font.pixelSize: 15
             font.weight: 600
             color: "#03050b"
@@ -163,12 +163,12 @@ Item {
           id: errorText
           visible: false
           text: ""
-          font.family: AppleTheme.fontFamily
+          font.family: BlueTheme.fontFamily
           font.pixelSize: 12
-          color: AppleTheme.statusNegative
+          color: BlueTheme.statusNegative
           wrapMode: Text.WordWrap
           Layout.fillWidth: true
-          Layout.topMargin: AppleTheme.spacingMedium
+          Layout.topMargin: BlueTheme.spacingMedium
           horizontalAlignment: Text.AlignHCenter
         }
       }

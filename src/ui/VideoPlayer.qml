@@ -4,7 +4,7 @@ import QtQuick.Layouts 1.15
 import QtQuick.Dialogs 6.5
 import QtMultimedia 6.5
 
-import "themes" as AppleTheme
+import "themes/BlueTheme.js" as BlueTheme
 
 Item {
   id: playerRoot
@@ -45,25 +45,25 @@ Item {
 
   Rectangle {
     anchors.fill: parent
-    radius: AppleTheme.cornerRadius
-    color: AppleTheme.surfaceSoft
-    border.color: AppleTheme.divider
-    border.width: AppleTheme.borderWidth
+    radius: BlueTheme.cornerRadius
+    color: BlueTheme.surfaceSoft
+    border.color: BlueTheme.divider
+    border.width: BlueTheme.borderWidth
     gradient: Gradient {
-      GradientStop { position: 0; color: AppleTheme.overlayTint }
-      GradientStop { position: 1; color: AppleTheme.surfaceSoft }
+      GradientStop { position: 0; color: BlueTheme.overlayTint }
+      GradientStop { position: 1; color: BlueTheme.surfaceSoft }
     }
 
     ColumnLayout {
       anchors.fill: parent
       anchors.margins: 18
-      spacing: AppleTheme.spacing
+      spacing: BlueTheme.spacing
 
       Rectangle {
         id: videoStage
         Layout.fillWidth: true
         Layout.preferredHeight: 240
-        radius: AppleTheme.cornerRadius
+        radius: BlueTheme.cornerRadius
         clip: true
         color: "#05070f"
 
@@ -91,7 +91,7 @@ Item {
 
           Label {
             text: friendlyFileName
-            color: AppleTheme.primaryText
+            color: BlueTheme.primaryText
             font.pixelSize: 16
             font.bold: true
             elide: Text.ElideRight
@@ -101,7 +101,7 @@ Item {
             text: mediaFilePath
                   ? mediaFilePath
                   : qsTr("Parcourez vos dossiers pour sélectionner une vidéo.")
-            color: AppleTheme.mutedText
+            color: BlueTheme.mutedText
             font.pixelSize: 12
             wrapMode: Text.WordWrap
             elide: Text.ElideLeft
@@ -113,9 +113,9 @@ Item {
           onClicked: fileDialog.open()
           background: Rectangle {
             radius: 12
-            border.color: AppleTheme.divider
+            border.color: BlueTheme.divider
             border.width: 1
-            color: AppleTheme.surface
+            color: BlueTheme.surface
           }
         }
       }
@@ -132,9 +132,9 @@ Item {
           onClicked: requestPlay()
           background: Rectangle {
             radius: 12
-            border.color: AppleTheme.accentSubtle
+            border.color: BlueTheme.accentSubtle
             border.width: 1
-            color: playButton.enabled ? AppleTheme.accent : AppleTheme.overlayTint
+            color: playButton.enabled ? BlueTheme.accent : BlueTheme.overlayTint
           }
           contentItem: Label {
             text: playButton.text
@@ -150,16 +150,16 @@ Item {
           onClicked: requestStop()
           background: Rectangle {
             radius: 12
-            border.color: AppleTheme.divider
+            border.color: BlueTheme.divider
             border.width: 1
-            color: AppleTheme.surface
+            color: BlueTheme.surface
           }
         }
 
         Label {
           id: statusLabel
           text: statusText
-          color: AppleTheme.secondaryText
+          color: BlueTheme.secondaryText
           font.pixelSize: 12
           elide: Text.ElideMiddle
           Layout.alignment: Qt.AlignVCenter
@@ -175,7 +175,7 @@ Item {
         interactive: false
         background: Rectangle {
           radius: 10
-          color: AppleTheme.divider
+          color: BlueTheme.divider
         }
       }
     }

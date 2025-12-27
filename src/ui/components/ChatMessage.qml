@@ -73,7 +73,7 @@ Item {
             color: root.userColor
             font.pixelSize: 13
             font.bold: true
-            font.family: "SF Pro Text, -apple-system, Helvetica Neue"
+            font.family: "SF Pro Text, Helvetica Neue, system-ui"
         }
 
         // Space after username
@@ -101,7 +101,7 @@ Item {
             text: partData.content || ""
             color: "#FFFFFF"
             font.pixelSize: 13
-            font.family: "SF Pro Text, -apple-system, Helvetica Neue"
+            font.family: "SF Pro Text, Helvetica Neue, system-ui"
             wrapMode: Text.Wrap
         }
     }

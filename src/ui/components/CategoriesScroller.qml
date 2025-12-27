@@ -1,7 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 6.5
 import QtQuick.Layouts 1.15
-import "../themes/AppleTheme.js" as AppleTheme
+import "../themes/BlueTheme.js" as BlueTheme
 
 Item {
   id: root
@@ -12,17 +12,17 @@ Item {
 
   ColumnLayout {
     width: availableWidth
-    spacing: AppleTheme.spacingSmall
+    spacing: BlueTheme.spacingSmall
 
     Text {
       text: sectionTitle
-      color: AppleTheme.primaryText
+      color: BlueTheme.primaryText
       font.bold: true
       font.pixelSize: 14
     }
     Text {
       text: sectionSubtitle
-      color: AppleTheme.secondaryText
+      color: BlueTheme.secondaryText
       font.pixelSize: 12
     }
 
@@ -37,14 +37,14 @@ Item {
         spacing: 10
         Repeater {
           model: cardsModel
-          delegate: AppleCard {
+          delegate: BlueCard {
             Layout.preferredWidth: 200
             ColumnLayout {
               anchors.fill: parent
-              spacing: AppleTheme.spacingSmall
-              Label { text: name; color: AppleTheme.primaryText; font.pixelSize: 12; font.bold: true }
-              Label { text: detail; color: AppleTheme.secondaryText; font.pixelSize: 11; wrapMode: Text.WordWrap }
-              Label { text: viewers; color: AppleTheme.accent; font.pixelSize: 11 }
+              spacing: BlueTheme.spacingSmall
+              Label { text: name; color: BlueTheme.primaryText; font.pixelSize: 12; font.bold: true }
+              Label { text: detail; color: BlueTheme.secondaryText; font.pixelSize: 11; wrapMode: Text.WordWrap }
+              Label { text: viewers; color: BlueTheme.accent; font.pixelSize: 11 }
             }
           }
         }

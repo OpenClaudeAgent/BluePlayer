@@ -5,7 +5,7 @@ import QtQuick.Window 2.15
 
 import BluePlayer.UI 1.0
 
-import "themes/AppleTheme.js" as AppleTheme
+import "themes/BlueTheme.js" as BlueTheme
 import "components"
 
 Item {
@@ -316,7 +316,7 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         radius: 12
         color: searchField.activeFocus ? "#161d28" : "#0d1117"
-        border.color: searchField.activeFocus ? AppleTheme.accent : "transparent"
+        border.color: searchField.activeFocus ? BlueTheme.accent : "transparent"
         border.width: searchField.activeFocus ? 1 : 0
 
         Behavior on color {
@@ -337,7 +337,7 @@ Item {
             text: "\u2315"  // Loupe unicode
             font.pixelSize: 18
             font.weight: Font.Light
-            color: searchField.activeFocus ? AppleTheme.accent : AppleTheme.mutedText
+            color: searchField.activeFocus ? BlueTheme.accent : BlueTheme.mutedText
             Layout.alignment: Qt.AlignVCenter
             opacity: 0.7
             Behavior on color {
@@ -351,11 +351,11 @@ Item {
             Layout.fillHeight: true
             verticalAlignment: Text.AlignVCenter
             placeholderText: qsTr("Rechercher...")
-            placeholderTextColor: AppleTheme.mutedText
-            font.family: AppleTheme.fontFamily
+            placeholderTextColor: BlueTheme.mutedText
+            font.family: BlueTheme.fontFamily
             font.pixelSize: 14
             font.weight: Font.Normal
-            color: AppleTheme.primaryText
+            color: BlueTheme.primaryText
             cursorVisible: activeFocus
             background: Item {}
             selectByMouse: true
@@ -434,7 +434,7 @@ Item {
         spacing: 32
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.margins: AppleTheme.spacingLarge
+        anchors.margins: BlueTheme.spacingLarge
         
         // MouseArea pour perdre le focus et fermer les résultats de recherche
         MouseArea {
@@ -487,7 +487,7 @@ Item {
 
         // Espace en bas pour le scroll
         Item {
-          Layout.preferredHeight: AppleTheme.spacingLarge * 2
+          Layout.preferredHeight: BlueTheme.spacingLarge * 2
         }
       }
     }

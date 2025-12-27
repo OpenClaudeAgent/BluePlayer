@@ -4,9 +4,9 @@ import QtQuick.Dialogs 6.5
 import QtQuick.Layouts 1.15
 import QtMultimedia 6.5
 
-import "../themes/AppleTheme.js" as AppleTheme
+import "../themes/BlueTheme.js" as BlueTheme
 
-AppleCard {
+BlueCard {
   id: root
   property var ffmpegService
   property string selectedPath: ""
@@ -20,14 +20,14 @@ AppleCard {
 
   ColumnLayout {
     anchors.fill: parent
-    spacing: AppleTheme.spacingMedium
+    spacing: BlueTheme.spacingMedium
 
     Rectangle {
       Layout.fillWidth: true
       Layout.preferredHeight: 200
-      radius: AppleTheme.heroCornerRadius
-      color: AppleTheme.surface
-      border.color: AppleTheme.divider
+      radius: BlueTheme.heroCornerRadius
+      color: BlueTheme.surface
+      border.color: BlueTheme.divider
       border.width: 1
 
       VideoOutput {
@@ -45,7 +45,7 @@ AppleCard {
 
     RowLayout {
       Layout.fillWidth: true
-      spacing: AppleTheme.spacingSmall
+      spacing: BlueTheme.spacingSmall
 
       TextField {
         id: pathField
@@ -53,7 +53,7 @@ AppleCard {
         placeholderText: qsTr("file:///Users/.../video.mp4")
         text: selectedPath
         readOnly: true
-        font.family: AppleTheme.fontFamily
+        font.family: BlueTheme.fontFamily
         font.pixelSize: 12
       }
 
@@ -62,16 +62,16 @@ AppleCard {
         onClicked: fileDialog.open()
         background: Rectangle {
           radius: 12
-          border.color: AppleTheme.buttonBorder
+          border.color: BlueTheme.buttonBorder
           border.width: 1
-          color: AppleTheme.buttonSurface
+          color: BlueTheme.buttonSurface
         }
       }
     }
 
     RowLayout {
       Layout.fillWidth: true
-      spacing: AppleTheme.spacingMedium
+      spacing: BlueTheme.spacingMedium
 
       Button {
         text: qsTr("Lecture locale")
@@ -84,9 +84,9 @@ AppleCard {
         }
         background: Rectangle {
           radius: 12
-          border.color: AppleTheme.buttonBorder
+          border.color: BlueTheme.buttonBorder
           border.width: 1
-          color: enabled ? AppleTheme.accent : AppleTheme.overlayTint
+          color: enabled ? BlueTheme.accent : BlueTheme.overlayTint
         }
       }
 
@@ -100,15 +100,15 @@ AppleCard {
         }
         background: Rectangle {
           radius: 12
-          border.color: AppleTheme.buttonBorder
+          border.color: BlueTheme.buttonBorder
           border.width: 1
-          color: AppleTheme.surface
+          color: BlueTheme.surface
         }
       }
 
       Label {
         text: statusText
-        color: AppleTheme.secondaryText
+        color: BlueTheme.secondaryText
         font.pixelSize: 12
         horizontalAlignment: Text.AlignLeft
         Layout.fillWidth: true

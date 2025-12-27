@@ -3,7 +3,7 @@ import QtQuick.Controls 6.5
 import QtQuick.Layouts 1.15
 
 
-import "themes/AppleTheme.js" as AppleTheme
+import "themes/BlueTheme.js" as BlueTheme
 import "components"
 
 ApplicationWindow {
@@ -11,8 +11,8 @@ ApplicationWindow {
   visible: true
   width: 1200
   height: 780
-  color: AppleTheme.windowBackground
-  font.family: AppleTheme.fontFamily
+  color: BlueTheme.windowBackground
+  font.family: BlueTheme.fontFamily
   title: qsTr("BluePlayer")
   property string currentView: "home"
   property string statusText: qsTr("Sélectionnez un stream ou une vidéo locale pour commencer.")
@@ -34,8 +34,8 @@ ApplicationWindow {
   background: Rectangle {
     anchors.fill: parent
     gradient: Gradient {
-      GradientStop { position: 0; color: AppleTheme.gradientStart }
-      GradientStop { position: 1; color: AppleTheme.gradientEnd }
+      GradientStop { position: 0; color: BlueTheme.gradientStart }
+      GradientStop { position: 1; color: BlueTheme.gradientEnd }
     }
   }
 
@@ -46,7 +46,7 @@ ApplicationWindow {
   Row {
     anchors.top: parent.top
     anchors.right: parent.right
-    anchors.margins: AppleTheme.spacingSmall
+    anchors.margins: BlueTheme.spacingSmall
     z: 10
     spacing: 8
     visible: {
@@ -63,16 +63,16 @@ ApplicationWindow {
       width: 38
       height: 38
       radius: width / 2
-      color: cacheActive ? AppleTheme.overlayTint : (replaysMouseArea.containsMouse ? AppleTheme.surfaceSoft : AppleTheme.surface)
-      border.color: cacheActive ? AppleTheme.accent : AppleTheme.buttonBorder
-      border.width: AppleTheme.borderWidth
+      color: cacheActive ? BlueTheme.overlayTint : (replaysMouseArea.containsMouse ? BlueTheme.surfaceSoft : BlueTheme.surface)
+      border.color: cacheActive ? BlueTheme.accent : BlueTheme.buttonBorder
+      border.width: BlueTheme.borderWidth
 
       Text {
         anchors.centerIn: parent
         text: "\u21BA"
         font.pixelSize: 20
         font.bold: true
-        color: AppleTheme.primaryText
+        color: BlueTheme.primaryText
       }
 
       MouseArea {
@@ -101,15 +101,15 @@ ApplicationWindow {
       width: 38
       height: 38
       radius: width / 2
-      color: preferencesActive ? AppleTheme.overlayTint : (prefsMouseArea.containsMouse ? AppleTheme.surfaceSoft : AppleTheme.surface)
-      border.color: preferencesActive ? AppleTheme.accent : AppleTheme.buttonBorder
-      border.width: AppleTheme.borderWidth
+      color: preferencesActive ? BlueTheme.overlayTint : (prefsMouseArea.containsMouse ? BlueTheme.surfaceSoft : BlueTheme.surface)
+      border.color: preferencesActive ? BlueTheme.accent : BlueTheme.buttonBorder
+      border.width: BlueTheme.borderWidth
 
       Label {
         anchors.centerIn: parent
         text: "\u2699"
         font.pixelSize: 18
-        color: AppleTheme.primaryText
+        color: BlueTheme.primaryText
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
       }
@@ -174,8 +174,8 @@ ApplicationWindow {
   // Other views - with margins and scroll
   ColumnLayout {
     anchors.fill: parent
-    anchors.margins: AppleTheme.spacingLarge
-    spacing: AppleTheme.spacingMedium
+    anchors.margins: BlueTheme.spacingLarge
+    spacing: BlueTheme.spacingMedium
     visible: currentView !== "player"
 
     ScrollView {

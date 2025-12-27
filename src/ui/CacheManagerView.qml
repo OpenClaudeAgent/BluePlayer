@@ -4,7 +4,7 @@ import QtQuick.Layouts 1.15
 
 import BluePlayer.UI 1.0
 
-import "themes/AppleTheme.js" as AppleTheme
+import "themes/BlueTheme.js" as BlueTheme
 import "components"
 
 Item {
@@ -34,34 +34,34 @@ Item {
   Rectangle {
     anchors.fill: parent
     gradient: Gradient {
-      GradientStop { position: 0; color: AppleTheme.gradientStart }
-      GradientStop { position: 1; color: AppleTheme.gradientEnd }
+      GradientStop { position: 0; color: BlueTheme.gradientStart }
+      GradientStop { position: 1; color: BlueTheme.gradientEnd }
     }
   }
 
   ColumnLayout {
     anchors.fill: parent
-    anchors.margins: AppleTheme.spacingLarge
-    spacing: AppleTheme.spacingMedium
+    anchors.margins: BlueTheme.spacingLarge
+    spacing: BlueTheme.spacingMedium
 
     // Header compact
     RowLayout {
       Layout.fillWidth: true
       Layout.rightMargin: 100  // Espace pour les icônes globales (↺ et ⚙️)
-      spacing: AppleTheme.spacingMedium
+      spacing: BlueTheme.spacingMedium
 
       // Bouton retour
       Rectangle {
         Layout.preferredWidth: 36
         Layout.preferredHeight: 36
         radius: 18
-        color: backButtonArea.containsMouse ? AppleTheme.surfaceSoft : "transparent"
+        color: backButtonArea.containsMouse ? BlueTheme.surfaceSoft : "transparent"
 
         Text {
           anchors.centerIn: parent
           text: "\u2190"
           font.pixelSize: 18
-          color: AppleTheme.primaryText
+          color: BlueTheme.primaryText
         }
 
         MouseArea {
@@ -76,10 +76,10 @@ Item {
       // Titre
       Text {
         text: qsTr("Mes Replays")
-        font.family: AppleTheme.fontFamily
+        font.family: BlueTheme.fontFamily
         font.pixelSize: 22
         font.bold: true
-        color: AppleTheme.primaryText
+        color: BlueTheme.primaryText
       }
 
       // Stats compactes
@@ -88,9 +88,9 @@ Item {
                 .arg(viewModel.vodCount)
                 .arg(viewModel.totalSizeFormatted)
                 .arg(viewModel.maxSizeFormatted)
-        font.family: AppleTheme.fontFamily
+        font.family: BlueTheme.fontFamily
         font.pixelSize: 13
-        color: AppleTheme.mutedText
+        color: BlueTheme.mutedText
       }
 
       Item { Layout.fillWidth: true }
@@ -101,14 +101,14 @@ Item {
       Layout.fillWidth: true
       Layout.preferredHeight: 6
       radius: 3
-      color: AppleTheme.divider
+      color: BlueTheme.divider
 
       Rectangle {
         width: parent.width * Math.min(1, viewModel.usagePercent / 100)
         height: parent.height
         radius: 3
-        color: viewModel.usagePercent > 90 ? AppleTheme.statusNegative :
-               viewModel.usagePercent > 70 ? AppleTheme.statusWarning : AppleTheme.accent
+        color: viewModel.usagePercent > 90 ? BlueTheme.statusNegative :
+               viewModel.usagePercent > 70 ? BlueTheme.statusWarning : BlueTheme.accent
 
         Behavior on width {
           NumberAnimation { duration: 300; easing.type: Easing.OutCubic }
@@ -119,13 +119,13 @@ Item {
     // Barre de tri/filtre/sélection
     RowLayout {
       Layout.fillWidth: true
-      spacing: AppleTheme.spacingMedium
+      spacing: BlueTheme.spacingMedium
 
       Text {
         text: qsTr("Trier:")
-        font.family: AppleTheme.fontFamily
+        font.family: BlueTheme.fontFamily
         font.pixelSize: 12
-        color: AppleTheme.mutedText
+        color: BlueTheme.mutedText
       }
 
       // Boutons de tri style pill
@@ -140,17 +140,17 @@ Item {
           width: sortBtnText.width + 16
           height: 28
           radius: 14
-          color: viewModel.sortField === modelData.value ? AppleTheme.surfaceSoft : "transparent"
-          border.color: viewModel.sortField === modelData.value ? AppleTheme.divider : "transparent"
+          color: viewModel.sortField === modelData.value ? BlueTheme.surfaceSoft : "transparent"
+          border.color: viewModel.sortField === modelData.value ? BlueTheme.divider : "transparent"
           border.width: 1
 
           Text {
             id: sortBtnText
             anchors.centerIn: parent
             text: modelData.text
-            font.family: AppleTheme.fontFamily
+            font.family: BlueTheme.fontFamily
             font.pixelSize: 12
-            color: viewModel.sortField === modelData.value ? AppleTheme.primaryText : AppleTheme.secondaryText
+            color: viewModel.sortField === modelData.value ? BlueTheme.primaryText : BlueTheme.secondaryText
           }
 
           MouseArea {
@@ -166,13 +166,13 @@ Item {
         width: 28
         height: 28
         radius: 14
-        color: sortOrderArea.containsMouse ? AppleTheme.surfaceSoft : "transparent"
+        color: sortOrderArea.containsMouse ? BlueTheme.surfaceSoft : "transparent"
 
         Text {
           anchors.centerIn: parent
           text: viewModel.sortAscending ? "\u2191" : "\u2193"
           font.pixelSize: 14
-          color: AppleTheme.secondaryText
+          color: BlueTheme.secondaryText
         }
 
         MouseArea {
@@ -188,7 +188,7 @@ Item {
       Rectangle {
         width: 1
         height: 20
-        color: AppleTheme.mutedText
+        color: BlueTheme.mutedText
         opacity: 0.4
       }
 
@@ -197,17 +197,17 @@ Item {
         width: selModeText.width + 16
         height: 28
         radius: 14
-        color: viewModel.selectionMode ? AppleTheme.accent : (selModeArea.containsMouse ? AppleTheme.surfaceSoft : "transparent")
-        border.color: viewModel.selectionMode ? AppleTheme.accent : "transparent"
+        color: viewModel.selectionMode ? BlueTheme.accent : (selModeArea.containsMouse ? BlueTheme.surfaceSoft : "transparent")
+        border.color: viewModel.selectionMode ? BlueTheme.accent : "transparent"
         border.width: 1
 
         Text {
           id: selModeText
           anchors.centerIn: parent
           text: viewModel.selectionMode ? qsTr("Annuler") : qsTr("Selectionner")
-          font.family: AppleTheme.fontFamily
+          font.family: BlueTheme.fontFamily
           font.pixelSize: 12
-          color: viewModel.selectionMode ? AppleTheme.windowBackground : AppleTheme.secondaryText
+          color: viewModel.selectionMode ? BlueTheme.windowBackground : BlueTheme.secondaryText
         }
 
         MouseArea {
@@ -225,13 +225,13 @@ Item {
         width: delSelText.width + 16
         height: 28
         radius: 14
-        color: AppleTheme.statusNegative
+        color: BlueTheme.statusNegative
 
         Text {
           id: delSelText
           anchors.centerIn: parent
           text: qsTr("Supprimer (%1)").arg(viewModel.selectedCount)
-          font.family: AppleTheme.fontFamily
+          font.family: BlueTheme.fontFamily
           font.pixelSize: 12
           color: "#FFFFFF"
         }
@@ -249,9 +249,9 @@ Item {
       Text {
         visible: viewModel.getStreamerList().length > 1
         text: qsTr("Streamer:")
-        font.family: AppleTheme.fontFamily
+        font.family: BlueTheme.fontFamily
         font.pixelSize: 12
-        color: AppleTheme.mutedText
+        color: BlueTheme.mutedText
       }
 
       ComboBox {
@@ -273,17 +273,17 @@ Item {
 
         background: Rectangle {
           radius: 14
-          color: AppleTheme.surface
-          border.color: AppleTheme.divider
+          color: BlueTheme.surface
+          border.color: BlueTheme.divider
           border.width: 1
         }
 
         contentItem: Text {
           leftPadding: 12
           text: streamerFilter.displayText
-          font.family: AppleTheme.fontFamily
+          font.family: BlueTheme.fontFamily
           font.pixelSize: 12
-          color: AppleTheme.primaryText
+          color: BlueTheme.primaryText
           verticalAlignment: Text.AlignVCenter
         }
       }
@@ -314,8 +314,8 @@ Item {
             radius: 12
             // Force re-evaluation when selectedCount changes
             property bool isCardSelected: viewModel.selectedCount >= 0 && viewModel.isSelected(modelData.id)
-            color: delegateMouseArea.containsMouse ? AppleTheme.surfaceSoft : AppleTheme.surface
-            border.color: isCardSelected ? AppleTheme.accent : "transparent"
+            color: delegateMouseArea.containsMouse ? BlueTheme.surfaceSoft : BlueTheme.surface
+            border.color: isCardSelected ? BlueTheme.accent : "transparent"
             border.width: isCardSelected ? 2 : 0
 
             ColumnLayout {
@@ -328,7 +328,7 @@ Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 90
                 radius: 8
-                color: AppleTheme.divider
+                color: BlueTheme.divider
                 clip: true
 
                 Image {
@@ -343,7 +343,7 @@ Item {
                   anchors.centerIn: parent
                   text: "\uD83C\uDFA5"
                   font.pixelSize: 28
-                  color: AppleTheme.mutedText
+                  color: BlueTheme.mutedText
                   visible: !modelData.thumbnailPath || modelData.thumbnailPath.length === 0
                 }
 
@@ -361,7 +361,7 @@ Item {
                     id: durText
                     anchors.centerIn: parent
                     text: modelData.durationFormatted || ""
-                    font.family: AppleTheme.fontFamily
+                    font.family: BlueTheme.fontFamily
                     font.pixelSize: 10
                     font.bold: true
                     color: "#FFFFFF"
@@ -380,8 +380,8 @@ Item {
                   radius: 11
                   // Force re-evaluation when selectedCount changes
                   property bool isChecked: viewModel.selectedCount >= 0 && viewModel.isSelected(modelData.id)
-                  color: isChecked ? AppleTheme.accent : AppleTheme.surface
-                  border.color: isChecked ? AppleTheme.accent : AppleTheme.divider
+                  color: isChecked ? BlueTheme.accent : BlueTheme.surface
+                  border.color: isChecked ? BlueTheme.accent : BlueTheme.divider
                   border.width: 2
 
                   Text {
@@ -428,7 +428,7 @@ Item {
                   Rectangle {
                     width: parent.width * (modelData.watchPosition / modelData.duration)
                     height: parent.height
-                    color: AppleTheme.accent
+                    color: BlueTheme.accent
                   }
                 }
               }
@@ -440,19 +440,19 @@ Item {
 
                 Text {
                   text: modelData.streamerName || qsTr("Inconnu")
-                  font.family: AppleTheme.fontFamily
+                  font.family: BlueTheme.fontFamily
                   font.pixelSize: 13
                   font.bold: true
-                  color: AppleTheme.primaryText
+                  color: BlueTheme.primaryText
                   elide: Text.ElideRight
                   Layout.fillWidth: true
                 }
 
                 Text {
                   text: modelData.streamTitle || qsTr("Sans titre")
-                  font.family: AppleTheme.fontFamily
+                  font.family: BlueTheme.fontFamily
                   font.pixelSize: 11
-                  color: AppleTheme.secondaryText
+                  color: BlueTheme.secondaryText
                   elide: Text.ElideRight
                   Layout.fillWidth: true
                 }
@@ -463,22 +463,22 @@ Item {
 
                   Text {
                     text: modelData.recordedAtFormatted || ""
-                    font.family: AppleTheme.fontFamily
+                    font.family: BlueTheme.fontFamily
                     font.pixelSize: 10
-                    color: AppleTheme.mutedText
+                    color: BlueTheme.mutedText
                   }
 
                   Text {
                     text: "·"
                     font.pixelSize: 10
-                    color: AppleTheme.mutedText
+                    color: BlueTheme.mutedText
                   }
 
                   Text {
                     text: modelData.fileSizeFormatted || ""
-                    font.family: AppleTheme.fontFamily
+                    font.family: BlueTheme.fontFamily
                     font.pixelSize: 10
-                    color: AppleTheme.mutedText
+                    color: BlueTheme.mutedText
                   }
                 }
               }
@@ -525,18 +525,18 @@ Item {
             Text {
               Layout.alignment: Qt.AlignHCenter
               text: qsTr("Aucun replay")
-              font.family: AppleTheme.fontFamily
+              font.family: BlueTheme.fontFamily
               font.pixelSize: 16
               font.bold: true
-              color: AppleTheme.secondaryText
+              color: BlueTheme.secondaryText
             }
 
             Text {
               Layout.alignment: Qt.AlignHCenter
               text: qsTr("Les streams regardes apparaitront ici")
-              font.family: AppleTheme.fontFamily
+              font.family: BlueTheme.fontFamily
               font.pixelSize: 13
-              color: AppleTheme.mutedText
+              color: BlueTheme.mutedText
               horizontalAlignment: Text.AlignHCenter
             }
           }
@@ -555,8 +555,8 @@ Item {
 
     background: Rectangle {
       radius: 16
-      color: AppleTheme.surface
-      border.color: AppleTheme.divider
+      color: BlueTheme.surface
+      border.color: BlueTheme.divider
       border.width: 1
     }
 
@@ -566,17 +566,17 @@ Item {
 
       Text {
         text: qsTr("Supprimer %1 replays ?").arg(viewModel.selectedCount)
-        font.family: AppleTheme.fontFamily
+        font.family: BlueTheme.fontFamily
         font.pixelSize: 16
         font.bold: true
-        color: AppleTheme.primaryText
+        color: BlueTheme.primaryText
       }
 
       Text {
         text: qsTr("Cette action est irreversible.")
-        font.family: AppleTheme.fontFamily
+        font.family: BlueTheme.fontFamily
         font.pixelSize: 13
-        color: AppleTheme.secondaryText
+        color: BlueTheme.secondaryText
       }
 
       RowLayout {
@@ -590,16 +590,16 @@ Item {
           height: 36
           radius: 18
           color: "transparent"
-          border.color: AppleTheme.divider
+          border.color: BlueTheme.divider
           border.width: 1
 
           Text {
             id: cancelText
             anchors.centerIn: parent
             text: qsTr("Annuler")
-            font.family: AppleTheme.fontFamily
+            font.family: BlueTheme.fontFamily
             font.pixelSize: 13
-            color: AppleTheme.primaryText
+            color: BlueTheme.primaryText
           }
 
           MouseArea {
@@ -613,13 +613,13 @@ Item {
           width: confirmDelText.width + 24
           height: 36
           radius: 18
-          color: AppleTheme.statusNegative
+          color: BlueTheme.statusNegative
 
           Text {
             id: confirmDelText
             anchors.centerIn: parent
             text: qsTr("Supprimer")
-            font.family: AppleTheme.fontFamily
+            font.family: BlueTheme.fontFamily
             font.pixelSize: 13
             color: "#FFFFFF"
           }
@@ -648,8 +648,8 @@ Item {
 
     background: Rectangle {
       radius: 16
-      color: AppleTheme.surface
-      border.color: AppleTheme.divider
+      color: BlueTheme.surface
+      border.color: BlueTheme.divider
       border.width: 1
     }
 
@@ -659,19 +659,19 @@ Item {
 
       Text {
         text: qsTr("Vider tout le cache ?")
-        font.family: AppleTheme.fontFamily
+        font.family: BlueTheme.fontFamily
         font.pixelSize: 16
         font.bold: true
-        color: AppleTheme.primaryText
+        color: BlueTheme.primaryText
       }
 
       Text {
         text: qsTr("%1 replays seront supprimes.\nEspace libere: %2")
                 .arg(viewModel.vodCount)
                 .arg(viewModel.totalSizeFormatted)
-        font.family: AppleTheme.fontFamily
+        font.family: BlueTheme.fontFamily
         font.pixelSize: 13
-        color: AppleTheme.secondaryText
+        color: BlueTheme.secondaryText
       }
 
       RowLayout {
@@ -685,16 +685,16 @@ Item {
           height: 36
           radius: 18
           color: "transparent"
-          border.color: AppleTheme.divider
+          border.color: BlueTheme.divider
           border.width: 1
 
           Text {
             id: cancelAllText
             anchors.centerIn: parent
             text: qsTr("Annuler")
-            font.family: AppleTheme.fontFamily
+            font.family: BlueTheme.fontFamily
             font.pixelSize: 13
-            color: AppleTheme.primaryText
+            color: BlueTheme.primaryText
           }
 
           MouseArea {
@@ -708,13 +708,13 @@ Item {
           width: confirmClearText.width + 24
           height: 36
           radius: 18
-          color: AppleTheme.statusNegative
+          color: BlueTheme.statusNegative
 
           Text {
             id: confirmClearText
             anchors.centerIn: parent
             text: qsTr("Vider")
-            font.family: AppleTheme.fontFamily
+            font.family: BlueTheme.fontFamily
             font.pixelSize: 13
             color: "#FFFFFF"
           }

@@ -1,6 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
-import "../themes/AppleTheme.js" as AppleTheme
+import "../themes/BlueTheme.js" as BlueTheme
 
 Rectangle {
   id: searchResultsRoot
@@ -18,8 +18,8 @@ Rectangle {
   
   // Visible si: recherche effectuée ET (résultats OU pas de résultats à montrer)
   visible: isVisible && hasSearchQuery
-  color: AppleTheme.surface
-  border.color: AppleTheme.divider
+  color: BlueTheme.surface
+  border.color: BlueTheme.divider
   border.width: 1
   radius: 16
   clip: true
@@ -80,11 +80,11 @@ Rectangle {
           anchors.bottom: parent.bottom
           anchors.bottomMargin: 4
           text: "En direct"
-          font.family: AppleTheme.fontFamily
+          font.family: BlueTheme.fontFamily
           font.pixelSize: 11
           font.bold: true
           font.letterSpacing: 0.3
-          color: AppleTheme.mutedText
+          color: BlueTheme.mutedText
         }
       }
       
@@ -110,7 +110,7 @@ Rectangle {
           property bool hasGame: channelInfo && channelInfo.game_name ? true : false
           
           color: channelMouse.containsMouse ? "#1a2230" : "transparent"
-          border.color: isSelected ? AppleTheme.accent : "transparent"
+          border.color: isSelected ? BlueTheme.accent : "transparent"
           border.width: isSelected ? 1 : 0
           
           Behavior on border.color { ColorAnimation { duration: 100 } }
@@ -123,7 +123,7 @@ Rectangle {
             width: 36
             height: 36
             radius: 18
-            color: AppleTheme.surfaceSoft
+            color: BlueTheme.surfaceSoft
             clip: true
             
             Image {
@@ -145,10 +145,10 @@ Rectangle {
             }
             width: channelDelegate.width - 120
             text: channelDelegate.channelInfo ? (channelDelegate.channelInfo.display_name || channelDelegate.channelInfo.broadcaster_login || "Unknown") : "Unknown"
-            font.family: AppleTheme.fontFamily
+            font.family: BlueTheme.fontFamily
             font.pixelSize: 14
             font.weight: Font.DemiBold
-            color: AppleTheme.primaryText
+            color: BlueTheme.primaryText
             elide: Text.ElideRight
           }
           
@@ -160,9 +160,9 @@ Rectangle {
             width: channelDelegate.width - 120
             visible: channelDelegate.isLive && channelDelegate.hasGame
             text: channelDelegate.channelInfo ? (channelDelegate.channelInfo.game_name || "") : ""
-            font.family: AppleTheme.fontFamily
+            font.family: BlueTheme.fontFamily
             font.pixelSize: 12
-            color: AppleTheme.accent
+            color: BlueTheme.accent
             elide: Text.ElideRight
           }
           
@@ -173,9 +173,9 @@ Rectangle {
             width: channelDelegate.width - 68
             visible: channelDelegate.isLive && channelDelegate.hasTitle
             text: channelDelegate.channelInfo ? (channelDelegate.channelInfo.title || "") : ""
-            font.family: AppleTheme.fontFamily
+            font.family: BlueTheme.fontFamily
             font.pixelSize: 11
-            color: AppleTheme.mutedText
+            color: BlueTheme.mutedText
             elide: Text.ElideRight
             maximumLineCount: 1
           }
@@ -189,7 +189,7 @@ Rectangle {
             width: 42
             height: 18
             radius: 9
-            color: AppleTheme.statusNegative
+            color: BlueTheme.statusNegative
             
             Text {
               anchors.centerIn: parent
@@ -229,7 +229,7 @@ Rectangle {
           anchors.centerIn: parent
           width: parent.width - 16
           height: 1
-          color: AppleTheme.divider
+          color: BlueTheme.divider
         }
       }
       
@@ -245,11 +245,11 @@ Rectangle {
           anchors.bottom: parent.bottom
           anchors.bottomMargin: 4
           text: "Dans le cache"
-          font.family: AppleTheme.fontFamily
+          font.family: BlueTheme.fontFamily
           font.pixelSize: 11
           font.bold: true
           font.letterSpacing: 0.3
-          color: AppleTheme.mutedText
+          color: BlueTheme.mutedText
         }
       }
       
@@ -268,7 +268,7 @@ Rectangle {
           property bool isSelected: searchResultsRoot.selectedIndex === globalIndex
           
           color: cacheMouse.containsMouse ? "#1a2230" : "transparent"
-          border.color: isSelected ? AppleTheme.accent : "transparent"
+          border.color: isSelected ? BlueTheme.accent : "transparent"
           border.width: isSelected ? 1 : 0
           
           Behavior on border.color { ColorAnimation { duration: 100 } }
@@ -281,7 +281,7 @@ Rectangle {
             width: 48
             height: 48
             radius: 8
-            color: AppleTheme.surfaceSoft
+            color: BlueTheme.surfaceSoft
             clip: true
             
             Image {
@@ -307,10 +307,10 @@ Rectangle {
             y: 10
             width: cacheDelegate.width - 140
             text: cacheDelegate.vodInfo ? (cacheDelegate.vodInfo.streamerName || "Unknown") : "Unknown"
-            font.family: AppleTheme.fontFamily
+            font.family: BlueTheme.fontFamily
             font.pixelSize: 14
             font.weight: Font.DemiBold
-            color: AppleTheme.primaryText
+            color: BlueTheme.primaryText
             elide: Text.ElideRight
           }
           
@@ -320,9 +320,9 @@ Rectangle {
             y: 28
             width: cacheDelegate.width - 140
             text: cacheDelegate.vodInfo ? (cacheDelegate.vodInfo.streamTitle || "") : ""
-            font.family: AppleTheme.fontFamily
+            font.family: BlueTheme.fontFamily
             font.pixelSize: 11
-            color: AppleTheme.secondaryText
+            color: BlueTheme.secondaryText
             elide: Text.ElideRight
           }
           
@@ -340,9 +340,9 @@ Rectangle {
               if (info.fileSizeFormatted) parts.push(info.fileSizeFormatted)
               return parts.join(" • ")
             }
-            font.family: AppleTheme.fontFamily
+            font.family: BlueTheme.fontFamily
             font.pixelSize: 10
-            color: AppleTheme.mutedText
+            color: BlueTheme.mutedText
           }
           
           // Cache badge
@@ -352,7 +352,7 @@ Rectangle {
             width: 50
             height: 18
             radius: 9
-            color: AppleTheme.accent
+            color: BlueTheme.accent
             opacity: 0.8
             
             Text {
@@ -386,9 +386,9 @@ Rectangle {
       Text {
         visible: searchResultsRoot.totalCount === 0
         text: "Aucun resultat"
-        font.family: AppleTheme.fontFamily
+        font.family: BlueTheme.fontFamily
         font.pixelSize: 13
-        color: AppleTheme.mutedText
+        color: BlueTheme.mutedText
         width: contentColumn.width
         horizontalAlignment: Text.AlignHCenter
         topPadding: 16

@@ -1,6 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Layouts 1.15
-import "../themes/AppleTheme.js" as AppleTheme
+import "../themes/BlueTheme.js" as BlueTheme
 
 Rectangle {
   id: itemRoot
@@ -15,7 +15,7 @@ Rectangle {
   signal clicked()
   
   implicitHeight: 48
-  color: isSelected ? AppleTheme.surfaceSoft : (mouseArea.containsMouse ? "#1a2230" : "transparent")
+  color: isSelected ? BlueTheme.surfaceSoft : (mouseArea.containsMouse ? "#1a2230" : "transparent")
   radius: 8
   
   Behavior on color {
@@ -33,7 +33,7 @@ Rectangle {
       Layout.preferredWidth: isCategory ? 32 : 36
       Layout.preferredHeight: isCategory ? 42 : 36
       radius: isCategory ? 4 : 18
-      color: AppleTheme.surfaceSoft
+      color: BlueTheme.surfaceSoft
       clip: true
       
       Image {
@@ -56,7 +56,7 @@ Rectangle {
         anchors.centerIn: parent
         text: isCategory ? "🎮" : "👤"
         font.pixelSize: 16
-        color: AppleTheme.mutedText
+        color: BlueTheme.mutedText
         visible: thumbnailImage.status !== Image.Ready
         opacity: 0.5
       }
@@ -73,10 +73,10 @@ Rectangle {
         
         Text {
           text: itemRoot.itemText
-          font.family: AppleTheme.fontFamily
+          font.family: BlueTheme.fontFamily
           font.pixelSize: 14
           font.bold: true
-          color: AppleTheme.primaryText
+          color: BlueTheme.primaryText
           elide: Text.ElideRight
           Layout.fillWidth: true
         }
@@ -87,12 +87,12 @@ Rectangle {
           width: 36
           height: 16
           radius: 8
-          color: AppleTheme.statusNegative
+          color: BlueTheme.statusNegative
           
           Text {
             anchors.centerIn: parent
             text: "LIVE"
-            font.family: AppleTheme.fontFamily
+            font.family: BlueTheme.fontFamily
             font.pixelSize: 9
             font.bold: true
             color: "#ffffff"
@@ -104,9 +104,9 @@ Rectangle {
       Text {
         visible: itemRoot.itemSubtext !== ""
         text: itemRoot.itemSubtext
-        font.family: AppleTheme.fontFamily
+        font.family: BlueTheme.fontFamily
         font.pixelSize: 12
-        color: AppleTheme.secondaryText
+        color: BlueTheme.secondaryText
         elide: Text.ElideRight
         Layout.fillWidth: true
       }
@@ -116,7 +116,7 @@ Rectangle {
     Text {
       text: "→"
       font.pixelSize: 14
-      color: AppleTheme.mutedText
+      color: BlueTheme.mutedText
       opacity: mouseArea.containsMouse || itemRoot.isSelected ? 1 : 0
       
       Behavior on opacity {

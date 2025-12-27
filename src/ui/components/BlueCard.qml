@@ -2,7 +2,7 @@ import QtQuick 2.15
 import QtQuick.Layouts 1.15
 
 Item {
-  id: appleCard
+  id: blueCard
   width: 220
   height: 140
   // Allow consumers to inject arbitrary content inside this card

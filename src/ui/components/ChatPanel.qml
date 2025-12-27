@@ -2,7 +2,7 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 
-import "../themes/AppleTheme.js" as AppleTheme
+import "../themes/BlueTheme.js" as BlueTheme
 
 /**
  * ChatPanel - Twitch chat panel with message list
@@ -166,7 +166,7 @@ Rectangle {
                     color: "#FFFFFF"
                     font.pixelSize: 14
                     font.bold: true
-                    font.family: AppleTheme.fontFamily
+                    font.family: BlueTheme.fontFamily
                     elide: Text.ElideRight
                 }
 
@@ -221,7 +221,7 @@ Rectangle {
                 }
                 color: "#8E8E93"
                 font.pixelSize: 12
-                font.family: AppleTheme.fontFamily
+                font.family: BlueTheme.fontFamily
             }
 
             Behavior on Layout.preferredHeight {
@@ -302,7 +302,7 @@ Rectangle {
                         text: qsTr("New messages")
                         color: "#FFFFFF"
                         font.pixelSize: 11
-                        font.family: AppleTheme.fontFamily
+                        font.family: BlueTheme.fontFamily
                     }
                 }
 
@@ -323,7 +323,7 @@ Rectangle {
                 text: qsTr("Waiting for messages...")
                 color: "#6E6E73"
                 font.pixelSize: 13
-                font.family: AppleTheme.fontFamily
+                font.family: BlueTheme.fontFamily
             }
         }
 
@@ -346,7 +346,7 @@ Rectangle {
                     placeholderTextColor: "#6E6E73"
                     color: "#FFFFFF"
                     font.pixelSize: 13
-                    font.family: AppleTheme.fontFamily
+                    font.family: BlueTheme.fontFamily
                     
                     background: Rectangle {
                         color: "#1C1C1E"

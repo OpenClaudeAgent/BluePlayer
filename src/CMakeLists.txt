@@ -125,10 +125,10 @@ qt_add_qml_module(BluePlayer
     ui/PreferencesView.qml
     ui/PlayerView.qml
     ui/CacheManagerView.qml
-    ui/VideoPlayerApple.qml
-    ui/themes/AppleTheme.js
-    ui/components/AppleCard.qml
-    ui/components/AppleButton.qml
+    ui/VideoPlayer.qml
+    ui/themes/BlueTheme.js
+    ui/components/BlueCard.qml
+    ui/components/BlueButton.qml
     ui/components/CategoriesScroller.qml
     ui/components/CategoryCard.qml
     ui/components/ClipCard.qml

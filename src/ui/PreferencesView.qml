@@ -2,7 +2,7 @@ import QtQuick 2.15
 import QtQuick.Controls 6.5
 import QtQuick.Layouts 1.15
 
-import "themes/AppleTheme.js" as AppleTheme
+import "themes/BlueTheme.js" as BlueTheme
 import "components"
 
 Item {
@@ -16,7 +16,7 @@ Item {
 
   Rectangle {
     anchors.fill: parent
-    color: AppleTheme.windowBackground
+    color: BlueTheme.windowBackground
     opacity: 0.98
   }
 
@@ -29,31 +29,31 @@ Item {
       anchors.top: parent.top
       anchors.left: parent.left
       anchors.right: parent.right
-      anchors.margins: AppleTheme.spacingLarge
-      spacing: AppleTheme.spacingLarge
+      anchors.margins: BlueTheme.spacingLarge
+      spacing: BlueTheme.spacingLarge
 
       Label {
         text: qsTr("Préférences")
         font.pixelSize: 24
         font.bold: true
-        color: AppleTheme.primaryText
+        color: BlueTheme.primaryText
       }
 
       // Section Authentification Twitch
       RowLayout {
         Layout.fillWidth: true
         Item { Layout.fillWidth: true }
-        AppleCard {
+        BlueCard {
           Layout.preferredWidth: 500
           ColumnLayout {
             width: parent.width
-            spacing: AppleTheme.spacingMedium
+            spacing: BlueTheme.spacingMedium
 
             Label {
               text: qsTr("Authentification Twitch")
               font.pixelSize: 16
               font.bold: true
-              color: AppleTheme.primaryText
+              color: BlueTheme.primaryText
             }
 
             // Accès au service Twitch (disponible globalement)
@@ -76,8 +76,8 @@ Item {
               color: {
                 var service = getTwitchService()
                 return service && service.authenticated ? 
-                  AppleTheme.statusPositive : 
-                  AppleTheme.secondaryText
+                  BlueTheme.statusPositive : 
+                  BlueTheme.secondaryText
               }
               font.pixelSize: 14
               wrapMode: Text.WordWrap
@@ -87,7 +87,7 @@ Item {
             RowLayout {
               Layout.fillWidth: true
               Item { Layout.fillWidth: true }
-              AppleButton {
+              BlueButton {
                 text: {
                   var service = getTwitchService()
                   return service && service.authenticated ? 
@@ -119,7 +119,7 @@ Item {
             
             // Espace en bas pour le padding
             Item {
-              Layout.preferredHeight: AppleTheme.spacingMedium
+              Layout.preferredHeight: BlueTheme.spacingMedium
             }
 
             // Connexion pour fermer automatiquement les préférences après déconnexion
@@ -144,17 +144,17 @@ Item {
       RowLayout {
         Layout.fillWidth: true
         Item { Layout.fillWidth: true }
-        AppleCard {
+        BlueCard {
           Layout.preferredWidth: 500
           ColumnLayout {
             width: parent.width
-            spacing: AppleTheme.spacingMedium
+            spacing: BlueTheme.spacingMedium
 
             Label {
               text: qsTr("Cache des replays")
               font.pixelSize: 16
               font.bold: true
-              color: AppleTheme.primaryText
+              color: BlueTheme.primaryText
             }
 
             Text {
@@ -167,7 +167,7 @@ Item {
                 }
                 return qsTr("Cache non disponible")
               }
-              color: AppleTheme.secondaryText
+              color: BlueTheme.secondaryText
               font.pixelSize: 14
               wrapMode: Text.WordWrap
               Layout.fillWidth: true
@@ -178,7 +178,7 @@ Item {
               Layout.fillWidth: true
               Layout.preferredHeight: 6
               radius: 3
-              color: AppleTheme.divider
+              color: BlueTheme.divider
 
               Rectangle {
                 width: {
@@ -194,10 +194,10 @@ Item {
                   var cm = getCacheManager()
                   if (cm) {
                     var usage = cm.cacheUsagePercent()
-                    return usage > 90 ? AppleTheme.statusNegative :
-                           usage > 70 ? AppleTheme.statusWarning : AppleTheme.accent
+                    return usage > 90 ? BlueTheme.statusNegative :
+                           usage > 70 ? BlueTheme.statusWarning : BlueTheme.accent
                   }
-                  return AppleTheme.accent
+                  return BlueTheme.accent
                 }
               }
             }
@@ -210,7 +210,7 @@ Item {
               Text {
                 text: qsTr("Taille maximale")
                 font.pixelSize: 14
-                color: AppleTheme.secondaryText
+                color: BlueTheme.secondaryText
                 Layout.alignment: Qt.AlignVCenter
               }
 
@@ -221,8 +221,8 @@ Item {
                 width: 140
                 height: 32
                 radius: 8
-                color: AppleTheme.surface
-                border.color: AppleTheme.divider
+                color: BlueTheme.surface
+                border.color: BlueTheme.divider
                 border.width: 1
                 Layout.alignment: Qt.AlignVCenter
 
@@ -236,14 +236,14 @@ Item {
                     Layout.preferredWidth: 32
                     Layout.fillHeight: true
                     radius: 6
-                    color: minusBtnArea.containsMouse ? AppleTheme.divider : "transparent"
+                    color: minusBtnArea.containsMouse ? BlueTheme.divider : "transparent"
 
                     Text {
                       anchors.centerIn: parent
                       text: "-"
                       font.pixelSize: 16
                       font.bold: true
-                      color: AppleTheme.primaryText
+                      color: BlueTheme.primaryText
                     }
 
                     MouseArea {
@@ -272,10 +272,10 @@ Item {
                       anchors.centerIn: parent
                       width: parent.width
                       horizontalAlignment: Text.AlignHCenter
-                      font.family: AppleTheme.fontFamily
+                      font.family: BlueTheme.fontFamily
                       font.pixelSize: 14
                       font.bold: true
-                      color: AppleTheme.primaryText
+                      color: BlueTheme.primaryText
                       text: {
                         var cm = getCacheManager()
                         if (cm) {
@@ -301,14 +301,14 @@ Item {
                     Layout.preferredWidth: 32
                     Layout.fillHeight: true
                     radius: 6
-                    color: plusBtnArea.containsMouse ? AppleTheme.divider : "transparent"
+                    color: plusBtnArea.containsMouse ? BlueTheme.divider : "transparent"
 
                     Text {
                       anchors.centerIn: parent
                       text: "+"
                       font.pixelSize: 16
                       font.bold: true
-                      color: AppleTheme.primaryText
+                      color: BlueTheme.primaryText
                     }
 
                     MouseArea {
@@ -332,7 +332,7 @@ Item {
               Text {
                 text: "GB"
                 font.pixelSize: 14
-                color: AppleTheme.secondaryText
+                color: BlueTheme.secondaryText
                 Layout.alignment: Qt.AlignVCenter
               }
             }
@@ -340,15 +340,15 @@ Item {
             // Bouton vider le cache
             RowLayout {
               Layout.fillWidth: true
-              Layout.topMargin: AppleTheme.spacingSmall
+              Layout.topMargin: BlueTheme.spacingSmall
               Item { Layout.fillWidth: true }
               
               Rectangle {
-                width: clearCacheText.width + 2 * AppleTheme.spacingMedium
-                height: clearCacheText.height + 2 * AppleTheme.spacingMedium
+                width: clearCacheText.width + 2 * BlueTheme.spacingMedium
+                height: clearCacheText.height + 2 * BlueTheme.spacingMedium
                 radius: 14
-                color: clearCacheArea.containsMouse ? Qt.rgba(AppleTheme.statusNegative.r, AppleTheme.statusNegative.g, AppleTheme.statusNegative.b, 0.1) : "transparent"
-                border.color: AppleTheme.statusNegative
+                color: clearCacheArea.containsMouse ? Qt.rgba(BlueTheme.statusNegative.r, BlueTheme.statusNegative.g, BlueTheme.statusNegative.b, 0.1) : "transparent"
+                border.color: BlueTheme.statusNegative
                 border.width: 1
                 visible: {
                   var cm = getCacheManager()
@@ -363,9 +363,9 @@ Item {
                   id: clearCacheText
                   anchors.centerIn: parent
                   text: qsTr("Vider le cache")
-                  font.family: AppleTheme.fontFamily
+                  font.family: BlueTheme.fontFamily
                   font.pixelSize: 13
-                  color: AppleTheme.statusNegative
+                  color: BlueTheme.statusNegative
                 }
 
                 MouseArea {
@@ -379,7 +379,7 @@ Item {
             }
             
             Item {
-              Layout.preferredHeight: AppleTheme.spacingSmall
+              Layout.preferredHeight: BlueTheme.spacingSmall
             }
           }
         }
@@ -389,7 +389,7 @@ Item {
       RowLayout {
         Layout.fillWidth: true
         Item { Layout.fillWidth: true }
-        AppleButton {
+        BlueButton {
           text: qsTr("Fermer et revenir à l'accueil")
           onClicked: closeRequested()
         }
@@ -408,8 +408,8 @@ Item {
 
     background: Rectangle {
       radius: 16
-      color: AppleTheme.surface
-      border.color: AppleTheme.divider
+      color: BlueTheme.surface
+      border.color: BlueTheme.divider
       border.width: 1
     }
 
@@ -419,10 +419,10 @@ Item {
 
       Text {
         text: qsTr("Vider tout le cache ?")
-        font.family: AppleTheme.fontFamily
+        font.family: BlueTheme.fontFamily
         font.pixelSize: 16
         font.bold: true
-        color: AppleTheme.primaryText
+        color: BlueTheme.primaryText
       }
 
       Text {
@@ -435,9 +435,9 @@ Item {
           }
           return ""
         }
-        font.family: AppleTheme.fontFamily
+        font.family: BlueTheme.fontFamily
         font.pixelSize: 13
-        color: AppleTheme.secondaryText
+        color: BlueTheme.secondaryText
       }
 
       RowLayout {
@@ -451,16 +451,16 @@ Item {
           height: 36
           radius: 18
           color: "transparent"
-          border.color: AppleTheme.divider
+          border.color: BlueTheme.divider
           border.width: 1
 
           Text {
             id: cancelClearText
             anchors.centerIn: parent
             text: qsTr("Annuler")
-            font.family: AppleTheme.fontFamily
+            font.family: BlueTheme.fontFamily
             font.pixelSize: 13
-            color: AppleTheme.primaryText
+            color: BlueTheme.primaryText
           }
 
           MouseArea {
@@ -474,13 +474,13 @@ Item {
           width: confirmClearText.width + 24
           height: 36
           radius: 18
-          color: AppleTheme.statusNegative
+          color: BlueTheme.statusNegative
 
           Text {
             id: confirmClearText
             anchors.centerIn: parent
             text: qsTr("Vider")
-            font.family: AppleTheme.fontFamily
+            font.family: BlueTheme.fontFamily
             font.pixelSize: 13
             color: "#FFFFFF"
           }

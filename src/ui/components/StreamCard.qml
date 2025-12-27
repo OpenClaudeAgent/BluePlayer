@@ -1,6 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Layouts 1.15
-import "../themes/AppleTheme.js" as AppleTheme
+import "../themes/BlueTheme.js" as BlueTheme
 
 Item {
   id: cardRoot
@@ -20,8 +20,8 @@ Item {
     id: cardBackground
     anchors.fill: parent
     radius: 12
-    color: cardRoot.isPlaceholder ? AppleTheme.surfaceSoft : AppleTheme.surface
-    border.color: AppleTheme.divider
+    color: cardRoot.isPlaceholder ? BlueTheme.surfaceSoft : BlueTheme.surface
+    border.color: BlueTheme.divider
     border.width: 1
 
     // Hover effect
@@ -74,8 +74,8 @@ Item {
           Layout.fillWidth: true
           Layout.preferredHeight: 120
           radius: 8
-          color: cardRoot.isPlaceholder ? "#1a2230" : AppleTheme.surfaceSoft
-          border.color: AppleTheme.divider
+          color: cardRoot.isPlaceholder ? "#1a2230" : BlueTheme.surfaceSoft
+          border.color: BlueTheme.divider
           border.width: 1
           clip: true
 
@@ -99,14 +99,14 @@ Item {
           // Placeholder pendant le chargement ou si pas d'image
           Rectangle {
             anchors.fill: parent
-            color: cardRoot.isPlaceholder ? "#1a2230" : AppleTheme.surfaceSoft
+            color: cardRoot.isPlaceholder ? "#1a2230" : BlueTheme.surfaceSoft
             visible: thumbnailImage.status !== Image.Ready || cardRoot.isPlaceholder
             
             Text {
               anchors.centerIn: parent
               text: cardRoot.isPlaceholder ? "⋯" : (thumbnailImage.status === Image.Loading ? "⏳" : "📺")
               font.pixelSize: 32
-              color: AppleTheme.mutedText
+              color: BlueTheme.mutedText
               opacity: 0.5
             }
           }
@@ -119,7 +119,7 @@ Item {
             width: 40
             height: 20
             radius: 10
-            color: AppleTheme.statusNegative
+            color: BlueTheme.statusNegative
             visible: !cardRoot.isPlaceholder && thumbnailImage.status === Image.Ready
 
             Text {
@@ -139,19 +139,19 @@ Item {
 
         Text {
           text: cardRoot.streamerName
-          font.family: AppleTheme.fontFamily
+          font.family: BlueTheme.fontFamily
           font.pixelSize: 14
           font.bold: true
-          color: AppleTheme.primaryText
+          color: BlueTheme.primaryText
           elide: Text.ElideRight
           Layout.fillWidth: true
         }
 
         Text {
           text: cardRoot.streamTitle
-          font.family: AppleTheme.fontFamily
+          font.family: BlueTheme.fontFamily
           font.pixelSize: 12
-          color: AppleTheme.secondaryText
+          color: BlueTheme.secondaryText
           elide: Text.ElideRight
           wrapMode: Text.WordWrap
           maximumLineCount: 2
@@ -160,9 +160,9 @@ Item {
 
         Text {
           text: cardRoot.viewerCount
-          font.family: AppleTheme.fontFamily
+          font.family: BlueTheme.fontFamily
           font.pixelSize: 11
-          color: AppleTheme.accent
+          color: BlueTheme.accent
           Layout.fillWidth: true
         }
       }

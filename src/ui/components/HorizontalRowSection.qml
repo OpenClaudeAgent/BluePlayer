@@ -1,6 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Layouts 1.15
-import "../themes/AppleTheme.js" as AppleTheme
+import "../themes/BlueTheme.js" as BlueTheme
 
 Item {
   id: root
@@ -40,13 +40,13 @@ Item {
   readonly property bool isChannelSection: sectionType === "channels" || (cardsModel.length > 0 && cardsModel[0] && cardsModel[0].channelName !== undefined)
   readonly property real actualRowHeight: (isCategorySection || isChannelSection) ? 260 : rowHeight
 
-  implicitHeight: shouldShowSection ? ((titleSection.visible ? titleSection.height + AppleTheme.spacingMedium : 0) + flickableSection.height) : 0
+  implicitHeight: shouldShowSection ? ((titleSection.visible ? titleSection.height + BlueTheme.spacingMedium : 0) + flickableSection.height) : 0
   visible: shouldShowSection
 
   ColumnLayout {
     id: container
     anchors.fill: parent
-    spacing: AppleTheme.spacingMedium
+    spacing: BlueTheme.spacingMedium
 
     // Titre et sous-titre de la section
     ColumnLayout {
@@ -57,18 +57,18 @@ Item {
 
       Text {
         text: root.sectionTitle
-        font.family: AppleTheme.fontFamily
+        font.family: BlueTheme.fontFamily
         font.pixelSize: 20
         font.bold: true
-        color: AppleTheme.primaryText
+        color: BlueTheme.primaryText
       }
 
       Text {
         visible: root.sectionSubtitle !== ""
         text: root.sectionSubtitle
-        font.family: AppleTheme.fontFamily
+        font.family: BlueTheme.fontFamily
         font.pixelSize: 14
-        color: AppleTheme.secondaryText
+        color: BlueTheme.secondaryText
       }
     }
 

@@ -1,6 +1,6 @@
 # BluePlayer – Guide d’installation des outils
 
-Ce document décrit comment préparer un environnement de développement local performant pour BluePlayer sur macOS (Apple Silicon ou Intel). Adaptez les commandes si vous travaillez sous Linux ou Windows.
+Ce document decrit comment preparer un environnement de developpement local performant pour BluePlayer sur macOS (ARM ou Intel). Adaptez les commandes si vous travaillez sous Linux ou Windows.
 
 ## 1. Prérequis système
 

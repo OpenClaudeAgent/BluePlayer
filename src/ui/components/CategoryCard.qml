@@ -1,6 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Layouts 1.15
-import "../themes/AppleTheme.js" as AppleTheme
+import "../themes/BlueTheme.js" as BlueTheme
 
 Item {
   id: cardRoot
@@ -18,8 +18,8 @@ Item {
     id: cardBackground
     anchors.fill: parent
     radius: 12
-    color: cardRoot.isPlaceholder ? AppleTheme.surfaceSoft : AppleTheme.surface
-    border.color: AppleTheme.divider
+    color: cardRoot.isPlaceholder ? BlueTheme.surfaceSoft : BlueTheme.surface
+    border.color: BlueTheme.divider
     border.width: 1
 
     // Hover effect
@@ -73,8 +73,8 @@ Item {
         Layout.fillWidth: true
         Layout.preferredHeight: 200  // Augmenté de 120 à 200 pour mieux afficher les box art
         radius: 8
-        color: cardRoot.isPlaceholder ? "#1a2230" : AppleTheme.surfaceSoft
-        border.color: AppleTheme.divider
+        color: cardRoot.isPlaceholder ? "#1a2230" : BlueTheme.surfaceSoft
+        border.color: BlueTheme.divider
         border.width: 1
         clip: true
 
@@ -98,14 +98,14 @@ Item {
         // Placeholder pendant le chargement ou si pas d'image
         Rectangle {
           anchors.fill: parent
-          color: cardRoot.isPlaceholder ? "#1a2230" : AppleTheme.surfaceSoft
+          color: cardRoot.isPlaceholder ? "#1a2230" : BlueTheme.surfaceSoft
           visible: categoryImage.status !== Image.Ready || cardRoot.isPlaceholder
           
           Text {
             anchors.centerIn: parent
             text: cardRoot.isPlaceholder ? "⋯" : (categoryImage.status === Image.Loading ? "⏳" : "🎮")
             font.pixelSize: 32
-            color: AppleTheme.mutedText
+            color: BlueTheme.mutedText
             opacity: 0.5
           }
         }
@@ -114,10 +114,10 @@ Item {
       // Nom de la catégorie
       Text {
         text: cardRoot.categoryName
-        font.family: AppleTheme.fontFamily
+        font.family: BlueTheme.fontFamily
         font.pixelSize: 14
         font.bold: true
-        color: AppleTheme.primaryText
+        color: BlueTheme.primaryText
         elide: Text.ElideRight
         Layout.fillWidth: true
         horizontalAlignment: Text.AlignHCenter

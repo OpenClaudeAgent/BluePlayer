@@ -6,7 +6,7 @@ import Qt.labs.settings 1.1
 
 import BluePlayer.Media 1.0
 import BluePlayer.Chat 1.0
-import "themes/AppleTheme.js" as AppleTheme
+import "themes/BlueTheme.js" as BlueTheme
 import "components"
 
 Item {
@@ -531,7 +531,7 @@ Item {
           
           Text {
             text: streamerName || streamerLogin
-            font.family: AppleTheme.fontFamily
+            font.family: BlueTheme.fontFamily
             font.pixelSize: 18
             font.bold: true
             color: "#FFFFFF"
@@ -542,7 +542,7 @@ Item {
           
           Text {
             text: streamTitle || qsTr("Stream en direct")
-            font.family: AppleTheme.fontFamily
+            font.family: BlueTheme.fontFamily
             font.pixelSize: 13
             color: "#DDFFFFFF"
             style: Text.Outline; styleColor: "#80000000"
