@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/network/HttpClient.hpp"
+#include "core/network/IHttpClient.hpp"
 #include "core/Error.hpp"
 
 #include <QObject>
@@ -13,11 +13,14 @@ QT_END_NAMESPACE
 
 namespace blueplayer::core::network {
 
+// Forward declaration
+class HttpClient;
+
 /**
  * @brief Classe de base abstraite pour les clients API
  * 
  * Fournit une interface commune pour tous les clients API avec:
- * - Utilisation de HttpClient pour les requêtes HTTP
+ * - Utilisation de IHttpClient pour les requêtes HTTP (injection de dépendances)
  * - Gestion standardisée des erreurs réseau
  * - Parsing JSON générique
  * - Support de l'authentification Bearer token
@@ -27,10 +30,11 @@ class ApiClientBase : public QObject {
 
 public:
   /**
-   * @brief Constructeur
+   * @brief Constructeur avec injection de dépendances
+   * @param httpClient Client HTTP à utiliser (nullptr = création interne)
    * @param parent Le parent QObject
    */
-  explicit ApiClientBase(QObject* parent = nullptr);
+  explicit ApiClientBase(IHttpClient* httpClient = nullptr, QObject* parent = nullptr);
 
   /**
    * @brief Destructeur
@@ -101,10 +105,10 @@ protected:
   bool handleNetworkError(QNetworkReply* reply, const QString& errorContext = {});
 
   /**
-   * @brief Obtient le HttpClient sous-jacent
-   * @return Le HttpClient
+   * @brief Obtient le client HTTP sous-jacent
+   * @return Le client HTTP (interface)
    */
-  [[nodiscard]] HttpClient* httpClient() const { return m_httpClient; }
+  [[nodiscard]] IHttpClient* httpClient() const { return m_httpClient; }
   
   /**
    * @brief Obtient le bearer token actuel
@@ -120,7 +124,8 @@ private slots:
   void onHttpClientError(const Error& error);
 
 private:
-  HttpClient* m_httpClient = nullptr;
+  IHttpClient* m_httpClient = nullptr;
+  bool m_ownsHttpClient = false;  // true si on doit delete m_httpClient
 };
 
 }  // namespace blueplayer::core::network

@@ -1,4 +1,5 @@
 #include "core/network/ApiClientBase.hpp"
+#include "core/network/HttpClient.hpp"
 
 #include "core/Logger.hpp"
 
@@ -10,10 +11,16 @@
 
 namespace blueplayer::core::network {
 
-ApiClientBase::ApiClientBase(QObject* parent)
+ApiClientBase::ApiClientBase(IHttpClient* httpClient, QObject* parent)
     : QObject(parent),
-      m_httpClient(new HttpClient(this)) {
-  connect(m_httpClient, &HttpClient::networkError, this, &ApiClientBase::onHttpClientError);
+      m_httpClient(httpClient),
+      m_ownsHttpClient(httpClient == nullptr) {
+  // Si aucun client injecté, créer un HttpClient par défaut
+  if (m_httpClient == nullptr) {
+    auto* defaultClient = new HttpClient(this);
+    m_httpClient = defaultClient;
+    connect(defaultClient, &HttpClient::networkError, this, &ApiClientBase::onHttpClientError);
+  }
 }
 
 void ApiClientBase::setBearerToken(const QString& token) {

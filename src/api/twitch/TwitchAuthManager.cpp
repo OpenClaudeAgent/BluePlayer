@@ -1,4 +1,5 @@
 #include "api/twitch/TwitchAuthManager.hpp"
+#include "core/network/HttpClient.hpp"
 
 #include "core/Constants.hpp"
 #include "core/ErrorHandler.hpp"
@@ -165,16 +166,21 @@ QString buildRandomString(int length) {
 
 namespace blueplayer::api::twitch {
 
-TwitchAuthManager::TwitchAuthManager(QObject *parent)
+TwitchAuthManager::TwitchAuthManager(blueplayer::core::network::IHttpClient* httpClient, QObject *parent)
     : QObject(parent), m_scope(QString::fromUtf8(
                            blueplayer::core::constants::twitch::kDefaultScope)),
       m_listenPort(blueplayer::core::constants::twitch::kDefaultRedirectPort),
-      m_httpClient(new blueplayer::core::network::HttpClient(this)) {
-  // Connecter les erreurs réseau de HttpClient
-  connect(m_httpClient, &blueplayer::core::network::HttpClient::networkError,
-          this, [this](const blueplayer::core::Error &error) {
-            emit errorOccurred(error.toString());
-          });
+      m_httpClient(httpClient) {
+  // Si aucun client injecté, créer un HttpClient par défaut
+  if (m_httpClient == nullptr) {
+    auto* defaultClient = new blueplayer::core::network::HttpClient(this);
+    m_httpClient = defaultClient;
+    // Connecter les erreurs réseau de HttpClient
+    connect(defaultClient, &blueplayer::core::network::HttpClient::networkError,
+            this, [this](const blueplayer::core::Error &error) {
+              emit errorOccurred(error.toString());
+            });
+  }
   m_clientId = QString::fromUtf8(qgetenv("TWITCH_CLIENT_ID"));
   m_clientSecret = QString::fromUtf8(qgetenv("TWITCH_CLIENT_SECRET"));
 

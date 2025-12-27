@@ -27,7 +27,7 @@ using blueplayer::core::Logger;
 namespace blueplayer::api::twitch {
 
 TwitchService::TwitchService(QObject *parent)
-    : QObject(parent), m_authManager(new TwitchAuthManager(this)),
+    : QObject(parent), m_authManager(new TwitchAuthManager(nullptr, this)),
       m_apiClient(new TwitchApiClient(
           QString::fromUtf8(qgetenv("TWITCH_CLIENT_ID")), this)),
       m_adFilter(new blueplayer::media::HlsAdFilter(this)) {

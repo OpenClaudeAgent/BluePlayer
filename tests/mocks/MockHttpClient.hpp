@@ -2,6 +2,7 @@
 
 #include "MockNetworkReply.hpp"
 #include "core/Error.hpp"
+#include "core/network/IHttpClient.hpp"
 
 #include <QObject>
 #include <QNetworkAccessManager>
@@ -242,6 +243,8 @@ struct ResponseRule {
 /**
  * @brief Mock HTTP client for unit testing
  * 
+ * Implements IHttpClient interface for dependency injection in tests.
+ * 
  * Provides a testable HTTP client that can:
  * - Return predefined responses from a queue
  * - Return responses based on URL matching rules
@@ -274,7 +277,7 @@ struct ResponseRule {
  *   QVERIFY(client.lastRequest().urlContains("/users"));
  * @endcode
  */
-class MockHttpClient : public QObject {
+class MockHttpClient : public QObject, public blueplayer::core::network::IHttpClient {
   // Note: Q_OBJECT removed to avoid MOC namespace issues
   // Use callbacks instead of signals if needed
 
@@ -291,13 +294,15 @@ public:
 
   // ===== HTTP Methods =====
 
+  // ===== IHttpClient interface implementation =====
+
   /**
    * @brief Performs a mock GET request
    * @param url The URL to request
    * @param headers HTTP headers
    * @return A MockNetworkReply configured with the next response
    */
-  MockNetworkReply* get(const QUrl& url, const QHash<QString, QString>& headers = {}) {
+  QNetworkReply* get(const QUrl& url, const QHash<QString, QString>& headers = {}) override {
     return createReply(RecordedRequest::Method::GET, url, {}, headers);
   }
 
@@ -308,8 +313,8 @@ public:
    * @param headers HTTP headers
    * @return A MockNetworkReply configured with the next response
    */
-  MockNetworkReply* post(const QUrl& url, const QByteArray& data = {},
-                         const QHash<QString, QString>& headers = {}) {
+  QNetworkReply* post(const QUrl& url, const QByteArray& data = {},
+                         const QHash<QString, QString>& headers = {}) override {
     return createReply(RecordedRequest::Method::POST, url, data, headers);
   }
 
@@ -320,8 +325,8 @@ public:
    * @param headers HTTP headers
    * @return A MockNetworkReply configured with the next response
    */
-  MockNetworkReply* put(const QUrl& url, const QByteArray& data = {},
-                        const QHash<QString, QString>& headers = {}) {
+  QNetworkReply* put(const QUrl& url, const QByteArray& data = {},
+                        const QHash<QString, QString>& headers = {}) override {
     return createReply(RecordedRequest::Method::PUT, url, data, headers);
   }
 
@@ -331,8 +336,8 @@ public:
    * @param headers HTTP headers
    * @return A MockNetworkReply configured with the next response
    */
-  MockNetworkReply* deleteResource(const QUrl& url,
-                                    const QHash<QString, QString>& headers = {}) {
+  QNetworkReply* deleteResource(const QUrl& url,
+                                    const QHash<QString, QString>& headers = {}) override {
     return createReply(RecordedRequest::Method::DELETE_METHOD, url, {}, headers);
   }
 
@@ -558,7 +563,7 @@ public:
    * @brief Sets the bearer token
    * @param token The bearer token
    */
-  void setBearerToken(const QString& token) {
+  void setBearerToken(const QString& token) override {
     m_bearerToken = token;
   }
 
@@ -566,7 +571,7 @@ public:
    * @brief Gets the bearer token
    * @return The bearer token
    */
-  [[nodiscard]] QString bearerToken() const {
+  [[nodiscard]] QString bearerToken() const override {
     return m_bearerToken;
   }
 
@@ -575,7 +580,7 @@ public:
    * @param name The header name
    * @param value The header value
    */
-  void setDefaultHeader(const QString& name, const QString& value) {
+  void setDefaultHeader(const QString& name, const QString& value) override {
     m_defaultHeaders[name] = value;
   }
 
