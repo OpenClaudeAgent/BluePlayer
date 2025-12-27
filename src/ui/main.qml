@@ -259,6 +259,22 @@ ApplicationWindow {
                 root.currentView = "cache"
               })
             }
+            // HomeView - connect playVodRequested for search results
+            if (item.hasOwnProperty("playVodRequested")) {
+              item.playVodRequested.connect(function(id, filePath, metadata) {
+                console.log("[main.qml] HomeView playVodRequested:", id, filePath)
+                root.vodId = id
+                root.vodFilePath = filePath
+                root.vodMetadata = metadata
+                root.playerStreamerLogin = ""
+                root.playerStreamerName = metadata.streamerName || ""
+                root.playerStreamTitle = metadata.streamTitle || ""
+                if (cacheManager) {
+                  cacheManager.markAsPlayed(id)
+                }
+                root.currentView = "player"
+              })
+            }
           }
         }
       }

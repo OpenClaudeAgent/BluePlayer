@@ -92,3 +92,14 @@ make test
     -   `streaming/` : Gestion du streaming.
     -   `ui/` : Interface utilisateur QML.
 -   `tests/` : Tests unitaires et d'intégration.
+
+## Changelog
+
+| Version | Date | Description |
+|---------|------|-------------|
+| v0.6.0 | 2025-12-27 | Barre de recherche Twitch (channels live + cache local) |
+| v0.5.0 | 2025-12-26 | Gestion Cache/VOD (enregistrement auto, thumbnails, mode replay) |
+| v0.4.0 | 2025-12-26 | Layout barre de contrôle réorganisé + timer intelligent |
+| v0.3.0 | 2025-12-26 | Largeur boutons harmonisée (64px) + style uniforme |
+| v0.2.0 | 2025-12-26 | Fullscreen harmonisé (comportement unifié + curseur auto-caché) |
+| v0.1.0 | 2025-12-26 | Bouton Volume (slider vertical + hover) |

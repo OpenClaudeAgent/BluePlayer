@@ -1094,5 +1094,186 @@ void TwitchApiClient::handlePlaybackAccessTokenResponse(const QJsonDocument& doc
   emit playbackAccessTokenReady(token, sig);
 }
 
+void TwitchApiClient::searchChannels(const QString& query, int limit) {
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("searchChannels() called with query: '%1', limit: %2").arg(query).arg(limit));
+  
+  if (m_clientId.isEmpty()) {
+    core::Logger::error(core::LogCategory::Twitch, QStringLiteral("Client ID is empty! Cannot search channels."));
+    const auto error = ErrorHandler::twitchApiError(QStringLiteral("searchChannels"), QStringLiteral("Client ID manquant"));
+    emit errorOccurred(error.toString());
+    return;
+  }
+  
+  if (query.isEmpty()) {
+    core::Logger::warning(core::LogCategory::Twitch, QStringLiteral("Empty search query, emitting empty list"));
+    emit searchChannelsReady(QVariantList());
+    return;
+  }
+  
+  QUrl url(QStringLiteral("https://api.twitch.tv/helix/search/channels"));
+  QUrlQuery urlQuery;
+  urlQuery.addQueryItem(QStringLiteral("query"), query);
+  urlQuery.addQueryItem(QStringLiteral("first"), QString::number(limit));
+  urlQuery.addQueryItem(QStringLiteral("live_only"), QStringLiteral("false"));
+  url.setQuery(urlQuery);
+
+  core::Logger::debug(core::LogCategory::Network, QStringLiteral("Requesting search channels from: %1").arg(url.toString()));
+  QNetworkReply* reply = getJson(url);
+  connect(reply, &QNetworkReply::finished, this, &TwitchApiClient::handleSearchChannelsReply);
+}
+
+void TwitchApiClient::searchCategories(const QString& query, int limit) {
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("searchCategories() called with query: '%1', limit: %2").arg(query).arg(limit));
+  
+  if (m_clientId.isEmpty()) {
+    core::Logger::error(core::LogCategory::Twitch, QStringLiteral("Client ID is empty! Cannot search categories."));
+    const auto error = ErrorHandler::twitchApiError(QStringLiteral("searchCategories"), QStringLiteral("Client ID manquant"));
+    emit errorOccurred(error.toString());
+    return;
+  }
+  
+  if (query.isEmpty()) {
+    core::Logger::warning(core::LogCategory::Twitch, QStringLiteral("Empty search query, emitting empty list"));
+    emit searchCategoriesReady(QVariantList());
+    return;
+  }
+  
+  QUrl url(QStringLiteral("https://api.twitch.tv/helix/search/categories"));
+  QUrlQuery urlQuery;
+  urlQuery.addQueryItem(QStringLiteral("query"), query);
+  urlQuery.addQueryItem(QStringLiteral("first"), QString::number(limit));
+  url.setQuery(urlQuery);
+
+  core::Logger::debug(core::LogCategory::Network, QStringLiteral("Requesting search categories from: %1").arg(url.toString()));
+  QNetworkReply* reply = getJson(url);
+  connect(reply, &QNetworkReply::finished, this, &TwitchApiClient::handleSearchCategoriesReply);
+}
+
+void TwitchApiClient::handleSearchChannelsReply() {
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("handleSearchChannelsReply() called"));
+  QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
+  if (handleNetworkError(reply, QStringLiteral("recherche de chaînes"))) {
+    reply->deleteLater();
+    return;
+  }
+
+  const QJsonDocument document = parseJsonResponse(reply, QStringLiteral("Search channels"));
+  reply->deleteLater();
+  if (document.isNull()) {
+    core::Logger::warning(core::LogCategory::Twitch, QStringLiteral("Failed to parse search channels response"));
+    emit searchChannelsReady(QVariantList());
+    return;
+  }
+
+  const QJsonObject root = document.object();
+  const QJsonArray entries = root.value(QStringLiteral("data")).toArray();
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("Found %1 channels in search results").arg(entries.size()));
+  
+  if (entries.isEmpty()) {
+    core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("No channels found in search results"));
+    emit searchChannelsReady(QVariantList());
+    return;
+  }
+  
+  const QVariantList channels = parseSearchChannelsArray(entries);
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("Parsed %1 search channels, emitting signal").arg(channels.size()));
+  emit searchChannelsReady(channels);
+}
+
+void TwitchApiClient::handleSearchCategoriesReply() {
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("handleSearchCategoriesReply() called"));
+  QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
+  if (handleNetworkError(reply, QStringLiteral("recherche de catégories"))) {
+    reply->deleteLater();
+    return;
+  }
+
+  const QJsonDocument document = parseJsonResponse(reply, QStringLiteral("Search categories"));
+  reply->deleteLater();
+  if (document.isNull()) {
+    core::Logger::warning(core::LogCategory::Twitch, QStringLiteral("Failed to parse search categories response"));
+    emit searchCategoriesReady(QVariantList());
+    return;
+  }
+
+  const QJsonObject root = document.object();
+  const QJsonArray entries = root.value(QStringLiteral("data")).toArray();
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("Found %1 categories in search results").arg(entries.size()));
+  
+  if (entries.isEmpty()) {
+    core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("No categories found in search results"));
+    emit searchCategoriesReady(QVariantList());
+    return;
+  }
+  
+  const QVariantList categories = parseSearchCategoriesArray(entries);
+  core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("Parsed %1 search categories, emitting signal").arg(categories.size()));
+  emit searchCategoriesReady(categories);
+}
+
+QVariantList TwitchApiClient::parseSearchChannelsArray(const QJsonArray& entries) {
+  QVariantList channels;
+  channels.reserve(entries.size());
+
+  for (const QJsonValue& entryValue : entries) {
+    const QJsonObject entry = entryValue.toObject();
+    QVariantMap channel;
+    
+    const QString id = entry.value(QStringLiteral("id")).toString();
+    const QString broadcasterLogin = entry.value(QStringLiteral("broadcaster_login")).toString();
+    const QString displayName = entry.value(QStringLiteral("display_name")).toString();
+    const QString gameName = entry.value(QStringLiteral("game_name")).toString();
+    const QString gameId = entry.value(QStringLiteral("game_id")).toString();
+    const bool isLive = entry.value(QStringLiteral("is_live")).toBool();
+    const QString title = entry.value(QStringLiteral("title")).toString();
+    QString thumbnailUrl = entry.value(QStringLiteral("thumbnail_url")).toString();
+    
+    // La réponse de search/channels inclut déjà l'URL de l'image de profil
+    // Si vide, construire l'URL de l'avatar
+    if (thumbnailUrl.isEmpty() && !broadcasterLogin.isEmpty()) {
+      thumbnailUrl = QStringLiteral("https://static-cdn.jtvnw.net/jtv_user_pictures/%1-profile_image-300x300.png").arg(broadcasterLogin);
+    }
+    
+    channel.insert(QStringLiteral("id"), id);
+    channel.insert(QStringLiteral("broadcaster_login"), broadcasterLogin);
+    channel.insert(QStringLiteral("display_name"), displayName);
+    channel.insert(QStringLiteral("game_name"), gameName);
+    channel.insert(QStringLiteral("game_id"), gameId);
+    channel.insert(QStringLiteral("is_live"), isLive);
+    channel.insert(QStringLiteral("title"), title);
+    channel.insert(QStringLiteral("thumbnail_url"), thumbnailUrl);
+    
+    channels.append(channel);
+  }
+
+  return channels;
+}
+
+QVariantList TwitchApiClient::parseSearchCategoriesArray(const QJsonArray& entries) {
+  QVariantList categories;
+  categories.reserve(entries.size());
+
+  for (const QJsonValue& entryValue : entries) {
+    const QJsonObject entry = entryValue.toObject();
+    QVariantMap category;
+    
+    const QString id = entry.value(QStringLiteral("id")).toString();
+    const QString name = entry.value(QStringLiteral("name")).toString();
+    QString boxArtUrl = entry.value(QStringLiteral("box_art_url")).toString();
+    
+    // Le box_art_url contient des placeholders {width} et {height}, les remplacer
+    boxArtUrl.replace(QStringLiteral("{width}"), QString::number(285));
+    boxArtUrl.replace(QStringLiteral("{height}"), QString::number(380));
+    
+    category.insert(QStringLiteral("id"), id);
+    category.insert(QStringLiteral("name"), name);
+    category.insert(QStringLiteral("box_art_url"), boxArtUrl);
+    
+    categories.append(category);
+  }
+
+  return categories;
+}
+
 }  // namespace blueplayer::api::twitch
 

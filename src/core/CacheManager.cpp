@@ -395,6 +395,31 @@ QVariantMap CacheManager::getVodMetadata(const QString& vodId) const {
   return QVariantMap();
 }
 
+QVariantList CacheManager::searchVods(const QString& query) const {
+  QMutexLocker locker(&m_mutex);
+  QVariantList results;
+  
+  if (query.isEmpty()) {
+    return results;
+  }
+  
+  QString lowerQuery = query.toLower();
+  
+  for (const VodMetadata& vod : m_vodMetadataList) {
+    // Rechercher dans le nom du streamer, le titre et la catégorie
+    bool matchesStreamer = vod.streamerName.toLower().contains(lowerQuery);
+    bool matchesTitle = vod.streamTitle.toLower().contains(lowerQuery);
+    bool matchesGame = vod.gameCategory.toLower().contains(lowerQuery);
+    
+    if (matchesStreamer || matchesTitle || matchesGame) {
+      results.append(vod.toVariantMap());
+    }
+  }
+  
+  LOG_DEBUG(Core, QString("searchVods('%1') found %2 results").arg(query).arg(results.size()));
+  return results;
+}
+
 void CacheManager::startCleanupService(int intervalMs) {
   if (m_cleanupTimer == nullptr) {
     m_cleanupTimer = new QTimer(this);
