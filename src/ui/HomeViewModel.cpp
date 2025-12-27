@@ -112,13 +112,23 @@ QVariantList HomeViewModel::transformTwitchStreams(const QVariantList& twitchStr
 }
 
 void HomeViewModel::updateFollowedStreams(const QVariantList& twitchStreams) {
-  m_followedStreams = transformTwitchStreams(twitchStreams);
+  QVariantList newStreams = transformTwitchStreams(twitchStreams);
+  if (areListsEquivalent(m_followedStreams, newStreams, QStringLiteral("streamerLogin"))) {
+    Logger::debug(LogCategory::UI, QStringLiteral("Followed streams unchanged, skipping UI update"));
+    return;
+  }
+  m_followedStreams = newStreams;
   emit followedStreamsChanged();
   updateSectionsData();
 }
 
 void HomeViewModel::updateRecommendedStreams(const QVariantList& twitchStreams) {
-  m_recommendedStreams = transformTwitchStreams(twitchStreams);
+  QVariantList newStreams = transformTwitchStreams(twitchStreams);
+  if (areListsEquivalent(m_recommendedStreams, newStreams, QStringLiteral("streamerLogin"))) {
+    Logger::debug(LogCategory::UI, QStringLiteral("Recommended streams unchanged, skipping UI update"));
+    return;
+  }
+  m_recommendedStreams = newStreams;
   emit recommendedStreamsChanged();
   updateSectionsData();
 }
@@ -139,6 +149,10 @@ void HomeViewModel::updateCategories(const QVariantList& twitchCategories) {
     transformed.append(transformedCategory);
   }
   
+  if (areListsEquivalent(m_categories, transformed, QStringLiteral("id"))) {
+    Logger::debug(LogCategory::UI, QStringLiteral("Categories unchanged, skipping UI update"));
+    return;
+  }
   m_categories = transformed;
   emit categoriesChanged();
   updateSectionsData();
@@ -257,28 +271,48 @@ QVariantList HomeViewModel::transformChannels(const QVariantList& twitchChannels
 }
 
 void HomeViewModel::updatePopularClips(const QVariantList& twitchClips) {
-  m_popularClips = transformClips(twitchClips);
+  QVariantList newClips = transformClips(twitchClips);
+  if (areListsEquivalent(m_popularClips, newClips, QStringLiteral("url"))) {
+    Logger::debug(LogCategory::UI, QStringLiteral("Popular clips unchanged, skipping UI update"));
+    return;
+  }
+  m_popularClips = newClips;
   Logger::debug(LogCategory::UI, QStringLiteral("Popular clips updated: %1").arg(m_popularClips.size()));
   emit popularClipsChanged();
   updateSectionsData();
 }
 
 void HomeViewModel::updateFollowedClips(const QVariantList& twitchClips) {
-  m_followedClips = transformClips(twitchClips);
+  QVariantList newClips = transformClips(twitchClips);
+  if (areListsEquivalent(m_followedClips, newClips, QStringLiteral("url"))) {
+    Logger::debug(LogCategory::UI, QStringLiteral("Followed clips unchanged, skipping UI update"));
+    return;
+  }
+  m_followedClips = newClips;
   Logger::debug(LogCategory::UI, QStringLiteral("Followed clips updated: %1").arg(m_followedClips.size()));
   emit followedClipsChanged();
   updateSectionsData();
 }
 
 void HomeViewModel::updateVideos(const QVariantList& twitchVideos) {
-  m_videos = transformVideos(twitchVideos);
+  QVariantList newVideos = transformVideos(twitchVideos);
+  if (areListsEquivalent(m_videos, newVideos, QStringLiteral("videoId"))) {
+    Logger::debug(LogCategory::UI, QStringLiteral("Videos unchanged, skipping UI update"));
+    return;
+  }
+  m_videos = newVideos;
   Logger::debug(LogCategory::UI, QStringLiteral("Videos updated: %1").arg(m_videos.size()));
   emit videosChanged();
   updateSectionsData();
 }
 
 void HomeViewModel::updateFollowedChannels(const QVariantList& twitchChannels) {
-  m_followedChannels = transformChannels(twitchChannels);
+  QVariantList newChannels = transformChannels(twitchChannels);
+  if (areListsEquivalent(m_followedChannels, newChannels, QStringLiteral("channelName"))) {
+    Logger::debug(LogCategory::UI, QStringLiteral("Followed channels unchanged, skipping UI update"));
+    return;
+  }
+  m_followedChannels = newChannels;
   Logger::debug(LogCategory::UI, QStringLiteral("Followed channels updated: %1").arg(m_followedChannels.size()));
   emit followedChannelsChanged();
   updateSectionsData();
@@ -308,7 +342,12 @@ void HomeViewModel::updateNewStreamers(const QVariantList& twitchStreamers) {
 }
 
 void HomeViewModel::updateCategoryStreams(const QVariantList& twitchStreams) {
-  m_categoryStreams = transformTwitchStreams(twitchStreams);
+  QVariantList newStreams = transformTwitchStreams(twitchStreams);
+  if (areListsEquivalent(m_categoryStreams, newStreams, QStringLiteral("streamerLogin"))) {
+    Logger::debug(LogCategory::UI, QStringLiteral("Category streams unchanged, skipping UI update"));
+    return;
+  }
+  m_categoryStreams = newStreams;
   Logger::debug(LogCategory::UI, QStringLiteral("Category streams updated: %1").arg(m_categoryStreams.size()));
   emit categoryStreamsChanged();
   updateSectionsData();
@@ -396,6 +435,31 @@ QVariantMap HomeViewModel::createCategoryCard(const QString& name, const QString
   card[QStringLiteral("boxArtUrl")] = boxArtUrl;
   card[QStringLiteral("isPlaceholder")] = boxArtUrl.isEmpty();
   return card;
+}
+
+bool HomeViewModel::areListsEquivalent(const QVariantList& oldList, const QVariantList& newList, const QString& keyField) {
+  if (oldList.size() != newList.size()) {
+    return false;
+  }
+  
+  for (int i = 0; i < oldList.size(); ++i) {
+    const QVariantMap oldItem = oldList[i].toMap();
+    const QVariantMap newItem = newList[i].toMap();
+    
+    // Compare by key field (e.g., streamerLogin, id)
+    if (oldItem.value(keyField) != newItem.value(keyField)) {
+      return false;
+    }
+    
+    // For streams, also check viewer count changes (live status indicator)
+    if (keyField == QStringLiteral("streamerLogin") || keyField == QStringLiteral("userLogin")) {
+      if (oldItem.value(QStringLiteral("viewers")) != newItem.value(QStringLiteral("viewers"))) {
+        return false;
+      }
+    }
+  }
+  
+  return true;
 }
 
 }  // namespace blueplayer::ui

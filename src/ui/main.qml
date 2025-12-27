@@ -131,12 +131,19 @@ ApplicationWindow {
   }
 
   // Player view - full screen, no margins (outside ColumnLayout)
+  // Z-index 5 to overlay on top of home content (which stays rendered behind)
   Loader {
     id: playerLoader
     anchors.fill: parent
-    visible: currentView === "player"
+    visible: opacity > 0
     active: currentView === "player"
+    opacity: currentView === "player" ? 1.0 : 0.0
+    z: 5  // Above home content, below header buttons (z:10)
     source: "PlayerView.qml"
+    
+    Behavior on opacity {
+      NumberAnimation { duration: BlueTheme.animContentFadeDuration; easing.type: Easing.OutCubic }
+    }
     
     onItemChanged: {
       if (item && currentView === "player") {
@@ -171,109 +178,211 @@ ApplicationWindow {
     }
   }
 
-  // Other views - with margins and scroll
+  // ==========================================================================
+  // VIEWS ARCHITECTURE: Separate loaders to preserve state
+  // - HomeView: Always active (never destroyed) to keep thumbnails loaded
+  // - Preferences/Cache: Overlay on top of home, destroyed when closed
+  // - Player: Full overlay with fade animation
+  // ==========================================================================
+
+  // Helper to check if authenticated
+  property bool isAuthenticated: {
+    var service = root.getTwitchService()
+    return service && service.authenticated
+  }
+
+  // --------------------------------------------------------------------------
+  // LOGIN VIEW - Shown when not authenticated
+  // --------------------------------------------------------------------------
   ColumnLayout {
+    id: loginContainer
     anchors.fill: parent
     anchors.margins: BlueTheme.spacingLarge
     spacing: BlueTheme.spacingMedium
-    visible: currentView !== "player"
-
+    visible: !isAuthenticated
+    
     ScrollView {
       Layout.fillWidth: true
       Layout.fillHeight: true
       clip: true
-
+      
       Loader {
-        id: pageLoader
+        id: loginLoader
         anchors.fill: parent
-        active: currentView !== "player"
-        source: {
-          // Si twitchService n'existe pas ou si l'utilisateur n'est pas authentifié, afficher la vue de connexion
-          var service = root.getTwitchService()
-          console.log("[main.qml] pageLoader.source - twitchService:", service ? "EXISTS" : "NULL")
-          if (!service || !service.authenticated) {
-            console.log("[main.qml] Loading LoginView.qml")
-            return "LoginView.qml"
-          }
-          // Sinon, afficher la vue normale selon currentView
-          console.log("[main.qml] Loading view:", currentView)
-          if (currentView === "home") return "HomeView.qml"
-          if (currentView === "preferences") return "PreferencesView.qml"
-          if (currentView === "cache") return "CacheManagerView.qml"
-          return "HomeView.qml"
-        }
-        Behavior on opacity {
-          NumberAnimation { duration: 220 }
-        }
+        active: !isAuthenticated
+        source: "LoginView.qml"
+      }
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // HOME VIEW - Always active when authenticated (never destroyed)
+  // --------------------------------------------------------------------------
+  ColumnLayout {
+    id: homeContainer
+    anchors.fill: parent
+    anchors.margins: BlueTheme.spacingLarge
+    spacing: BlueTheme.spacingMedium
+    visible: isAuthenticated && currentView !== "player"
+    
+    ScrollView {
+      Layout.fillWidth: true
+      Layout.fillHeight: true
+      clip: true
+      
+      Loader {
+        id: homeLoader
+        anchors.fill: parent
+        // ALWAYS active when authenticated - never destroyed
+        active: isAuthenticated
+        source: "HomeView.qml"
         
-        // Passer les propriétés au composant chargé
         onItemChanged: {
-          console.log("[main.qml] onItemChanged - currentView:", currentView)
           if (item) {
-            if (item.hasOwnProperty("openStreamPlayer")) {
-              console.log("[main.qml] Connecting openStreamPlayer signal")
-              item.openStreamPlayer.connect(function(login, name, title, thumbnailUrl) {
-                console.log("[main.qml] openStreamPlayer signal received:")
-                console.log("[main.qml]   login:", login)
-                console.log("[main.qml]   name:", name)
-                console.log("[main.qml]   title:", title)
-                console.log("[main.qml]   thumbnailUrl:", thumbnailUrl)
-                root.playerStreamerLogin = login
-                root.playerStreamerName = name
-                root.playerStreamTitle = title
-                root.playerStreamThumbnailUrl = thumbnailUrl
-                root.currentView = "player"
-              })
-            }
-            // CacheManagerView connections
-            if (item.hasOwnProperty("cacheManager")) {
-              item.cacheManager = cacheManager
-            }
-            if (item.hasOwnProperty("backRequested")) {
-              item.backRequested.connect(function() {
+            console.log("[main.qml] HomeView loaded, connecting signals")
+            
+            item.openStreamPlayer.connect(function(login, name, title, thumbnailUrl) {
+              console.log("[main.qml] openStreamPlayer:", login)
+              root.playerStreamerLogin = login
+              root.playerStreamerName = name
+              root.playerStreamTitle = title
+              root.playerStreamThumbnailUrl = thumbnailUrl
+              root.currentView = "player"
+            })
+            
+            item.openCacheManager.connect(function() {
+              console.log("[main.qml] Opening cache manager")
+              root.currentView = "cache"
+            })
+            
+            item.playVodRequested.connect(function(id, filePath, metadata) {
+              console.log("[main.qml] HomeView playVodRequested:", id, filePath)
+              root.vodId = id
+              root.vodFilePath = filePath
+              root.vodMetadata = metadata
+              root.playerStreamerLogin = ""
+              root.playerStreamerName = metadata.streamerName || ""
+              root.playerStreamTitle = metadata.streamTitle || ""
+              if (cacheManager) {
+                cacheManager.markAsPlayed(id)
+              }
+              root.currentView = "player"
+            })
+          }
+        }
+      }
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // PREFERENCES VIEW - Overlay on top of home
+  // --------------------------------------------------------------------------
+  ColumnLayout {
+    id: preferencesContainer
+    anchors.fill: parent
+    anchors.margins: BlueTheme.spacingLarge
+    spacing: BlueTheme.spacingMedium
+    visible: currentView === "preferences"
+    z: 2  // Above home
+    
+    // Background to cover home
+    Rectangle {
+      Layout.fillWidth: true
+      Layout.fillHeight: true
+      color: "transparent"
+      
+      // Gradient background matching app theme
+      Rectangle {
+        anchors.fill: parent
+        gradient: Gradient {
+          GradientStop { position: 0; color: BlueTheme.gradientStart }
+          GradientStop { position: 1; color: BlueTheme.gradientEnd }
+        }
+      }
+      
+      ScrollView {
+        anchors.fill: parent
+        clip: true
+        
+        Loader {
+          id: preferencesLoader
+          anchors.fill: parent
+          active: currentView === "preferences"
+          source: "PreferencesView.qml"
+          
+          onItemChanged: {
+            if (item && item.hasOwnProperty("closeRequested")) {
+              item.closeRequested.connect(function() {
                 root.currentView = "home"
               })
             }
-            if (item.hasOwnProperty("playVodRequested")) {
-              item.playVodRequested.connect(function(id, filePath, metadata) {
-                console.log("[main.qml] playVodRequested:", id, filePath)
-                root.vodId = id
-                root.vodFilePath = filePath
-                root.vodMetadata = metadata
-                // Set player info from VOD metadata
-                root.playerStreamerLogin = ""
-                root.playerStreamerName = metadata.streamerName || ""
-                root.playerStreamTitle = metadata.streamTitle || ""
-                // Mark as played
-                if (cacheManager) {
-                  cacheManager.markAsPlayed(id)
-                }
-                // Navigate to player
-                root.currentView = "player"
-              })
-            }
-            // HomeView - connect to open cache view
-            if (item.hasOwnProperty("openCacheManager")) {
-              item.openCacheManager.connect(function() {
-                console.log("[main.qml] Opening cache manager")
-                root.currentView = "cache"
-              })
-            }
-            // HomeView - connect playVodRequested for search results
-            if (item.hasOwnProperty("playVodRequested")) {
-              item.playVodRequested.connect(function(id, filePath, metadata) {
-                console.log("[main.qml] HomeView playVodRequested:", id, filePath)
-                root.vodId = id
-                root.vodFilePath = filePath
-                root.vodMetadata = metadata
-                root.playerStreamerLogin = ""
-                root.playerStreamerName = metadata.streamerName || ""
-                root.playerStreamTitle = metadata.streamTitle || ""
-                if (cacheManager) {
-                  cacheManager.markAsPlayed(id)
-                }
-                root.currentView = "player"
-              })
+          }
+        }
+      }
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // CACHE MANAGER VIEW - Overlay on top of home
+  // --------------------------------------------------------------------------
+  ColumnLayout {
+    id: cacheContainer
+    anchors.fill: parent
+    anchors.margins: BlueTheme.spacingLarge
+    spacing: BlueTheme.spacingMedium
+    visible: currentView === "cache"
+    z: 2  // Above home
+    
+    // Background to cover home
+    Rectangle {
+      Layout.fillWidth: true
+      Layout.fillHeight: true
+      color: "transparent"
+      
+      // Gradient background matching app theme
+      Rectangle {
+        anchors.fill: parent
+        gradient: Gradient {
+          GradientStop { position: 0; color: BlueTheme.gradientStart }
+          GradientStop { position: 1; color: BlueTheme.gradientEnd }
+        }
+      }
+      
+      ScrollView {
+        anchors.fill: parent
+        clip: true
+        
+        Loader {
+          id: cacheLoader
+          anchors.fill: parent
+          active: currentView === "cache"
+          source: "CacheManagerView.qml"
+          
+          onItemChanged: {
+            if (item) {
+              if (item.hasOwnProperty("cacheManager")) {
+                item.cacheManager = cacheManager
+              }
+              if (item.hasOwnProperty("backRequested")) {
+                item.backRequested.connect(function() {
+                  root.currentView = "home"
+                })
+              }
+              if (item.hasOwnProperty("playVodRequested")) {
+                item.playVodRequested.connect(function(id, filePath, metadata) {
+                  console.log("[main.qml] CacheManager playVodRequested:", id, filePath)
+                  root.vodId = id
+                  root.vodFilePath = filePath
+                  root.vodMetadata = metadata
+                  root.playerStreamerLogin = ""
+                  root.playerStreamerName = metadata.streamerName || ""
+                  root.playerStreamTitle = metadata.streamTitle || ""
+                  if (cacheManager) {
+                    cacheManager.markAsPlayed(id)
+                  }
+                  root.currentView = "player"
+                })
+              }
             }
           }
         }
@@ -281,41 +390,29 @@ ApplicationWindow {
     }
   }
 
-  Component {
-    id: loginComponent
-    LoginView {
-      // Passer twitchService explicitement au Component pour éviter les problèmes de contexte
-      twitchServiceRef: {
-        console.log("[main.qml] loginComponent - twitchService:", twitchService ? "EXISTS" : "NULL")
-        return twitchService
+  // --------------------------------------------------------------------------
+  // Refresh home data when returning from player
+  // --------------------------------------------------------------------------
+  property string previousView: "home"
+  onCurrentViewChanged: {
+    if (previousView === "player" && currentView === "home") {
+      console.log("[main.qml] Returned from player, refreshing home data")
+      var service = root.getTwitchService()
+      if (service && service.authenticated) {
+        service.refreshFollowedStreams()
+        service.refreshRecommendedStreams()
       }
     }
+    previousView = currentView
   }
 
-  Component {
-    id: homeComponent
-    HomeView {
-    }
-  }
-
-  Component {
-    id: preferencesComponent
-    PreferencesView {
-      onCloseRequested: currentView = "home"
-    }
-  }
-
-
-
-  // Connexion pour rediriger vers LoginView après déconnexion
+  // Connexion pour rediriger vers home après déconnexion
   Connections {
     target: root.getTwitchService()
     enabled: root.getTwitchService() !== null
     function onAuthenticatedChanged(authenticated) {
       if (!authenticated) {
-        console.log("[main.qml] User logged out, redirecting to LoginView")
-        // Mettre currentView à "home" pour forcer le rechargement
-        // Le Loader chargera automatiquement LoginView car authenticated est false
+        console.log("[main.qml] User logged out, isAuthenticated will update automatically")
         currentView = "home"
       }
     }

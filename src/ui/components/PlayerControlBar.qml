@@ -66,7 +66,7 @@ Rectangle {
   
   opacity: controlsVisible ? 1.0 : 0.0
   Behavior on opacity {
-    NumberAnimation { duration: 300; easing.type: Easing.InOutCubic }
+    NumberAnimation { duration: BlueTheme.animControlBarDuration; easing.type: Easing.InOutCubic }
   }
   
   // Main content - Single row layout
@@ -89,12 +89,12 @@ Rectangle {
       border.width: 1
 
       Behavior on color {
-        ColorAnimation { duration: 150 }
+        ColorAnimation { duration: BlueTheme.animHoverDuration; easing.type: Easing.OutCubic }
       }
 
       scale: playPauseMouseArea.pressed ? 0.92 : (playPauseMouseArea.containsMouse ? 1.05 : 1.0)
       Behavior on scale {
-        NumberAnimation { duration: 100; easing.type: Easing.OutQuad }
+        NumberAnimation { duration: BlueTheme.animPressDuration; easing.type: Easing.OutQuart }
       }
 
       // Play/Pause Icon container
@@ -240,7 +240,7 @@ Rectangle {
           radius: parent.radius
           color: BlueTheme.accent
           opacity: (seekSlider.pressed || seekSlider.userDragging) ? 0.10 : (seekSlider.hovered ? 0.06 : 0.0)
-          Behavior on opacity { NumberAnimation { duration: 100 } }
+          Behavior on opacity { NumberAnimation { duration: BlueTheme.animPressDuration; easing.type: Easing.OutCubic } }
         }
       }
 
@@ -273,8 +273,8 @@ Rectangle {
           border.width: 1
           opacity: seekSlider.enabled ? 1.0 : 0.6
           scale: seekSlider.pressed ? 1.12 : (seekSlider.hovered ? 1.06 : 1.0)
-          Behavior on scale { NumberAnimation { duration: 100; easing.type: Easing.OutCubic } }
-          Behavior on border.color { ColorAnimation { duration: 120 } }
+          Behavior on scale { NumberAnimation { duration: BlueTheme.animPressDuration; easing.type: Easing.OutCubic } }
+          Behavior on border.color { ColorAnimation { duration: BlueTheme.animHoverDuration; easing.type: Easing.OutCubic } }
         }
       }
     }
@@ -291,8 +291,8 @@ Rectangle {
       border.color: seekSlider.atLiveEdge ? "#FF6961" : "#48484A"
       border.width: 1
       
-      Behavior on color { ColorAnimation { duration: 150 } }
-      Behavior on border.color { ColorAnimation { duration: 200 } }
+      Behavior on color { ColorAnimation { duration: BlueTheme.animHoverDuration; easing.type: Easing.OutCubic } }
+      Behavior on border.color { ColorAnimation { duration: BlueTheme.animCardDuration; easing.type: Easing.OutCubic } }
       
       // Pulsing dot centered
       Rectangle {
@@ -303,8 +303,8 @@ Rectangle {
         SequentialAnimation on opacity {
           running: seekSlider.atLiveEdge
           loops: Animation.Infinite
-          NumberAnimation { to: 0.5; duration: 600 }
-          NumberAnimation { to: 1.0; duration: 600 }
+          NumberAnimation { to: 0.5; duration: BlueTheme.animPulseDuration }
+          NumberAnimation { to: 1.0; duration: BlueTheme.animPulseDuration }
         }
       }
       
@@ -361,7 +361,7 @@ Rectangle {
         id: rateDown
         width: chipHeight; height: chipHeight; radius: chipRadius
         color: rateDownMouse.containsMouse ? "#33FFFFFF" : "#1AFFFFFF"
-        Behavior on color { ColorAnimation { duration: 150 } }
+        Behavior on color { ColorAnimation { duration: BlueTheme.animHoverDuration; easing.type: Easing.OutCubic } }
         Text { anchors.centerIn: parent; text: "\u2212"; color: "#FFFFFF"; font.pixelSize: 14 }
         MouseArea {
           id: rateDownMouse
@@ -401,7 +401,7 @@ Rectangle {
         id: rateUp
         width: chipHeight; height: chipHeight; radius: chipRadius
         color: rateUpMouse.containsMouse ? "#33FFFFFF" : "#1AFFFFFF"
-        Behavior on color { ColorAnimation { duration: 150 } }
+        Behavior on color { ColorAnimation { duration: BlueTheme.animHoverDuration; easing.type: Easing.OutCubic } }
         Text { anchors.centerIn: parent; text: "+"; color: "#FFFFFF"; font.pixelSize: 14 }
         MouseArea {
           id: rateUpMouse
@@ -419,7 +419,7 @@ Rectangle {
         width: 44; height: chipHeight; radius: chipRadius
         color: hwMouse.containsMouse ? "#33FFFFFF" : "#26FFFFFF"
         border.color: "#4DFFFFFF"; border.width: 1
-        Behavior on color { ColorAnimation { duration: 150 } }
+        Behavior on color { ColorAnimation { duration: BlueTheme.animHoverDuration; easing.type: Easing.OutCubic } }
         Text {
           anchors.centerIn: parent
           text: hardwareDecoding ? qsTr("HW") : qsTr("SW")
@@ -443,7 +443,7 @@ Rectangle {
         width: 44; height: chipHeight; radius: chipRadius
         color: cropMouse.containsMouse ? "#33FFFFFF" : "#26FFFFFF"
         border.color: "#4DFFFFFF"; border.width: 1
-        Behavior on color { ColorAnimation { duration: 150 } }
+        Behavior on color { ColorAnimation { duration: BlueTheme.animHoverDuration; easing.type: Easing.OutCubic } }
         Text {
           anchors.centerIn: parent
           text: cropVideo ? qsTr("Crop") : qsTr("Fit")
@@ -469,7 +469,7 @@ Rectangle {
         color: chatVisible ? BlueTheme.accent : (chatMouse.containsMouse ? "#33FFFFFF" : "#1AFFFFFF")
         border.color: chatVisible ? BlueTheme.accent : "#4DFFFFFF"
         border.width: 1
-        Behavior on color { ColorAnimation { duration: 150 } }
+        Behavior on color { ColorAnimation { duration: BlueTheme.animHoverDuration; easing.type: Easing.OutCubic } }
 
         // Chat bubble icon
         Canvas {
@@ -541,7 +541,7 @@ Rectangle {
           border.width: 1
 
           Behavior on color {
-            ColorAnimation { duration: 150 }
+            ColorAnimation { duration: BlueTheme.animHoverDuration; easing.type: Easing.OutCubic }
           }
 
           // Volume Icon
@@ -639,10 +639,10 @@ Rectangle {
           visible: height > 0
 
           Behavior on height {
-            NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+            NumberAnimation { duration: BlueTheme.animOverlayDuration; easing.type: Easing.OutCubic }
           }
           Behavior on opacity {
-            NumberAnimation { duration: 150 }
+            NumberAnimation { duration: BlueTheme.animHoverDuration; easing.type: Easing.OutCubic }
           }
 
           Slider {
@@ -682,7 +682,7 @@ Rectangle {
 
               scale: volumeSlider.pressed ? 1.2 : 1.0
               Behavior on scale {
-                NumberAnimation { duration: 100 }
+                NumberAnimation { duration: BlueTheme.animPressDuration; easing.type: Easing.OutQuart }
               }
             }
 
@@ -713,7 +713,7 @@ Rectangle {
         color: fsMouseArea.containsMouse ? "#33FFFFFF" : "#1AFFFFFF"
         border.color: "#4DFFFFFF"
         border.width: 1
-        Behavior on color { ColorAnimation { duration: 150 } }
+        Behavior on color { ColorAnimation { duration: BlueTheme.animHoverDuration; easing.type: Easing.OutCubic } }
 
         Canvas {
             anchors.centerIn: parent
@@ -759,22 +759,8 @@ Rectangle {
     onTriggered: showVolumeSlider = false
   }
   
-  // Hover area for volume section
-  MouseArea {
-    anchors.right: parent.right
-    anchors.top: parent.top
-    anchors.bottom: parent.bottom
-    width: 80
-    hoverEnabled: true
-    propagateComposedEvents: true
-    onEntered: {
-      showVolumeSlider = true
-      hideVolumeTimer.stop()
-    }
-    onExited: hideVolumeTimer.restart()
-    onPressed: function(mouse) { mouse.accepted = false }
-    onReleased: function(mouse) { mouse.accepted = false }
-  }
+  // Note: Volume hover is now handled directly by volumeMouseArea (inside the button)
+  // Removed the large 80px hover area that was triggering too early
 
   function _formatTime(sec) {
     if (sec <= 0 || sec !== sec) return "00:00";

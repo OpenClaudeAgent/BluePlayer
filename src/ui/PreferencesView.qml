@@ -356,7 +356,7 @@ Item {
                 }
                 
                 Behavior on color {
-                  ColorAnimation { duration: 150 }
+                  ColorAnimation { duration: BlueTheme.animHoverDuration; easing.type: Easing.OutCubic }
                 }
 
                 Text {

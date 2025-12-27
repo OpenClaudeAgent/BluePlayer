@@ -225,7 +225,7 @@ Rectangle {
             }
 
             Behavior on Layout.preferredHeight {
-                NumberAnimation { duration: 200 }
+                NumberAnimation { duration: BlueTheme.animContentFadeDuration; easing.type: Easing.OutCubic }
             }
         }
 
@@ -285,7 +285,7 @@ Rectangle {
                 opacity: visible ? 1.0 : 0.0
 
                 Behavior on opacity {
-                    NumberAnimation { duration: 150 }
+                    NumberAnimation { duration: BlueTheme.animHoverDuration; easing.type: Easing.OutCubic }
                 }
 
                 Row {

@@ -113,6 +113,7 @@ Consultez la [Roadmap](roadmap/README.md) pour le suivi des tâches planifiées 
 
 | Version | Date | Description |
 |---------|------|-------------|
+| v0.10.0 | 2025-12-27 | Animations harmonisées, transitions navigation fluides, architecture vues optimisée |
 | v0.9.0 | 2025-12-27 | Vitesse lecture intelligente (auto-reset au live, protection stutter, mode replay) |
 | v0.8.0 | 2025-12-27 | Fix Home : suppression section redondante "En direct maintenant" |
 | v0.7.0 | 2025-12-27 | Chat Twitch intégré (lecture, envoi, emotes, badges) |

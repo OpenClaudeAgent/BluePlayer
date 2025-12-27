@@ -202,6 +202,15 @@ private:
   QVariantList transformClips(const QVariantList& twitchClips);
   QVariantList transformVideos(const QVariantList& twitchVideos);
   QVariantList transformChannels(const QVariantList& twitchChannels);
+  
+  /**
+   * @brief Compare two lists by a key field to detect changes
+   * @param oldList The current list
+   * @param newList The new list to compare
+   * @param keyField The field name to use for comparison (e.g., "streamerLogin", "id")
+   * @return true if lists are equivalent (same items in same order), false otherwise
+   */
+  static bool areListsEquivalent(const QVariantList& oldList, const QVariantList& newList, const QString& keyField);
 };
 
 }  // namespace blueplayer::ui

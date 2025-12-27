@@ -111,7 +111,7 @@ Item {
                viewModel.usagePercent > 70 ? BlueTheme.statusWarning : BlueTheme.accent
 
         Behavior on width {
-          NumberAnimation { duration: 300; easing.type: Easing.OutCubic }
+          NumberAnimation { duration: BlueTheme.animPanelDuration; easing.type: Easing.OutCubic }
         }
       }
     }
@@ -412,7 +412,7 @@ Item {
                   }
 
                   Behavior on opacity {
-                    NumberAnimation { duration: 150 }
+                    NumberAnimation { duration: BlueTheme.animHoverDuration; easing.type: Easing.OutCubic }
                   }
                 }
 
@@ -499,7 +499,7 @@ Item {
             }
 
             Behavior on color {
-              ColorAnimation { duration: 150 }
+              ColorAnimation { duration: BlueTheme.animHoverDuration; easing.type: Easing.OutCubic }
             }
           }
         }
