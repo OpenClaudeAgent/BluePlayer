@@ -129,6 +129,8 @@ qt_add_qml_module(BluePlayer
     ui/components/HorizontalRowSection.qml
     ui/components/StreamCard.qml
     ui/components/PlayerControlBar.qml
+    ui/components/SearchResults.qml
+    ui/components/SearchResultItem.qml
 )
 
 target_link_libraries(BluePlayer

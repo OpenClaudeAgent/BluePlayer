@@ -49,17 +49,44 @@ Item {
   
   focus: true
 
-  // Timer pour debouncing de la recherche (300ms)
+  // Timer pour debouncing de la recherche (400ms comme spécifié)
   Timer {
     id: searchDebounceTimer
-    interval: 300
+    interval: 400
     onTriggered: {
       if (searchField.text.length > 0) {
         console.log("[HomeView] Recherche déclenchée après debounce:", searchField.text)
-        // TODO: Implémenter la recherche réelle ici
-        // Exemple: twitchService.searchStreams(searchField.text)
+        // Rechercher dans Twitch
+        var service = getTwitchService()
+        if (service) {
+          service.search(searchField.text)
+        }
+        // Rechercher dans le cache local
+        var cache = getCacheManager()
+        if (cache) {
+          searchResultsPopup.cacheResults = cache.searchVods(searchField.text)
+          console.log("[HomeView] Cache search results:", searchResultsPopup.cacheResults.length)
+        }
       }
     }
+  }
+  
+  // Propriétés pour les résultats de recherche
+  property bool searchResultsVisible: searchField.activeFocus && searchField.text.length > 0
+  
+  // Fermer les résultats quand on clique ailleurs (sans effacer)
+  function closeSearchResults() {
+    searchField.focus = false
+    // Ne pas effacer les résultats - ils réapparaîtront au refocus
+  }
+  
+  // Effacer complètement les résultats (quand on vide le champ ou sélectionne un résultat)
+  function clearSearchResults() {
+    var service = getTwitchService()
+    if (service) {
+      service.clearSearchResults()
+    }
+    searchResultsPopup.cacheResults = []
   }
 
   // Connexion au service Twitch pour mettre à jour les streams via le ViewModel
@@ -152,6 +179,15 @@ Item {
     function onErrorOccurred(message) {
       console.log("[HomeView] ERROR Twitch:", message)
     }
+    function onSearchChannelResultsChanged() {
+      console.log("[HomeView] Search channel results changed")
+      // Force update of SearchResults binding
+      searchResultsPopup.channelResults = getTwitchService() ? getTwitchService().searchChannelResults : []
+    }
+    function onSearchCategoryResultsChanged() {
+      // Categories are no longer displayed in search results
+      console.log("[HomeView] Search category results changed (ignored)")
+    }
     function onUserIdChanged() {
       console.log("[DEBUG HomeView] onUserIdChanged() called")
       var service = getTwitchService()
@@ -202,132 +238,175 @@ Item {
     }
   }
 
+  // Overlay pour fermer les résultats de recherche quand on clique ailleurs
+  MouseArea {
+    id: searchOverlay
+    anchors.fill: parent
+    visible: searchResultsPopup.visible
+    z: 5  // Au-dessus du contenu mais en-dessous de la barre de recherche
+    onClicked: {
+      console.log("[HomeView] Click outside search results - closing")
+      closeSearchResults()
+    }
+  }
+
   ColumnLayout {
     anchors.fill: parent
     spacing: 0
 
-    // Barre de recherche fixe en haut
+    // Barre de recherche fixe en haut - Style minimaliste
     Rectangle {
       id: searchBarContainer
       Layout.fillWidth: true
-      Layout.preferredHeight: 88
+      Layout.preferredHeight: 72
       color: "transparent"
-      z: 10
+      z: 100
 
       Rectangle {
         id: searchBarBackground
-        width: Math.min(400, (parent.width - AppleTheme.spacingLarge * 2) / 2)
-        height: 52
+        width: Math.min(380, parent.width - 48)
+        height: 44
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenter: parent.verticalCenter
-        radius: 26
-        color: searchField.activeFocus ? "#1a2330" : AppleTheme.surfaceSoft
-        border.color: searchField.activeFocus ? "#5a6578" : AppleTheme.divider
-        border.width: searchField.activeFocus ? 1.5 : AppleTheme.borderWidth
-
-        // Effet de glow au focus (gris subtil)
-        Rectangle {
-          anchors.fill: parent
-          anchors.margins: -3
-          radius: parent.radius + 3
-          color: "transparent"
-          border.color: searchField.activeFocus ? Qt.rgba(0.35, 0.39, 0.47, 0.15) : "transparent"
-          border.width: 3
-          z: -1
-          opacity: searchField.activeFocus ? 1 : 0
-          Behavior on opacity {
-            NumberAnimation { duration: 250; easing.type: Easing.OutCubic }
-          }
-        }
-
-        // Ombre subtile
-        Rectangle {
-          anchors.fill: parent
-          anchors.margins: -1
-          radius: parent.radius + 1
-          color: "transparent"
-          border.color: "#00000025"
-          border.width: 1
-          z: -2
-        }
+        radius: 12
+        color: searchField.activeFocus ? "#161d28" : "#0d1117"
+        border.color: searchField.activeFocus ? AppleTheme.accent : "transparent"
+        border.width: searchField.activeFocus ? 1 : 0
 
         Behavior on color {
-          ColorAnimation { duration: 200; easing.type: Easing.OutCubic }
+          ColorAnimation { duration: 150; easing.type: Easing.OutCubic }
         }
         Behavior on border.color {
-          ColorAnimation { duration: 200; easing.type: Easing.OutCubic }
+          ColorAnimation { duration: 150; easing.type: Easing.OutCubic }
         }
 
         RowLayout {
           anchors.fill: parent
-          anchors.leftMargin: 22
-          anchors.rightMargin: 22
-          anchors.topMargin: 14
-          anchors.bottomMargin: 14
-          spacing: 18
+          anchors.leftMargin: 14
+          anchors.rightMargin: 14
+          spacing: 10
 
-          // Icône de loupe
+          // Icône de loupe minimaliste
           Text {
-            text: "🔍"
-            font.pixelSize: 17
-            color: searchField.activeFocus ? "#5a6578" : AppleTheme.secondaryText
+            text: "\u2315"  // Loupe unicode
+            font.pixelSize: 18
+            font.weight: Font.Light
+            color: searchField.activeFocus ? AppleTheme.accent : AppleTheme.mutedText
             Layout.alignment: Qt.AlignVCenter
+            opacity: 0.7
             Behavior on color {
-              ColorAnimation { duration: 200; easing.type: Easing.OutCubic }
+              ColorAnimation { duration: 150 }
             }
           }
 
-          // Item wrapper pour mieux contrôler l'espacement vertical
-          Item {
+          TextField {
+            id: searchField
             Layout.fillWidth: true
             Layout.fillHeight: true
-            
-            TextField {
-              id: searchField
-              anchors.left: parent.left
-              anchors.right: parent.right
-              anchors.verticalCenter: parent.verticalCenter
-              height: 24
-              verticalAlignment: Text.AlignVCenter
-              placeholderText: qsTr("Rechercher...")
-              placeholderTextColor: searchField.activeFocus ? Qt.rgba(0.49, 0.54, 0.64, 0.6) : AppleTheme.mutedText
-              font.family: AppleTheme.fontFamily
-              font.pixelSize: 15
-              color: AppleTheme.primaryText
-              cursorVisible: activeFocus
-              background: Rectangle { 
-                color: "transparent"
-                anchors.fill: parent
-              }
-              selectByMouse: true
-              leftPadding: 0
-              rightPadding: 0
-              topPadding: text.length > 0 ? 6 : 0
-              bottomPadding: 0
-              Behavior on topPadding {
-                NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
-              }
+            verticalAlignment: Text.AlignVCenter
+            placeholderText: qsTr("Rechercher...")
+            placeholderTextColor: AppleTheme.mutedText
+            font.family: AppleTheme.fontFamily
+            font.pixelSize: 14
+            font.weight: Font.Normal
+            color: AppleTheme.primaryText
+            cursorVisible: activeFocus
+            background: Item {}
+            selectByMouse: true
+            leftPadding: 0
+            rightPadding: 0
               onTextChanged: {
                 // Annuler le timer précédent si l'utilisateur tape encore
                 searchDebounceTimer.stop()
-                // Redémarrer le timer pour attendre 300ms après la dernière frappe
+                // Redémarrer le timer pour attendre 400ms après la dernière frappe
                 if (text.length > 0) {
                   searchDebounceTimer.start()
+                } else {
+                  // Effacer les résultats si le champ est vide
+                  clearSearchResults()
                 }
               }
               onAccepted: {
                 // Recherche immédiate si l'utilisateur appuie sur Entrée
-                searchDebounceTimer.stop()
-                console.log("[HomeView] Recherche immédiate:", text)
-                // TODO: Implémenter la recherche réelle ici
-                // Exemple: twitchService.searchStreams(text)
+                // (seulement si aucun élément n'est sélectionné - sinon géré par Keys.onPressed)
+                if (searchResultsPopup.selectedIndex < 0 && text.length > 0) {
+                  searchDebounceTimer.stop()
+                  console.log("[HomeView] Recherche immédiate:", text)
+                  var service = getTwitchService()
+                  if (service) {
+                    service.search(text)
+                  }
+                  // Aussi chercher dans le cache
+                  var cache = getCacheManager()
+                  if (cache) {
+                    searchResultsPopup.cacheResults = cache.searchVods(text)
+                  }
+                }
               }
-              Keys.onEscapePressed: {
+            Keys.priority: Keys.BeforeItem
+            Keys.onPressed: function(event) {
+              if (event.key === Qt.Key_Escape) {
                 searchDebounceTimer.stop()
-                focus = false
+                closeSearchResults()
+                event.accepted = true
+              } else if (event.key === Qt.Key_Up) {
+                if (searchResultsPopup.visible) {
+                  searchResultsPopup.navigateUp()
+                  event.accepted = true
+                }
+              } else if (event.key === Qt.Key_Down) {
+                if (searchResultsPopup.visible) {
+                  searchResultsPopup.navigateDown()
+                  event.accepted = true
+                }
+              } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                if (searchResultsPopup.visible && searchResultsPopup.selectedIndex >= 0) {
+                  searchResultsPopup.selectCurrent()
+                  event.accepted = true
+                }
               }
             }
           }
+        }
+      }
+      
+      // Popup des résultats de recherche
+      SearchResults {
+        id: searchResultsPopup
+        anchors.top: searchBarBackground.bottom
+        anchors.topMargin: 8
+        anchors.horizontalCenter: searchBarBackground.horizontalCenter
+        width: searchBarBackground.width
+        
+        isVisible: homeRoot.searchResultsVisible
+        channelResults: {
+          var service = getTwitchService()
+          return service ? service.searchChannelResults : []
+        }
+        cacheResults: []  // Updated via searchDebounceTimer
+        
+        onChannelClicked: function(broadcasterLogin, displayName, isLive, thumbnailUrl) {
+          console.log("[HomeView] Search result channel clicked:", displayName, "login:", broadcasterLogin, "isLive:", isLive)
+          searchField.text = ""
+          clearSearchResults()
+          searchField.focus = false
+          // Ouvrir le player pour le stream en direct (only live channels are shown)
+          homeRoot.openStreamPlayer(broadcasterLogin, displayName, "", thumbnailUrl)
+        }
+        
+        onCacheVodClicked: function(vodId, filePath, streamerName) {
+          console.log("[HomeView] Cache VOD clicked:", streamerName, "path:", filePath)
+          searchField.text = ""
+          clearSearchResults()
+          searchField.focus = false
+          // Ouvrir le player pour la VOD en cache
+          // Le signal openStreamPlayer peut être réutilisé avec le filePath comme "login"
+          // On utilise "file://" + filePath comme URL de stream
+          homeRoot.openStreamPlayer("cache:" + vodId, streamerName, "VOD en cache", "")
+        }
+        
+        onCloseRequested: {
+          closeSearchResults()
         }
       }
     }
@@ -347,7 +426,7 @@ Item {
         anchors.right: parent.right
         anchors.margins: AppleTheme.spacingLarge
         
-        // MouseArea pour perdre le focus sans bloquer le scroll
+        // MouseArea pour perdre le focus et fermer les résultats de recherche
         MouseArea {
           Layout.fillWidth: true
           Layout.fillHeight: true
@@ -355,8 +434,8 @@ Item {
           hoverEnabled: false
           propagateComposedEvents: true
           onClicked: function(mouse) {
-            if (searchField.activeFocus) {
-              searchField.focus = false
+            if (searchField.activeFocus || searchResultsPopup.visible) {
+              closeSearchResults()
             }
             mouse.accepted = false
           }

@@ -32,6 +32,8 @@ class TwitchService : public QObject {
   Q_PROPERTY(QVariantList followedChannels READ followedChannels NOTIFY followedChannelsChanged)
   Q_PROPERTY(QVariantList newStreamers READ newStreamers NOTIFY newStreamersChanged)
   Q_PROPERTY(QVariantList categoryStreams READ categoryStreams NOTIFY categoryStreamsChanged)
+  Q_PROPERTY(QVariantList searchChannelResults READ searchChannelResults NOTIFY searchChannelResultsChanged)
+  Q_PROPERTY(QVariantList searchCategoryResults READ searchCategoryResults NOTIFY searchCategoryResultsChanged)
   Q_PROPERTY(QString selectedStreamUrl READ selectedStreamUrl NOTIFY selectedStreamChanged)
   Q_PROPERTY(QString userId READ userId NOTIFY userIdChanged)
   Q_PROPERTY(QString userName READ userName NOTIFY userNameChanged)
@@ -107,6 +109,18 @@ public:
    * @return La liste des streams par catégorie (QVariantList pour QML)
    */
   [[nodiscard]] QVariantList categoryStreams() const;
+
+  /**
+   * @brief Obtient les résultats de recherche de chaînes
+   * @return La liste des chaînes trouvées (QVariantList pour QML)
+   */
+  [[nodiscard]] QVariantList searchChannelResults() const;
+
+  /**
+   * @brief Obtient les résultats de recherche de catégories
+   * @return La liste des catégories trouvées (QVariantList pour QML)
+   */
+  [[nodiscard]] QVariantList searchCategoryResults() const;
 
   /**
    * @brief Obtient l'URL du stream sélectionné
@@ -187,6 +201,17 @@ public:
   Q_INVOKABLE void refreshCategoryStreams(const QString& gameId);
 
   /**
+   * @brief Effectue une recherche Twitch (chaînes et catégories)
+   * @param query Le terme de recherche
+   */
+  Q_INVOKABLE void search(const QString& query);
+
+  /**
+   * @brief Efface les résultats de recherche
+   */
+  Q_INVOKABLE void clearSearchResults();
+
+  /**
    * @brief Sélectionne et prépare un stream pour la lecture
    * @param index L'index du stream dans la liste
    */
@@ -215,6 +240,8 @@ signals:
   void followedChannelsChanged();
   void newStreamersChanged();
   void categoryStreamsChanged();
+  void searchChannelResultsChanged();
+  void searchCategoryResultsChanged();
   void selectedStreamChanged();
   void userIdChanged();
   void userNameChanged();
@@ -241,6 +268,8 @@ private slots:
   void onFollowedChannelsReady(const QVariantList& channels);
   void onNewStreamersReady(const QVariantList& streamers);
   void onCategoryStreamsReady(const QVariantList& streams);
+  void onSearchChannelsReady(const QVariantList& channels);
+  void onSearchCategoriesReady(const QVariantList& categories);
   void onUserInfoReady(const QString& userId);
   void onUserInfoReadyWithName(const QString& userId, const QString& userName);
   void onPlaybackAccessTokenReady(const QString& token, const QString& sig);
@@ -265,6 +294,8 @@ private:
   QVariantList m_followedChannels;
   QVariantList m_newStreamers;
   QVariantList m_categoryStreams;
+  QVariantList m_searchChannelResults;
+  QVariantList m_searchCategoryResults;
   QString m_selectedStreamUrl;
   QString m_userId;
   QString m_userName;

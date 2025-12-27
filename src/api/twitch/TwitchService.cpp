@@ -69,6 +69,10 @@ TwitchService::TwitchService(QObject *parent)
           &TwitchService::onNewStreamersReady, Qt::UniqueConnection);
   connect(m_apiClient, &TwitchApiClient::categoryStreamsReady, this,
           &TwitchService::onCategoryStreamsReady, Qt::UniqueConnection);
+  connect(m_apiClient, &TwitchApiClient::searchChannelsReady, this,
+          &TwitchService::onSearchChannelsReady, Qt::UniqueConnection);
+  connect(m_apiClient, &TwitchApiClient::searchCategoriesReady, this,
+          &TwitchService::onSearchCategoriesReady, Qt::UniqueConnection);
   connect(m_apiClient, &TwitchApiClient::userInfoReady, this,
           &TwitchService::onUserInfoReady, Qt::UniqueConnection);
   connect(m_apiClient, &TwitchApiClient::userInfoReadyWithName, this,
@@ -458,6 +462,65 @@ void TwitchService::refreshCategoryStreams(const QString &gameId) {
   m_apiClient->getStreamsByCategory(gameId, 20);
 }
 
+void TwitchService::search(const QString &query) {
+  Logger::debug(LogCategory::Twitch, QStringLiteral("search() called with query: '%1'").arg(query));
+  
+  if (!m_apiClient) {
+    Logger::error(LogCategory::Twitch, QStringLiteral("API client is null"));
+    emit errorOccurred(QStringLiteral("Client API non initialisé."));
+    return;
+  }
+
+  if (query.isEmpty()) {
+    clearSearchResults();
+    return;
+  }
+
+  QString token = m_authManager ? m_authManager->accessToken() : QString();
+  if (!token.isEmpty()) {
+    m_apiClient->setAccessToken(token);
+  }
+
+  // Lancer les deux recherches en parallèle
+  Logger::debug(LogCategory::Twitch, QStringLiteral("Starting parallel search for channels and categories"));
+  m_apiClient->searchChannels(query, 10);
+  m_apiClient->searchCategories(query, 5);
+}
+
+void TwitchService::clearSearchResults() {
+  m_searchChannelResults.clear();
+  m_searchCategoryResults.clear();
+  emit searchChannelResultsChanged();
+  emit searchCategoryResultsChanged();
+}
+
+void TwitchService::onSearchChannelsReady(const QVariantList &channels) {
+  Logger::debug(LogCategory::Twitch, QStringLiteral("onSearchChannelsReady() called with %1 channels").arg(channels.size()));
+  
+  // Ne garder que les chaînes LIVE (les offline ne sont pas cliquables pour l'instant)
+  QVariantList liveChannels;
+  
+  for (const QVariant &channelVar : channels) {
+    const QVariantMap channel = channelVar.toMap();
+    bool isLive = channel.value(QStringLiteral("is_live")).toBool();
+    
+    if (isLive) {
+      liveChannels.append(channel);
+    }
+  }
+  
+  m_searchChannelResults = liveChannels;
+  
+  Logger::debug(LogCategory::Twitch, QStringLiteral("Filtered to %1 live channels only").arg(liveChannels.size()));
+  emit searchChannelResultsChanged();
+}
+
+void TwitchService::onSearchCategoriesReady(const QVariantList &categories) {
+  Logger::debug(LogCategory::Twitch, QStringLiteral("onSearchCategoriesReady() called with %1 categories").arg(categories.size()));
+  m_searchCategoryResults = categories;
+  emit searchCategoryResultsChanged();
+}
+
 void TwitchService::onAccessTokenChanged(const QString &token) {
   Logger::debug(
       LogCategory::Twitch,
@@ -532,6 +595,14 @@ QVariantList TwitchService::categoryStreams() const {
   return m_categoryStreams;
 }
 
+QVariantList TwitchService::searchChannelResults() const {
+  return m_searchChannelResults;
+}
+
+QVariantList TwitchService::searchCategoryResults() const {
+  return m_searchCategoryResults;
+}
+
 QString TwitchService::selectedStreamUrl() const { return m_selectedStreamUrl; }
 
 QString TwitchService::userId() const { return m_userId; }
@@ -570,6 +641,10 @@ void TwitchService::logout() {
   emit newStreamersChanged();
   m_categoryStreams.clear();
   emit categoryStreamsChanged();
+  m_searchChannelResults.clear();
+  emit searchChannelResultsChanged();
+  m_searchCategoryResults.clear();
+  emit searchCategoryResultsChanged();
   m_selectedStreamUrl.clear();
   emit selectedStreamChanged();
   m_userId.clear();

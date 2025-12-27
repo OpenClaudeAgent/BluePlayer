@@ -117,6 +117,20 @@ public:
    */
   void getPlaybackAccessToken(const QString& streamerLogin);
 
+  /**
+   * @brief Recherche des chaînes par nom
+   * @param query Le terme de recherche
+   * @param limit Nombre maximum de résultats (défaut: 10)
+   */
+  Q_INVOKABLE void searchChannels(const QString& query, int limit = 10);
+
+  /**
+   * @brief Recherche des catégories/jeux par nom
+   * @param query Le terme de recherche
+   * @param limit Nombre maximum de résultats (défaut: 10)
+   */
+  Q_INVOKABLE void searchCategories(const QString& query, int limit = 10);
+
 signals:
   void streamsReady(const QVariantList& streams);
   void recommendedStreamsReady(const QVariantList& streams);
@@ -130,6 +144,8 @@ signals:
   void userInfoReady(const QString& userId);
   void userInfoReadyWithName(const QString& userId, const QString& userName);
   void playbackAccessTokenReady(const QString& token, const QString& sig);
+  void searchChannelsReady(const QVariantList& channels);
+  void searchCategoriesReady(const QVariantList& categories);
   void errorOccurred(const QString& message);  // Gardé pour compatibilité QML
   void tokenInvalidated();  // Émis quand le token est invalide (Client-ID mismatch)
 
@@ -147,6 +163,8 @@ private slots:
   void handleUsersInfoReply();
   void handlePlaybackAccessTokenReply();
   void handlePlaybackAccessTokenResponse(const QJsonDocument& document, const QString& streamerLogin);
+  void handleSearchChannelsReply();
+  void handleSearchCategoriesReply();
 
 private:
   QString expandThumbnail(const QString& templateUrl) const;
@@ -154,6 +172,8 @@ private:
   QVariantList parseClipsArray(const QJsonArray& entries);
   QVariantList parseVideosArray(const QJsonArray& entries);
   QVariantList parseChannelsArray(const QJsonArray& entries);
+  QVariantList parseSearchChannelsArray(const QJsonArray& entries);
+  QVariantList parseSearchCategoriesArray(const QJsonArray& entries);
   void getUsersInfo(const QStringList& userIds);
   
   QString m_clientId;

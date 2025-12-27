@@ -205,6 +205,13 @@ class CacheManager : public QObject {
   Q_INVOKABLE QVariantMap getVodMetadata(const QString& vodId) const;
 
   /**
+   * @brief Recherche des VOD par nom de streamer ou titre
+   * @param query Le terme de recherche
+   * @return Liste des VOD correspondantes
+   */
+  Q_INVOKABLE QVariantList searchVods(const QString& query) const;
+
+  /**
    * @brief Démarre le service de nettoyage automatique
    * @param intervalMs Intervalle de vérification en millisecondes (défaut: 5 min)
    */
