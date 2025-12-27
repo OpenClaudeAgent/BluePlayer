@@ -121,6 +121,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 19 | Twitch Tracker Stats | [plan-19](./plan-19-twitch-tracker.md) | `feature/twitch-tracker` | - | 🔴 En attente |
 | 20 | Filtres Catégorie/Jeu | [plan-20](./plan-20-category-filters.md) | `feature/category-filters` | - | 🔴 En attente |
 | **21** | **Dette Technique** | [plan-21](./plan-21-technical-debt.md) | `refactor/tech-debt` | - | 🔴 En attente |
+| 22 | Page succès OAuth | [plan-22](./plan-22-oauth-success-page.md) | `fix/oauth-success-page` | - | 🔴 En attente |
 
 ### Plans spéciaux
 
@@ -165,3 +166,4 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 2025-12-27 | Ajout plan 20 - Filtres Catégorie/Jeu (placeholder - design à définir) |
 | 2025-12-27 | Ajout plan 21 - Dette Technique (audit, refactoring, performance) - plan récurrent |
 | 2025-12-27 | Tâche 7 terminée - Chat Twitch intégré (lecture, envoi, emotes, badges) |
+| 2025-12-27 | Ajout plan 22 - Page succès OAuth (amélioration UX authentification) |
