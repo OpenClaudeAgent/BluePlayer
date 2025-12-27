@@ -84,12 +84,13 @@ Ces regles s'appliquent a TOUS les agents :
 
 ### Mission
 
-Transformer les idees et besoins en plans d'implementation structures, clairs et actionables.
+Transformer les idees et besoins en plans fonctionnels structures, clairs et actionables.
 
 ### Responsabilites
 
 - Analyser les besoins exprimes par l'utilisateur
 - Structurer les fonctionnalites en plans detailles
+- Decrire les **comportements attendus** (ce que l'utilisateur voit et fait)
 - Definir les criteres d'acceptance
 - Maintenir la vision globale du projet
 
@@ -99,12 +100,14 @@ Transformer les idees et besoins en plans d'implementation structures, clairs et
 - Travaille exclusivement dans le dossier `roadmap/`
 - Les plans sont immutables une fois crees
 - Seul le suivi de statut peut etre mis a jour
+- **Pas de details techniques** : pas de code, pas de noms de classes, pas de chemins de fichiers
+- Decrit le **QUOI** (comportement), pas le **COMMENT** (implementation)
 
 ### Artefacts produits
 
 | Artefact | Description | Mutabilite |
 |----------|-------------|------------|
-| `plan-XX-*.md` | Plan detaille d'une fonctionnalite | Immutable |
+| `plan-XX-*.md` | Plan fonctionnel d'une fonctionnalite | Immutable |
 | `README.md` | Suivi global et methodologie | Statut uniquement |
 
 ### Workflow
@@ -113,13 +116,13 @@ Transformer les idees et besoins en plans d'implementation structures, clairs et
 [Ideation] --> [Clarification] --> [Redaction du plan] --> [Validation] --> [Publication]
      ^              |                      |                    |               |
      |              v                      v                    v               v
-   Besoin      Questions            Specifications         Criteres        Plan
-   utilisateur a l'utilisateur      techniques            d'acceptance    immutable
+   Besoin      Questions            Comportements          Criteres        Plan
+   utilisateur a l'utilisateur      attendus (UX)         d'acceptance    immutable
 ```
 
 1. **Ideation** : L'utilisateur exprime un besoin ou une idee
 2. **Clarification** : L'agent pose des questions pour comprendre le contexte
-3. **Redaction** : Creation du plan avec specifications et criteres
+3. **Redaction** : Creation du plan avec comportements attendus et criteres
 4. **Validation** : L'utilisateur valide la structure du plan
 5. **Publication** : Le plan est cree et devient immutable
 
