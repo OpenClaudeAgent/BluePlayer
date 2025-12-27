@@ -19,7 +19,7 @@ Rectangle {
   radius: 8
   
   Behavior on color {
-    ColorAnimation { duration: 150; easing.type: Easing.OutCubic }
+    ColorAnimation { duration: BlueTheme.animHoverDuration; easing.type: Easing.OutCubic }
   }
   
   RowLayout {
@@ -47,7 +47,7 @@ Rectangle {
         
         opacity: status === Image.Ready ? 1 : 0
         Behavior on opacity {
-          NumberAnimation { duration: 150 }
+          NumberAnimation { duration: BlueTheme.animHoverDuration; easing.type: Easing.OutCubic }
         }
       }
       
@@ -120,7 +120,7 @@ Rectangle {
       opacity: mouseArea.containsMouse || itemRoot.isSelected ? 1 : 0
       
       Behavior on opacity {
-        NumberAnimation { duration: 150 }
+        NumberAnimation { duration: BlueTheme.animHoverDuration; easing.type: Easing.OutCubic }
       }
     }
   }

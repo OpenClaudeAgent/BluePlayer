@@ -42,11 +42,12 @@ Item {
     transitions: Transition {
       NumberAnimation {
         properties: "scale, opacity"
-        duration: 200
+        duration: BlueTheme.animCardDuration
         easing.type: Easing.OutCubic
       }
       ColorAnimation {
-        duration: 200
+        duration: BlueTheme.animCardDuration
+        easing.type: Easing.OutCubic
       }
     }
 
@@ -91,7 +92,7 @@ Item {
           // Animation de fade-in lors du chargement
           opacity: status === Image.Ready ? 1 : 0
           Behavior on opacity {
-            NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+            NumberAnimation { duration: BlueTheme.animContentFadeDuration; easing.type: Easing.OutCubic }
           }
         }
 

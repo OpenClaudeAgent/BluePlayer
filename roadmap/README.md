@@ -112,7 +112,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 7 | Chat Twitch intégré | [plan-07](./plan-07-chat.md) | `feature/chat` | v0.7.0 | 🟢 Terminé |
 | 8 | Fix ligne vide Home | [plan-08](./plan-08-home-empty-row.md) | `feature/fix-home-row` | v0.8.0 | 🟢 Terminé |
 | 9 | Vitesse lecture intelligente | [plan-09](./plan-09-playback-speed.md) | `feature/playback-speed` | v0.9.0 | 🟢 Terminé |
-| 10 | Animations & Transitions | [plan-10](./plan-10-animations.md) | `feature/animations` | - | 🔴 En attente |
+| 10 | Animations & Transitions | [plan-10](./plan-10-animations.md) | `feature/animations` | v0.10.0 | 🟢 Terminé |
 | 11 | Sélecteur Qualité Stream | [plan-11](./plan-11-quality-selector.md) | `feature/quality-selector` | - | 🔴 En attente |
 | 12 | Panel Préférences | [plan-12](./plan-12-preferences.md) | `feature/preferences` | - | 🔴 En attente |
 | 13 | Internationalisation (i18n) | [plan-13](./plan-13-internationalization.md) | `feature/i18n` | - | 🔴 En attente |
@@ -180,3 +180,4 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 2025-12-27 | Tâche 9 terminée - Vitesse lecture intelligente (auto-reset, protection live edge, mode replay) |
 | 2025-12-27 | Ajout plan 24 - Refactoring Technique (25 sous-tâches : sécurité, QML refactoring, C++ refactoring, tests) |
 | 2025-12-27 | Ajout plan 25 - Audit UI/UX Design (20 sous-tâches : palette, typographie, radius, composants, accessibilité) |
+| 2025-12-27 | Tâche 10 terminée - Animations harmonisées, transitions navigation, architecture vues optimisée |

@@ -319,7 +319,7 @@ Item {
       anchors.top: parent.top
       anchors.left: parent.left
       anchors.bottom: parent.bottom
-      anchors.right: chatVisible ? chatPanel.left : parent.right
+      anchors.right: chatPanel.left  // Always anchored to chat panel (which animates its width)
       
       // The player is defined below and reparented dynamically
     }
@@ -331,7 +331,7 @@ Item {
       anchors.right: parent.right
       anchors.bottom: parent.bottom  // Full height for better integration
       width: chatVisible ? chatPanel.currentWidth : 0
-      visible: chatVisible
+      visible: chatVisible || chatCloseAnimation.running
       z: 100  // Above mouse interaction layer
       chatClient: chatClient
       channelName: playerRoot.streamerLogin
@@ -342,7 +342,11 @@ Item {
       }
 
       Behavior on width {
-        NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+        NumberAnimation { 
+          id: chatCloseAnimation
+          duration: BlueTheme.animPanelDuration
+          easing.type: Easing.OutCubic 
+        }
       }
     }
 
@@ -430,7 +434,7 @@ Item {
       anchors.top: parent.top
       anchors.left: parent.left
       anchors.bottom: parent.bottom
-      anchors.right: chatVisible ? chatPanel.left : parent.right
+      anchors.right: chatPanel.left  // Always anchored to chat panel (which animates its width)
       hoverEnabled: true
       propagateComposedEvents: true
       // Hide cursor in fullscreen when controls are hidden
@@ -490,7 +494,7 @@ Item {
       // Visibility Animation
       opacity: playerRoot.controlsVisible ? 1.0 : 0.0
       visible: opacity > 0
-      Behavior on opacity { NumberAnimation { duration: 300 } }
+      Behavior on opacity { NumberAnimation { duration: BlueTheme.animControlBarDuration; easing.type: Easing.InOutCubic } }
       
       RowLayout {
         anchors.fill: parent
@@ -602,13 +606,13 @@ Item {
         id: feedbackAnim
         
         ParallelAnimation {
-            NumberAnimation { target: centerFeedback; property: "opacity"; to: 1; duration: 100 }
-            NumberAnimation { target: centerFeedback; property: "scale"; from: 0.8; to: 1.1; duration: 150 }
+            NumberAnimation { target: centerFeedback; property: "opacity"; to: 1; duration: BlueTheme.animPressDuration }
+            NumberAnimation { target: centerFeedback; property: "scale"; from: 0.8; to: 1.1; duration: BlueTheme.animHoverDuration }
         }
-        PauseAnimation { duration: 300 }
+        PauseAnimation { duration: BlueTheme.animOverlayDuration }
         ParallelAnimation {
-            NumberAnimation { target: centerFeedback; property: "opacity"; to: 0; duration: 250 }
-            NumberAnimation { target: centerFeedback; property: "scale"; to: 1.5; duration: 250 }
+            NumberAnimation { target: centerFeedback; property: "opacity"; to: 0; duration: BlueTheme.animOverlayDuration }
+            NumberAnimation { target: centerFeedback; property: "scale"; to: 1.5; duration: BlueTheme.animOverlayDuration }
         }
       }
     }
@@ -671,7 +675,7 @@ Item {
     PlayerControlBar {
       id: playerControlBar
       anchors.left: parent.left
-      anchors.right: chatVisible ? chatPanel.left : parent.right
+      anchors.right: chatPanel.left  // Always anchored to chat panel (which animates its width)
       anchors.bottom: parent.bottom
       
       playing: playerRoot.playing
@@ -753,7 +757,7 @@ Item {
       color: "#AA000000"
       border.color: "#33FFFFFF"
       border.width: 1
-      Behavior on opacity { NumberAnimation { duration: 150 } }
+      Behavior on opacity { NumberAnimation { duration: BlueTheme.animHoverDuration; easing.type: Easing.OutCubic } }
 
       RowLayout {
         anchors.fill: parent
@@ -776,7 +780,7 @@ Item {
       border.color: "#55FFFFFF"
       visible: opacity > 0
       opacity: 0
-      Behavior on opacity { NumberAnimation { duration: 200 } }
+      Behavior on opacity { NumberAnimation { duration: BlueTheme.animContentFadeDuration; easing.type: Easing.OutCubic } }
       property string text: ""
 
       function show(msg) {
@@ -795,9 +799,9 @@ Item {
       SequentialAnimation {
         id: toastAnim
         running: false
-        PropertyAnimation { target: toast; property: "opacity"; to: 1; duration: 120 }
-        PauseAnimation { duration: 1400 }
-        PropertyAnimation { target: toast; property: "opacity"; to: 0; duration: 200 }
+        PropertyAnimation { target: toast; property: "opacity"; to: 1; duration: BlueTheme.animToastEnterDuration }
+        PauseAnimation { duration: BlueTheme.animToastDisplayDuration }
+        PropertyAnimation { target: toast; property: "opacity"; to: 0; duration: BlueTheme.animToastExitDuration }
       }
     }
 
@@ -812,7 +816,7 @@ Item {
       border.color: "#FF5252"
       visible: showError
       opacity: showError ? 1.0 : 0.0
-      Behavior on opacity { NumberAnimation { duration: 180 } }
+      Behavior on opacity { NumberAnimation { duration: BlueTheme.animToastEnterDuration; easing.type: Easing.OutCubic } }
 
       Row {
         anchors.fill: parent

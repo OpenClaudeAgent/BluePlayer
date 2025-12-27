@@ -320,10 +320,10 @@ Item {
         border.width: searchField.activeFocus ? 1 : 0
 
         Behavior on color {
-          ColorAnimation { duration: 150; easing.type: Easing.OutCubic }
+          ColorAnimation { duration: BlueTheme.animHoverDuration; easing.type: Easing.OutCubic }
         }
         Behavior on border.color {
-          ColorAnimation { duration: 150; easing.type: Easing.OutCubic }
+          ColorAnimation { duration: BlueTheme.animHoverDuration; easing.type: Easing.OutCubic }
         }
 
         RowLayout {
@@ -341,7 +341,7 @@ Item {
             Layout.alignment: Qt.AlignVCenter
             opacity: 0.7
             Behavior on color {
-              ColorAnimation { duration: 150 }
+              ColorAnimation { duration: BlueTheme.animHoverDuration; easing.type: Easing.OutCubic }
             }
           }
 

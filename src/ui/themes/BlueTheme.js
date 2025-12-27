@@ -47,3 +47,43 @@ var buttonSurface = "#1c2232"
 var buttonBorder = "#2b3450"
 var heroCornerRadius = 30
 var headlineFont = fontFamily
+
+// ============================================================================
+// ANIMATION SYSTEM - Apple-Inspired Motion Design
+// ============================================================================
+
+// Duration tokens (milliseconds)
+var animDurationInstant = 80        // Immediate feedback (press state)
+var animDurationFast = 150          // Micro-interactions (hover, focus)
+var animDurationStandard = 250      // Standard transitions (cards, overlays)
+var animDurationEmphasis = 350      // Important transitions (navigation, panels)
+var animDurationDramatic = 500      // Dramatic changes (mode switches)
+
+// Animation patterns - Pre-defined durations for common UI patterns
+var animPressDuration = 80          // Button press, tap feedback
+var animHoverDuration = 150         // Hover on buttons, interactive elements
+var animFocusDuration = 150         // Keyboard navigation focus
+var animCardDuration = 200          // Card hover (scale, shadow, color)
+var animContentFadeDuration = 200   // Lazy loading, skeleton to content
+var animOverlayDuration = 250       // Dropdowns, tooltips, popovers
+var animPanelDuration = 300         // Side panels, drawers, chat
+var animControlBarDuration = 300    // Show/hide player controls
+var animNavigationDuration = 350    // Page/view transitions
+var animPulseDuration = 600         // Loading pulse indicators
+
+// Toast/Notification durations
+var animToastEnterDuration = 200
+var animToastDisplayDuration = 1400
+var animToastExitDuration = 250
+
+// Scale transforms for depth perception
+var scaleHover = 1.02               // Slight lift on hover
+var scalePress = 0.98               // Slight press down
+var scaleSelected = 1.05            // Emphasis on selection
+
+// Easing reference (use in QML as easing.type: Easing.XXX)
+// - Easing.OutCubic    → Most animations (responsive feel)
+// - Easing.InOutCubic  → Symmetrical movements (navigation, control bar)
+// - Easing.OutQuart    → Snappy responses (press feedback)
+// - Easing.OutBack     → Spring/bounce effects (emphasis)
+// - Easing.InOutSine   → Smooth pulse animations
