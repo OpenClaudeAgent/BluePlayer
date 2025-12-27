@@ -1,4 +1,5 @@
 #include "media/MpvQuickItem.hpp"
+#include "media/PlaybackSpeedLogic.hpp"
 
 #include <QByteArray>
 #include <QDebug>
@@ -297,16 +298,14 @@ void MpvQuickItem::processPropertyChange(const char *name, void *data,
       }
       
       // Auto-reset speed when approaching live edge with speed > 1.0
-      // Threshold is proportional to playback rate to avoid buffer underrun
-      // At 3x, we consume buffer 3x faster, so need 3x more margin
-      if (m_playbackRate > 1.0) {
-        double speedResetThreshold = APPROACHING_LIVE_THRESHOLD * m_playbackRate;
-        if (liveEdgeDelta < speedResetThreshold) {
-          m_playbackRate = 1.0;
-          mpv_set_property(m_mpv, "speed", MPV_FORMAT_DOUBLE, &m_playbackRate);
-          emit playbackRateChanged(1.0);
-          emit speedAutoReset(tr("Vitesse réinitialisée (live)"));
-        }
+      // Delegate to PlaybackSpeedLogic for testable business logic
+      PlaybackSpeedLogic::State state{dur, pos, m_playbackRate, m_isLiveMode.load()};
+      auto resetResult = PlaybackSpeedLogic::checkAutoReset(state);
+      if (resetResult.shouldReset) {
+        m_playbackRate = PlaybackSpeedLogic::DEFAULT_RATE;
+        mpv_set_property(m_mpv, "speed", MPV_FORMAT_DOUBLE, &m_playbackRate);
+        emit playbackRateChanged(PlaybackSpeedLogic::DEFAULT_RATE);
+        emit speedAutoReset(resetResult.message);
       }
     }
   } else if (strcmp(name, "duration") == 0 && format == MPV_FORMAT_DOUBLE) {
@@ -455,17 +454,15 @@ double MpvQuickItem::liveOffset() const {
 }
 
 bool MpvQuickItem::isNearLiveEdge() const {
-  double dur = m_duration.load();
-  if (dur <= 0) return false;
-  double delta = dur - m_position.load();
-  return delta < MpvQuickItem::LIVE_EDGE_THRESHOLD;
+  PlaybackSpeedLogic::State state{m_duration.load(), m_position.load(), 
+                                  m_playbackRate, m_isLiveMode.load()};
+  return PlaybackSpeedLogic::isNearLiveEdge(state);
 }
 
 bool MpvQuickItem::isApproachingLiveEdge() const {
-  double dur = m_duration.load();
-  if (dur <= 0) return false;
-  double delta = dur - m_position.load();
-  return delta < MpvQuickItem::APPROACHING_LIVE_THRESHOLD;
+  PlaybackSpeedLogic::State state{m_duration.load(), m_position.load(), 
+                                  m_playbackRate, m_isLiveMode.load()};
+  return PlaybackSpeedLogic::isApproachingLiveEdge(state);
 }
 
 void MpvQuickItem::setVolume(float vol) {
@@ -516,26 +513,30 @@ void MpvQuickItem::stopRecording() {
 void MpvQuickItem::setPlaybackRate(double rate) {
   if (!m_mpv)
     return;
-  double clamped = qBound(0.25, rate, 3.0);
-  
-  // If in live mode, limit max speed to prevent stuttering
-  if (m_isLiveMode.load() && clamped > MAX_SPEED_AT_LIVE) {
-    clamped = MAX_SPEED_AT_LIVE;
-    emit speedAutoReset(tr("Vitesse limitée (déjà au live)"));
+
+  // Delegate business logic to PlaybackSpeedLogic
+  PlaybackSpeedLogic::State state{m_duration.load(), m_position.load(),
+                                  m_playbackRate, m_isLiveMode.load()};
+  auto result = PlaybackSpeedLogic::computeRateChange(state, rate);
+
+  // Handle live mode change
+  if (result.liveModeChanged) {
+    m_isLiveMode = result.newLiveMode;
+    emit isLiveModeChanged(result.newLiveMode);
   }
-  
-  // If slowing down while in live mode, we'll fall behind - exit live mode
-  if (m_isLiveMode.load() && clamped < 1.0) {
-    m_isLiveMode = false;
-    emit isLiveModeChanged(false);
+
+  // Notify if rate was limited
+  if (result.wasLimited) {
+    emit speedAutoReset(result.message);
   }
-  
-  if (qFuzzyCompare(m_playbackRate, clamped))
+
+  // Apply rate change if significant
+  if (!PlaybackSpeedLogic::isSignificantChange(m_playbackRate, result.finalRate))
     return;
 
-  m_playbackRate = clamped;
-  mpv_set_property(m_mpv, "speed", MPV_FORMAT_DOUBLE, &clamped);
-  emit playbackRateChanged(clamped);
+  m_playbackRate = result.finalRate;
+  mpv_set_property(m_mpv, "speed", MPV_FORMAT_DOUBLE, &result.finalRate);
+  emit playbackRateChanged(result.finalRate);
 }
 
 void MpvQuickItem::setHardwareDecoding(bool enabled) {

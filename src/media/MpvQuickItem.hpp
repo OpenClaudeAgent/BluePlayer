@@ -1,5 +1,7 @@
 #pragma once
 
+#include "media/PlaybackSpeedLogic.hpp"
+
 #include <QElapsedTimer>
 #include <QImage>
 #include <QMutex>
@@ -57,13 +59,9 @@ public:
   bool cropVideo() const { return m_cropVideo; }
   
   // Live edge detection (timing-based, not UI mode)
+  // Delegates to PlaybackSpeedLogic for testability
   Q_INVOKABLE bool isNearLiveEdge() const;
   Q_INVOKABLE bool isApproachingLiveEdge() const;
-  
-  // Speed thresholds
-  static constexpr double LIVE_EDGE_THRESHOLD = 2.0;       // < 2s = at live edge
-  static constexpr double APPROACHING_LIVE_THRESHOLD = 5.0; // < 5s = approaching
-  static constexpr double MAX_SPEED_AT_LIVE = 1.2;         // Max speed allowed at live
 
   // MPV access
   mpv_handle *mpvHandle() const { return m_mpv; }

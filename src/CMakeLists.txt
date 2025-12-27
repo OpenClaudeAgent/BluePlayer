@@ -51,6 +51,9 @@ set(BLUEPLAYER_MEDIA_SOURCES
 
   media/MpvQuickItem.cpp
   media/MpvQuickItem.hpp
+
+  media/PlaybackSpeedLogic.cpp
+  media/PlaybackSpeedLogic.hpp
 )
 
 # blueplayer_core et blueplayer_media ont une dépendance circulaire résolue via forward declarations
