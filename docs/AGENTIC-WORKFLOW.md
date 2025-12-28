@@ -98,17 +98,30 @@ Transformer les idees et besoins en plans fonctionnels structures, clairs et act
 
 - Ne modifie jamais le code source
 - Travaille exclusivement dans le dossier `roadmap/`
-- Les plans sont immutables une fois crees
-- Seul le suivi de statut peut etre mis a jour
-- **Pas de details techniques** : pas de code, pas de noms de classes, pas de chemins de fichiers
+- **L'idee est immutable** : Contexte, Objectif, Comportement attendu ne changent pas
+- **Specifications et Checklist sont mutables** : Peuvent etre enrichies par l'Executeur
+- **Specifications fonctionnelles** : pas de code, quelques mentions techniques OK
 - Decrit le **QUOI** (comportement), pas le **COMMENT** (implementation)
 
 ### Artefacts produits
 
 | Artefact | Description | Mutabilite |
 |----------|-------------|------------|
-| `plan-XX-*.md` | Plan fonctionnel d'une fonctionnalite | Immutable |
+| `plan-XX-*.md` | Plan fonctionnel | Idee immutable, Specs/Checklist mutables |
 | `README.md` | Suivi global et methodologie | Statut uniquement |
+
+### Structure d'un plan
+
+```markdown
+# Plan XX - [Titre]
+
+## Contexte                         ← IMMUTABLE
+## Objectif                         ← IMMUTABLE
+## Comportement attendu             ← IMMUTABLE
+
+## Specifications                   ← MUTABLE (enrichi par Executeur)
+## Checklist de validation          ← MUTABLE
+```
 
 ### Workflow
 
@@ -163,52 +176,75 @@ Implementer les fonctionnalites selon les plans definis, en garantissant la qual
 ### Workflow
 
 ```
-[Selection] --> [Preparation] --> [Implementation] --> [Tests?] --> [Validation] --> [Finalisation]
-     |               |                  |                 |               |                |
-     v               v                  v                 v               v                v
-  Prochaine     Branche Git         Code +          Si echec:       Checklist        Commit +
-  tache         + sync main         Build OK        Tester->Quality utilisateur      Proposition merge
+[Selection] --> [Preparation] --> [Implementation] --> [Validation] --> [Tests] --> [Quality] --> [Finalisation]
+     |               |                  |                   |               |            |              |
+     v               v                  v                   v               v            v              v
+  Prochaine     Worktree          Code +              Scenarios       Tester      Code Review      Commit +
+  tache         par feature       Build OK            utilisateur                 + Tests Review   Merge
 ```
 
 1. **Selection** : Identification de la prochaine tache selon priorites et dependances
-2. **Preparation** : Synchronisation avec main et creation de la branche feature
-3. **Implementation** : Developpement dans `src/` selon les specifications du plan
-4. **Tests** : Si des tests echouent, invoquer Tester puis Quality pour validation
-5. **Validation** : Presentation de la checklist, iterations jusqu'a validation complete
-6. **Finalisation** : Commit, mise a jour des statuts, proposition de merge
+2. **Preparation** : Creation d'un worktree dedie pour la feature (`git worktree add worktrees/feature/[nom] -b feature/[nom]`)
+3. **Implementation** : Developpement dans `src/` selon les specifications. Si changements importants, invoquer l'agent Refactoring.
+4. **Validation** : Presentation des scenarios de test avec actions concretes, notification via MCP `ask_user`, iterations jusqu'a validation complete
+5. **Tests** : Invoquer l'agent Tester pour ecrire les tests automatises
+6. **Quality** : Invoquer l'agent Quality pour code review + tests review
+7. **Finalisation** : Commit, mise a jour des statuts, proposition de merge via MCP `ask_user`
 
 ### Flux Executeur-Tester-Quality
 
-Quand des tests echouent ou sont necessaires :
+Apres validation utilisateur, l'Executeur invoque systematiquement Tester puis Quality :
 
 ```
-+----------+     (1) Tests      +----------+     (3) Validation    +----------+
-|Executeur |---->  echouent --->|  Tester  |---->  demandee  ----->| Quality  |
-+----------+                    +----------+                       +----------+
-     ^                               |                                  |
-     |                               v                                  v
-     |                          (2) Tests                          (4) Rapport
-     |                           repares                            validation
-     |                               |                                  |
-     +-------------------------------+----------------------------------+
-                                     |
-                                     v
-                              (5) Continue si OK
-                              ou resout problemes
++----------+     (1) Validation   +----------+     (2) Invoque     +----------+
+|Executeur |---->  OK utilisateur |Executeur |---->  Tester  ----->|  Tester  |
++----------+                      +----------+                     +----------+
+                                       |                                |
+                                       |                           (3) Tests
+                                       |                            ecrits
+                                       |                                |
+                                       v                                v
+                                  +----------+     (4) Invoque     +----------+
+                                  |Executeur |---->  Quality  ---->| Quality  |
+                                  +----------+                     +----------+
+                                       ^                                |
+                                       |                           (5) Code Review
+                                       |                            + Tests Review
+                                       |                                |
+                                       +--------------------------------+
+                                                     |
+                                                     v
+                                              (6) Rapport OK?
+                                              Si oui → Merge
 ```
 
 ### Cycle de validation
 
+L'Executeur genere des **scenarios de test avec actions concretes** :
+
+```markdown
+## Validation - [Nom de la tache]
+
+### Scenario 1 : [Comportement principal]
+1. [Action concrete : "Clique sur X" / "Ouvre le menu Y"]
+2. [Action concrete : "Saisis Z dans le champ"]
+3. **Attendu** : [Resultat visible attendu]
+
+### Scenario 2 : [Edge case]
+1. [Action concrete]
+2. **Attendu** : [Comportement attendu]
+```
+
 ```
                  +------------------+
                  |  Presentation    |
-                 |  checklist       |
+                 |  scenarios       |
                  +--------+---------+
                           |
                           v
                  +--------+---------+
-                 |  Utilisateur     |
-                 |  teste           |
+                 | 🔔 MCP ask_user  |
+                 | "Validation"     |
                  +--------+---------+
                           |
               +-----------+-----------+
@@ -216,12 +252,11 @@ Quand des tests echouent ou sont necessaires :
               v                       v
      +--------+--------+     +--------+--------+
      |   Probleme      |     |   Tout OK       |
-     |   detecte       |     |                 |
      +--------+--------+     +--------+--------+
               |                       |
               v                       v
      +--------+--------+     +--------+--------+
-     |   Correction    |     |   Finalisation  |
+     |   Correction    |     | Tests + Quality |
      +--------+--------+     +-----------------+
               |
               +-------> (retour presentation)
@@ -233,18 +268,30 @@ Quand des tests echouent ou sont necessaires :
 
 ### Mission
 
-Definir la strategie de test globale du produit en consolidant les criteres de validation et en identifiant les regressions potentielles. L'agent Quality ne realise pas les tests lui-meme : il produit les plans et scenarios de test que l'utilisateur executera.
+Garantir la qualite globale du projet via le code review, la validation des tests, et la production de plans de tests manuels.
 
 ### Responsabilites
 
+- **Code Review** : Analyser le code source (src/) avec les principes de clean code
+- **Tests Review** : Valider les changements de tests effectues par le Tester
 - Consolider toutes les checklists de validation des plans termines
 - Identifier les criteres obsoletes ou modifies
 - Detecter les regressions potentielles entre fonctionnalites
 - Produire des plans de tests manuels structures
-- Definir des scenarios de test clairs et actionables
 - Accompagner l'utilisateur pendant l'execution des tests
-- **Valider les changements de tests** demandes par l'Executeur apres intervention du Tester
-- **Maintenir l'historique** des analyses et decisions pour ameliorer les futures evaluations
+- **Maintenir l'historique** des analyses et decisions
+
+### Double Review (invoque par Executeur)
+
+```
+Executeur invoque Quality
+       ↓
+Phase 1: CODE REVIEW (src/)
+       ↓
+Phase 2: TESTS REVIEW (tests/)
+       ↓
+Rapport consolide → Executeur
+```
 
 ### Contraintes
 
@@ -553,26 +600,31 @@ Les agents Tester et Refactoring forment un tandem complementaire :
           |
           v
 +---------+---------+
-|   5. MERGE        |
+|   5. TESTS        |
+|   (Tester)        |
++---------+---------+
+          |
+          v
++---------+---------+
+|   6. QUALITY      |
+|   (Code Review +  |
+|    Tests Review)  |
++---------+---------+
+          |
+          v
++---------+---------+
+|   7. MERGE        |
 |   (Utilisateur)   |
 +---------+---------+
           |
           v
-+---------+---------+       +---------+---------+
-|   6. QUALITE      |       |   6b. TESTS       |
-|   (Quality)       |       | (Tester+Refactor) |
-+---------+---------+       +---------+---------+
-          |                           |
-          +-------------+-------------+
-                        |
-                        v
-              +---------+---------+
-              |   7. RELEASE      |
-              |   (Utilisateur)   |
-              +-------------------+
++---------+---------+
+|   8. RELEASE      |
+|   (Utilisateur)   |
++-------------------+
 ```
 
-**Note** : Les etapes 6 (Qualite) et 6b (Tests) peuvent etre executees en parallele. Quality produit des plans de tests manuels, Tester produit des tests automatises.
+**Important** : Les etapes Tests (5) et Quality (6) sont executees **AVANT** le merge, pas apres. On valide d'abord manuellement, puis on ecrit les tests automatises et on fait le code review.
 
 ### Matrice des interactions
 
@@ -635,12 +687,17 @@ Les agents Tester et Refactoring forment un tandem complementaire :
 
 | Environnement | Branche | Agent | Acces |
 |---------------|---------|-------|-------|
-| Principal | main / feature/* | Utilisateur | Lecture/Ecriture |
-| Feature | worktree/feature | Executeur | Lecture/Ecriture |
+| Principal | main | Utilisateur | Lecture/Ecriture |
+| Feature | `worktrees/feature/[nom]` | Executeur (1 par feature) | Lecture/Ecriture |
 | Roadmap | worktree/roadmap | Roadmap | Lecture/Ecriture |
 | Quality | worktree/quality | Quality | Lecture/Ecriture |
 | Test | worktree/test | Tester | Lecture/Ecriture |
 | Refactoring | worktree/refactoring | Refactoring | Lecture/Ecriture |
+
+**Executeur** cree un worktree dedie pour chaque feature :
+```bash
+git worktree add worktrees/feature/[nom] -b feature/[nom]
+```
 
 ### Synchronisation
 
