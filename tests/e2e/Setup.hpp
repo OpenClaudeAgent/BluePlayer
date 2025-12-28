@@ -1,5 +1,6 @@
 #pragma once
 
+#include "mocks/MockSecureStorage.hpp"
 #include "servers/MockHlsServer.hpp"
 #include "servers/MockTwitchServer.hpp"
 #include "core/Application.hpp"
@@ -13,7 +14,7 @@
  * 
  * This class is called by QUICK_TEST_MAIN_WITH_SETUP to:
  * 1. Start mock servers before tests run
- * 2. Initialize core Application with services
+ * 2. Initialize core Application with mocked authentication
  * 3. Configure QQmlEngine with proper import paths
  * 4. Clean up after tests complete
  */
@@ -28,7 +29,7 @@ public:
 public slots:
     /**
      * Called after QApplication is available but before QQmlEngine.
-     * Used to start mock servers and set environment variables.
+     * Used to start mock servers, setup mock auth, and set environment variables.
      */
     void applicationAvailable();
 
@@ -45,6 +46,7 @@ public slots:
     void cleanupTestCase();
 
 private:
+    std::unique_ptr<blueplayer::test::e2e::MockSecureStorage> m_mockStorage;
     std::unique_ptr<blueplayer::test::e2e::MockTwitchServer> m_twitchServer;
     std::unique_ptr<blueplayer::test::e2e::MockHlsServer> m_hlsServer;
     std::unique_ptr<blueplayer::core::Application> m_coreApp;

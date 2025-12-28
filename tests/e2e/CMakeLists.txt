@@ -59,6 +59,8 @@ target_link_directories(e2e_tests PRIVATE ${HOMEBREW_PREFIX}/lib)
 
 target_include_directories(e2e_tests PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/mocks
+    ${CMAKE_SOURCE_DIR}/src  # For core/ISecureStorage.hpp
 )
 
 set_target_properties(e2e_tests PROPERTIES AUTOMOC ON)

@@ -12,12 +12,18 @@ class TwitchService;
 namespace blueplayer::core {
 
 class CacheManager;
+class ISecureStorage;
 
 class Application final : public QObject {
   Q_OBJECT
 
  public:
-  explicit Application(QObject* parent = nullptr);
+  /**
+   * @brief Constructeur avec injection de dépendances optionnelle
+   * @param secureStorage Stockage sécurisé à utiliser (nullptr = Keychain macOS)
+   * @param parent Le parent QObject
+   */
+  explicit Application(ISecureStorage* secureStorage = nullptr, QObject* parent = nullptr);
   ~Application();  // Déclaré ici, défini dans .cpp pour permettre forward
                    // declarations
 
