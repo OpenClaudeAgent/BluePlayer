@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#0b1727"/>
+      <stop offset="100%" style="stop-color:#040b15"/>
+    </linearGradient>
+    <linearGradient id="blobGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7dd3ff"/>
+      <stop offset="40%" style="stop-color:#5bc0ff"/>
+      <stop offset="100%" style="stop-color:#2878cc"/>
+    </linearGradient>
+    <linearGradient id="glassGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.3"/>
+      <stop offset="50%" style="stop-color:#ffffff;stop-opacity:0.1"/>
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0"/>
+    </linearGradient>
+    <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="20" stdDeviation="30" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+    <filter id="blur">
+      <feGaussianBlur stdDeviation="2"/>
+    </filter>
+  </defs>
+  
+  <!-- Fond arrondi -->
+  <rect x="40" y="40" width="944" height="944" rx="212" ry="212" fill="url(#bgGradient)"/>
+  <rect x="40" y="40" width="944" height="944" rx="212" ry="212" 
+        fill="none" stroke="#5bc0ff" stroke-width="2" stroke-opacity="0.2"/>
+  
+  <!-- Forme blob organique -->
+  <g filter="url(#dropShadow)">
+    <path d="M512 160
+             C700 160 820 280 840 420
+             C860 560 800 700 700 780
+             C600 860 420 860 320 780
+             C220 700 160 560 180 420
+             C200 280 320 160 512 160Z" 
+          fill="url(#blobGradient)"/>
+  </g>
+  
+  <!-- Effet glassmorphism - reflet principal -->
+  <ellipse cx="420" cy="340" rx="150" ry="80" fill="url(#glassGradient)" transform="rotate(-15 420 340)"/>
+  
+  <!-- Petit reflet secondaire -->
+  <ellipse cx="650" cy="620" rx="60" ry="40" fill="#ffffff" fill-opacity="0.1" transform="rotate(30 650 620)"/>
+  
+  <!-- Bouton Play arrondi style iOS -->
+  <rect x="420" y="400" width="200" height="200" rx="50" fill="#ffffff" fill-opacity="0.15"/>
+  <path d="M480 450 L480 570 L580 510 Z" fill="#ffffff" fill-opacity="0.95"/>
+</svg>

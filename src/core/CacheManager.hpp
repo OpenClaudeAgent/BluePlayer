@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QMutex>
+#include <QNetworkAccessManager>
 #include <QObject>
 #include <QTimer>
 #include <QVariantList>
@@ -157,12 +158,23 @@ class CacheManager : public QObject {
   Q_INVOKABLE bool addVodFromQml(const QVariantMap& metadata);
 
   /**
-   * @brief Télécharge un thumbnail depuis une URL et le sauvegarde
+   * @brief Télécharge un thumbnail depuis une URL et le sauvegarde (SYNCHRONE - DEPRECATED)
    * @param url L'URL du thumbnail
-   * @param vodId L'ID de la VOD (pour nommer le fichier)
+   * @param filename Le nom du fichier local
    * @return Le chemin local du fichier ou vide si échec
+   * @deprecated Utiliser downloadThumbnailAsync() pour ne pas bloquer le thread UI
    */
   Q_INVOKABLE QString downloadThumbnail(const QString& url, const QString& filename);
+
+  /**
+   * @brief Télécharge un thumbnail de façon asynchrone
+   * @param url L'URL du thumbnail
+   * @param filename Le nom du fichier local
+   * 
+   * Le signal thumbnailDownloaded() sera émis quand le téléchargement est terminé.
+   * Le signal thumbnailDownloadFailed() sera émis en cas d'échec.
+   */
+  Q_INVOKABLE void downloadThumbnailAsync(const QString& url, const QString& filename);
 
   /**
    * @brief Supprime une VOD du cache par ID
@@ -285,6 +297,10 @@ class CacheManager : public QObject {
   void vodsCleared();
   void cleanupPerformed(int removedCount, qint64 freedBytes);
   void cacheThresholdReached(double usagePercent);
+  
+  // Signaux pour téléchargement asynchrone des thumbnails
+  void thumbnailDownloaded(const QString& localPath, const QString& filename);
+  void thumbnailDownloadFailed(const QString& filename, const QString& error);
 
  private:
   void emitChanges();
@@ -293,6 +309,8 @@ class CacheManager : public QObject {
   void ensureCacheDirectoryExists();
   bool deleteVodFile(const QString& filePath);
   void sortVodsByLru();
+  QString processThumbnailUrl(const QString& url) const;
+  void handleThumbnailReply(QNetworkReply* reply, const QString& filename, const QString& localPath);
 
   // ===== État atomique pour cache live =====
   std::atomic<double> m_cacheStartTime{0.0};
@@ -315,6 +333,9 @@ class CacheManager : public QObject {
   static constexpr double kCleanupTargetThreshold = 0.80;   // 80%
 
   mutable QMutex m_mutex;
+  
+  // Network manager pour les téléchargements asynchrones
+  QNetworkAccessManager* m_networkManager = nullptr;
 };
 
 }  // namespace blueplayer::core

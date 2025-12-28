@@ -394,10 +394,11 @@ void TwitchService::refreshStreams() {
 - **MockSecureStorage** : Mock en mémoire pour les tests sans dépendance au Keychain macOS
 - **Signature de code automatique** : L'app est signée à chaque build pour éviter les prompts Keychain répétés
 
-### Refactoring C++ (Sprints 5-6)
+### Refactoring C++ (Sprints 5-6) - Terminé v0.16.0
 - [x] 24.16 - Helper ensureTokenAndExecute() créé (9 duplications éliminées)
 - [ ] 24.17-24.19 - TwitchService splitté (reporté)
-- [ ] 24.20-24.21 - Media refactoré
+- [x] 24.20 - MpvPlayerBase (non applicable - héritage Qt incompatible, MpvFboItem legacy)
+- [x] 24.21 - downloadThumbnail() rendu asynchrone (+107 lignes, thread UI non bloqué)
 
 ### Tests (Sprint 7)
 - [ ] 24.22-24.25 - Tests et CI ajoutés
