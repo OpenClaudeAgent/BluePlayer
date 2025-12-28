@@ -112,6 +112,33 @@ lint:
 	@$(SCRIPTS_DIR)/analyze.sh
 	@echo "Static analysis complete."
 
+# Sync all worktrees with main branch
+.PHONY: sync-worktrees
+sync-worktrees:
+	@echo "== Syncing worktrees with main =="
+	@failed=0; \
+	for dir in worktrees/*/; do \
+		if [ -d "$$dir" ]; then \
+			name=$$(basename "$$dir"); \
+			echo "--- Syncing $$name ---"; \
+			output=$$(git -C "$$dir" rebase main 2>&1); \
+			status=$$?; \
+			if [ $$status -ne 0 ]; then \
+				echo "ERROR: $$name failed to sync"; \
+				echo "$$output"; \
+				git -C "$$dir" rebase --abort 2>/dev/null; \
+				failed=1; \
+			else \
+				echo "OK: $$name synced"; \
+			fi; \
+		fi; \
+	done; \
+	echo "== Sync complete =="; \
+	if [ $$failed -eq 1 ]; then \
+		echo "Some worktrees failed to sync. Fix conflicts manually."; \
+		exit 1; \
+	fi
+
 # Help target
 .PHONY: help
 help:
@@ -128,4 +155,5 @@ help:
 	@echo "  make format       - Format source code with clang-format"
 	@echo "  make format-check - Check code formatting (dry run)"
 	@echo "  make lint         - Run clang-tidy static analysis"
+	@echo "  make sync-worktrees - Sync all worktrees with main branch"
 	@echo "  make help         - Display this help message"
