@@ -1,8 +1,12 @@
 #include "Setup.hpp"
 
 #include "api/twitch/TwitchService.hpp"
+#include "chat/TwitchChatClient.hpp"
 #include "core/CacheManager.hpp"
 #include "core/Config.hpp"
+#include "media/MpvQuickItem.hpp"
+#include "ui/CacheManagerViewModel.hpp"
+#include "ui/HomeViewModel.hpp"
 
 #include <QCoreApplication>
 #include <QDebug>
@@ -12,6 +16,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QQmlContext>
+#include <qqml.h>
 
 Setup::Setup() = default;
 Setup::~Setup() = default;
@@ -80,36 +85,58 @@ void Setup::applicationAvailable()
         }
     }
 
-    // Load streams.json
+    // Load streams.json (format: {"data": [...]})
     {
         QFile streamsFile(fixturesPath + "/streams.json");
         if (streamsFile.open(QIODevice::ReadOnly)) {
             QJsonDocument doc = QJsonDocument::fromJson(streamsFile.readAll());
-            if (doc.isArray()) {
-                m_twitchServer->setStreams(doc.array());
-                qInfo() << "[E2E Setup] Loaded" << doc.array().size() << "streams";
+            QJsonArray streamsArray;
+            
+            // Handle both formats: {"data": [...]} or direct [...]
+            if (doc.isObject() && doc.object().contains("data")) {
+                streamsArray = doc.object()["data"].toArray();
+            } else if (doc.isArray()) {
+                streamsArray = doc.array();
+            }
+            
+            if (!streamsArray.isEmpty()) {
+                m_twitchServer->setStreams(streamsArray);
+                qInfo() << "[E2E Setup] Loaded" << streamsArray.size() << "streams";
                 
-                for (const QJsonValue& streamVal : doc.array()) {
+                for (const QJsonValue& streamVal : streamsArray) {
                     QJsonObject stream = streamVal.toObject();
                     QString userLogin = stream["user_login"].toString();
                     if (!userLogin.isEmpty()) {
                         m_hlsServer->addChannel(userLogin);
                     }
                 }
+            } else {
+                qWarning() << "[E2E Setup] No streams found in streams.json";
             }
         } else {
             qWarning() << "[E2E Setup] Could not load streams.json";
         }
     }
 
-    // Load users.json
+    // Load users.json (format: {"data": [...]})
     {
         QFile usersFile(fixturesPath + "/users.json");
         if (usersFile.open(QIODevice::ReadOnly)) {
             QJsonDocument doc = QJsonDocument::fromJson(usersFile.readAll());
-            if (doc.isArray()) {
-                m_twitchServer->setUsers(doc.array());
-                qInfo() << "[E2E Setup] Loaded" << doc.array().size() << "users";
+            QJsonArray usersArray;
+            
+            // Handle both formats: {"data": [...]} or direct [...]
+            if (doc.isObject() && doc.object().contains("data")) {
+                usersArray = doc.object()["data"].toArray();
+            } else if (doc.isArray()) {
+                usersArray = doc.array();
+            }
+            
+            if (!usersArray.isEmpty()) {
+                m_twitchServer->setUsers(usersArray);
+                qInfo() << "[E2E Setup] Loaded" << usersArray.size() << "users";
+            } else {
+                qWarning() << "[E2E Setup] No users found in users.json";
             }
         } else {
             qWarning() << "[E2E Setup] Could not load users.json";
@@ -122,6 +149,12 @@ void Setup::applicationAvailable()
     qputenv("BLUEPLAYER_TEST_MODE", "1");
     qputenv("BLUEPLAYER_MOCK_API_URL", m_twitchServer->baseUrl().toUtf8());
     qputenv("BLUEPLAYER_MOCK_HLS_URL", m_hlsServer->baseUrl().toUtf8());
+    
+    // Set a test client ID if not already set (required for API requests)
+    if (qgetenv("TWITCH_CLIENT_ID").isEmpty()) {
+        qputenv("TWITCH_CLIENT_ID", "e2e_test_client_id");
+        qInfo() << "[E2E Setup] Set test TWITCH_CLIENT_ID";
+    }
 
     qInfo() << "[E2E Setup] Environment configured:";
     qInfo() << "  BLUEPLAYER_TEST_MODE=1";
@@ -164,10 +197,21 @@ void Setup::applicationAvailable()
 
 void Setup::qmlEngineAvailable(QQmlEngine* engine)
 {
-    qInfo() << "[E2E Setup] QML engine available, configuring import paths...";
+    qInfo() << "[E2E Setup] QML engine available, configuring...";
 
-    // Base path to source directory (from build/tests/e2e/)
-    // Resolve to absolute path
+    // ========================================================================
+    // Register QML types (same as main.mm)
+    // ========================================================================
+    qmlRegisterType<blueplayer::media::MpvQuickItem>("BluePlayer.Media", 1, 0, "MpvQuickItem");
+    qmlRegisterType<blueplayer::api::twitch::TwitchService>("BluePlayer.Twitch", 1, 0, "TwitchService");
+    qmlRegisterType<blueplayer::ui::HomeViewModel>("BluePlayer.UI", 1, 0, "HomeViewModel");
+    qmlRegisterType<blueplayer::ui::CacheManagerViewModel>("BluePlayer.UI", 1, 0, "CacheManagerViewModel");
+    qmlRegisterType<BluePlayer::TwitchChatClient>("BluePlayer.Chat", 1, 0, "TwitchChatClient");
+    qInfo() << "[E2E Setup] QML types registered";
+
+    // ========================================================================
+    // Configure import paths
+    // ========================================================================
     QString appDir = QCoreApplication::applicationDirPath();
     QDir srcDir(appDir + "/../../../src");
     QString srcPath = srcDir.absolutePath();
@@ -186,7 +230,9 @@ void Setup::qmlEngineAvailable(QQmlEngine* engine)
     // Expose the UI path as a context property for tests to use
     engine->rootContext()->setContextProperty("E2E_QML_PATH", uiPath);
 
+    // ========================================================================
     // Expose core services to QML (same as main.mm does)
+    // ========================================================================
     if (m_coreApp) {
         engine->rootContext()->setContextProperty("twitchService", 
             qobject_cast<QObject*>(m_coreApp->twitchService()));
@@ -198,7 +244,6 @@ void Setup::qmlEngineAvailable(QQmlEngine* engine)
     qInfo() << "[E2E Setup] Import paths configured:";
     qInfo() << "  - Source:" << srcPath;
     qInfo() << "  - UI:" << uiPath;
-    qInfo() << "  - E2E_QML_PATH exposed to QML";
 }
 
 void Setup::cleanupTestCase()

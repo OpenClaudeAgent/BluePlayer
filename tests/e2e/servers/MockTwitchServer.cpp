@@ -242,12 +242,106 @@ QByteArray MockTwitchServer::handleRequest(const HttpRequest& request)
     return makeTwitchResponse(m_streams);
   }
 
+  // Followed streams endpoint - returns streams from followed channels
+  if (path == "/helix/streams/followed") {
+    // Return the same streams as /helix/streams for testing
+    // In a real scenario, this would filter based on user_id parameter
+    return makeTwitchResponse(m_streams);
+  }
+
   if (path == "/helix/users") {
+    // Check if this is a request for the authenticated user (no id param)
+    // or a request for specific users
+    QString queryString = request.path.section('?', 1);
+    if (queryString.isEmpty() || !queryString.contains("id=")) {
+      // Request for authenticated user - return the test user
+      QJsonArray authUser;
+      for (const QJsonValue& userVal : m_users) {
+        QJsonObject user = userVal.toObject();
+        if (user["login"].toString() == "testuser" || 
+            user["id"].toString() == "99999") {
+          authUser.append(user);
+          break;
+        }
+      }
+      if (!authUser.isEmpty()) {
+        return makeTwitchResponse(authUser);
+      }
+    }
     return makeTwitchResponse(m_users);
   }
 
   if (path == "/helix/channels") {
     return makeTwitchResponse(m_channels);
+  }
+  
+  // Search channels endpoint
+  if (path == "/helix/search/channels") {
+    // Return all users as search results for testing
+    QJsonArray searchResults;
+    for (const QJsonValue& userVal : m_users) {
+      QJsonObject user = userVal.toObject();
+      // Transform user format to search result format
+      QJsonObject result;
+      result["id"] = user["id"];
+      result["broadcaster_login"] = user["login"];
+      result["display_name"] = user["display_name"];
+      result["game_id"] = "";
+      result["game_name"] = "";
+      result["is_live"] = true;  // Mark all as live for testing
+      result["thumbnail_url"] = user["profile_image_url"];
+      searchResults.append(result);
+    }
+    return makeTwitchResponse(searchResults);
+  }
+  
+  // Top games/categories endpoint
+  if (path == "/helix/games/top") {
+    QJsonArray categories;
+    QJsonObject cat1;
+    cat1["id"] = "509658";
+    cat1["name"] = "Just Chatting";
+    cat1["box_art_url"] = "https://static-cdn.jtvnw.net/ttv-boxart/509658-{width}x{height}.jpg";
+    categories.append(cat1);
+    
+    QJsonObject cat2;
+    cat2["id"] = "33214";
+    cat2["name"] = "Fortnite";
+    cat2["box_art_url"] = "https://static-cdn.jtvnw.net/ttv-boxart/33214-{width}x{height}.jpg";
+    categories.append(cat2);
+    
+    return makeTwitchResponse(categories);
+  }
+  
+  // Videos (VODs) endpoint
+  if (path == "/helix/videos") {
+    // Return empty array for now - user has no VODs
+    return makeTwitchResponse(QJsonArray());
+  }
+  
+  // Followed channels endpoint
+  if (path == "/helix/channels/followed") {
+    // Return the streamers as followed channels
+    QJsonArray followedChannels;
+    for (const QJsonValue& userVal : m_users) {
+      QJsonObject user = userVal.toObject();
+      // Skip the test user itself
+      if (user["login"].toString() == "testuser") continue;
+      
+      QJsonObject channel;
+      channel["broadcaster_id"] = user["id"];
+      channel["broadcaster_login"] = user["login"];
+      channel["broadcaster_name"] = user["display_name"];
+      channel["followed_at"] = "2024-01-01T00:00:00Z";
+      followedChannels.append(channel);
+    }
+    return makeTwitchResponse(followedChannels);
+  }
+  
+  // Clips endpoint
+  if (path == "/helix/clips") {
+    // Return empty array for now - no clips
+    return makeTwitchResponse(QJsonArray());
   }
 
   // HLS playlist endpoint (Usher-style)
