@@ -107,6 +107,7 @@ Item {
         id: cardLoader
         width: root.cardWidth
         height: root.actualRowHeight
+        property int cardIndex: index  // For E2E testing
         property var cardData: modelData
         property bool isCategory: cardData ? (cardData.boxArtUrl !== undefined || cardData.id !== undefined) : false
         property bool isClip: cardData ? (cardData.clipTitle !== undefined) : false
@@ -133,6 +134,7 @@ Item {
         id: streamCardComponent
         StreamCard {
           id: streamCard
+          objectName: "streamCard_" + (parent ? parent.cardIndex : -1)  // For E2E testing
           width: root.cardWidth
           height: root.rowHeight
           property var card: null  // Sera assigné par le Loader parent via onItemChanged

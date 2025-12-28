@@ -7,6 +7,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QQmlContext>
 
 Setup::Setup() = default;
 Setup::~Setup() = default;
@@ -112,16 +113,30 @@ void Setup::qmlEngineAvailable(QQmlEngine* engine)
 {
     qInfo() << "[E2E Setup] QML engine available, configuring import paths...";
 
-    // Add import path for BluePlayer module
-    // This allows tests to import BluePlayer components
-    QString importPath = QCoreApplication::applicationDirPath() + "/../../../src";
-    engine->addImportPath(importPath);
+    // Base path to source directory (from build/tests/e2e/)
+    // Resolve to absolute path
+    QString appDir = QCoreApplication::applicationDirPath();
+    QDir srcDir(appDir + "/../../../src");
+    QString srcPath = srcDir.absolutePath();
+    QString uiPath = srcPath + "/ui";
     
-    // Also add the build directory import path
-    QString buildImportPath = QCoreApplication::applicationDirPath();
-    engine->addImportPath(buildImportPath);
+    // Add import paths for QML modules
+    engine->addImportPath(srcPath);
+    engine->addImportPath(uiPath);
+    engine->addImportPath(uiPath + "/components");
+    engine->addImportPath(uiPath + "/themes");
+    
+    // Add build directory for generated files
+    engine->addImportPath(appDir);
+    engine->addImportPath(appDir + "/../src");
 
-    qInfo() << "[E2E Setup] Import paths added:" << importPath << buildImportPath;
+    // Expose the UI path as a context property for tests to use
+    engine->rootContext()->setContextProperty("E2E_QML_PATH", uiPath);
+
+    qInfo() << "[E2E Setup] Import paths configured:";
+    qInfo() << "  - Source:" << srcPath;
+    qInfo() << "  - UI:" << uiPath;
+    qInfo() << "  - E2E_QML_PATH exposed to QML";
 }
 
 void Setup::cleanupTestCase()

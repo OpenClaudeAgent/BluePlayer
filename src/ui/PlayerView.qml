@@ -11,6 +11,7 @@ import "components"
 
 Item {
   id: playerRoot
+  objectName: "playerView"  // For E2E testing
   
   property var twitchService: null
   property string streamerLogin: ""

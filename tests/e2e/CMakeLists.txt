@@ -48,6 +48,7 @@ target_link_libraries(e2e_tests PRIVATE
     Qt6::Core
     Qt6::Quick
     Qt6::QuickTest
+    Qt6::Qml
     e2e_mock_servers
     blueplayer_core    # For Config and other core classes
     blueplayer_media   # Needed for transitive dependencies
@@ -74,6 +75,10 @@ set(E2E_QML_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 target_compile_definitions(e2e_tests PRIVATE
     QUICK_TEST_SOURCE_DIR="${E2E_QML_SOURCE_DIR}"
 )
+
+# Path to BluePlayer QML sources for loading from filesystem
+set(BLUEPLAYER_QML_SOURCE_DIR "${CMAKE_SOURCE_DIR}/src/ui")
+message(STATUS "BluePlayer QML sources: ${BLUEPLAYER_QML_SOURCE_DIR}")
 
 # ============================================================================
 # CTest Integration
