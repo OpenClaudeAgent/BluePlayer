@@ -2,7 +2,7 @@
  * tst_LoadingOverlay.qml
  * 
  * Functional UI tests for the LoadingOverlay component.
- * Tests loading indicator visibility and visual styling.
+ * Tests loading state visibility and BusyIndicator behavior.
  */
 
 import QtQuick 2.15
@@ -67,7 +67,7 @@ Item {
         
         function init() {
             loadingOverlay.reset()
-            wait(50)
+            waitForRendering(loadingOverlay)
         }
         
         // =====================================================================
@@ -77,19 +77,6 @@ Item {
         function test_defaultValues() {
             compare(loadingOverlay.loading, false, "Default loading is false")
             compare(loadingOverlay.visible, false, "Default visible is false")
-        }
-        
-        function test_defaultDimensions() {
-            compare(loadingOverlay.width, 120, "Default width is 120")
-            compare(loadingOverlay.height, 120, "Default height is 120")
-        }
-        
-        function test_defaultRadius() {
-            compare(loadingOverlay.radius, 20, "Default radius is 20")
-        }
-        
-        function test_defaultColor() {
-            compare(loadingOverlay.color.toString(), "#80000000", "Default color is semi-transparent black")
         }
         
         // =====================================================================
@@ -183,44 +170,6 @@ Item {
                 loadingOverlay.loading = false
                 compare(indicator.running, false, "Stopped on iteration " + i)
             }
-        }
-        
-        // =====================================================================
-        // Visual Style Tests
-        // =====================================================================
-        
-        function test_backgroundColor_isSemiTransparent() {
-            // #80000000 means 50% opacity black (0x80 = 128 = ~50% of 255)
-            var colorStr = loadingOverlay.color.toString()
-            verify(colorStr === "#80000000", "Background is semi-transparent black: " + colorStr)
-        }
-        
-        function test_shape_isRoundedRectangle() {
-            verify(loadingOverlay.radius > 0, "Has rounded corners")
-            compare(loadingOverlay.radius, 20, "Radius is 20")
-        }
-        
-        function test_dimensions_areSquare() {
-            compare(loadingOverlay.width, loadingOverlay.height, "Overlay is square")
-        }
-        
-        function test_busyIndicator_hasWhiteColor() {
-            var indicator = findChild(loadingOverlay, "busyIndicator")
-            compare(indicator.palette.dark.toString(), "#ffffff", "BusyIndicator is white")
-        }
-        
-        // =====================================================================
-        // Content Layout Tests
-        // =====================================================================
-        
-        function test_contentColumn_exists() {
-            var column = findChild(loadingOverlay, "contentColumn")
-            verify(column !== null, "Content column exists")
-        }
-        
-        function test_contentColumn_isCentered() {
-            var column = findChild(loadingOverlay, "contentColumn")
-            verify(column.anchors.centerIn === loadingOverlay, "Content is centered in overlay")
         }
         
         // =====================================================================

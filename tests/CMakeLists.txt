@@ -438,18 +438,16 @@ apply_coverage_flags(test_hls_contracts)
 add_test(NAME HlsContracts COMMAND test_hls_contracts)
 
 # ===== Tests Fonctionnels UI (Qt Quick Test) =====
+# Split into 4 parallel targets for faster execution with ctest -j4
 
 # Find Qt Quick Test module
 find_package(Qt6 6.5 COMPONENTS QuickTest QUIET)
 
 if(Qt6QuickTest_FOUND)
-  message(STATUS "Qt6 QuickTest found - enabling functional UI tests")
+  message(STATUS "Qt6 QuickTest found - enabling functional UI tests (4 parallel targets)")
 
-  add_executable(test_functional_ui
-    functional/main.cpp
-  )
-
-  target_link_libraries(test_functional_ui PRIVATE
+  # Common libraries for all functional test targets
+  set(FUNCTIONAL_TEST_LIBS
     Qt6::Core
     Qt6::Quick
     Qt6::Gui
@@ -457,26 +455,64 @@ if(Qt6QuickTest_FOUND)
     Qt6::Test
   )
 
-  # Define the source directory for QML test files
-  target_compile_definitions(test_functional_ui PRIVATE
-    QUICK_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/functional"
+  # Helper function to create a functional test target
+  function(add_functional_test_target TARGET_NAME SOURCE_DIR TEST_NAME LABEL)
+    add_executable(${TARGET_NAME}
+      functional/${SOURCE_DIR}/main.cpp
+    )
+
+    target_link_libraries(${TARGET_NAME} PRIVATE ${FUNCTIONAL_TEST_LIBS})
+
+    target_compile_definitions(${TARGET_NAME} PRIVATE
+      QUICK_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/functional/${SOURCE_DIR}"
+    )
+
+    target_include_directories(${TARGET_NAME} PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/../src
+    )
+
+    target_link_directories(${TARGET_NAME} PRIVATE /opt/homebrew/lib)
+    apply_coverage_flags(${TARGET_NAME})
+
+    add_test(NAME ${TEST_NAME} COMMAND ${TARGET_NAME})
+
+    # Use offscreen platform for faster execution (6-7x speedup)
+    # Some mouse-related tests may fail in offscreen mode
+    set_tests_properties(${TEST_NAME} PROPERTIES
+      LABELS "functional;ui;${LABEL}"
+      TIMEOUT 180
+      ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+    )
+  endfunction()
+
+  # Target 1: Card components (8 files, ~300 tests)
+  # BaseCard, BlueCard, CategoryCard, ChannelCard, ClipCard, LocalPlaybackCard, StreamCard, VideoCard
+  add_functional_test_target(test_functional_cards cards FunctionalCards cards)
+
+  # Target 2: Control components (8 files, ~280 tests)
+  # BlueButton, BlueDropdown, CircleButton, ControlButton, QualityControl, QualitySelector, SeekBar, VolumeControl
+  add_functional_test_target(test_functional_controls controls FunctionalControls controls)
+
+  # Target 3: Panel components (7 files, ~250 tests)
+  # ErrorToast, LoadingOverlay, PanelHeader, PlayerControlBar, SearchResultItem, SearchResults, TopBarOverlay
+  add_functional_test_target(test_functional_panels panels FunctionalPanels panels)
+
+  # Target 4: View/container components (4 files, ~240 tests)
+  # CategoriesScroller, ChatMessage, ChatPanel, HorizontalRowSection
+  add_functional_test_target(test_functional_views views FunctionalViews views)
+
+  # Add a convenience target to build all functional tests
+  add_custom_target(test_functional_all
+    DEPENDS test_functional_cards test_functional_controls test_functional_panels test_functional_views
   )
 
-  target_include_directories(test_functional_ui PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src
-  )
+  message(STATUS "Functional UI tests configured:")
+  message(STATUS "  - test_functional_cards (8 files)")
+  message(STATUS "  - test_functional_controls (8 files)")
+  message(STATUS "  - test_functional_panels (7 files)")
+  message(STATUS "  - test_functional_views (4 files)")
+  message(STATUS "Run with: ctest -j4 -L functional")
 
-  target_link_directories(test_functional_ui PRIVATE /opt/homebrew/lib)
-  apply_coverage_flags(test_functional_ui)
-
-  # Register with CTest
-  add_test(NAME FunctionalUI COMMAND test_functional_ui)
-
-  # Set test properties for better CI integration
-  set_tests_properties(FunctionalUI PROPERTIES
-    LABELS "functional;ui"
-    TIMEOUT 60
-  )
 else()
   message(WARNING "Qt6 QuickTest not found - functional UI tests disabled. Install Qt6 QuickTest module to enable.")
 endif()

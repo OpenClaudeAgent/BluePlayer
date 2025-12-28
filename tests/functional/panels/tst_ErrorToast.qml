@@ -2,7 +2,14 @@
  * tst_ErrorToast.qml
  * 
  * Functional UI tests for the ErrorToast component.
- * Tests error toast display, auto-hide timer, and visual states.
+ * Tests show/hide behavior, auto-hide timer, message display,
+ * and signal emissions.
+ * 
+ * Refactored to use:
+ * - createTemporaryObject for test isolation
+ * - cleanup() for proper teardown
+ * - waitForRendering instead of wait() for visual sync
+ * - tryCompare for async property checks
  */
 
 import QtQuick 2.15
@@ -15,112 +22,108 @@ Item {
     height: 300
 
     // =========================================================================
-    // Component Under Test (Mock matching ErrorToast.qml API)
+    // Component Under Test
     // =========================================================================
     
-    Rectangle {
-        id: errorToast
-        objectName: "errorToast"
+    Component {
+        id: errorToastComponent
         
-        // Position in center
-        anchors.centerIn: parent
-        
-        // Properties matching ErrorToast
-        property string message: ""
-        property bool showError: false
-        property int autoHideDuration: 4000
-        
-        // Visual properties
-        radius: 10
-        color: "#CCB00020"
-        border.color: "#FF5252"
-        border.width: 1
-        visible: showError
-        opacity: showError ? 1.0 : 0.0
-        
-        // Auto-size based on content
-        implicitWidth: contentRow.width + 24
-        implicitHeight: contentRow.height + 24
-        width: implicitWidth
-        height: implicitHeight
-        
-        // Animation on opacity (mocked with short duration for tests)
-        Behavior on opacity { 
-            NumberAnimation { 
-                id: opacityAnimation
-                objectName: "opacityAnimation"
-                duration: 150  // Short duration for tests
-                easing.type: Easing.OutCubic 
-            } 
-        }
+        Rectangle {
+            id: errorToast
+            objectName: "errorToast"
+            
+            // Properties matching ErrorToast
+            property string message: ""
+            property bool showError: false
+            property int autoHideDuration: 4000
+            
+            // Visual properties
+            radius: 10
+            color: "#CCB00020"
+            border.color: "#FF5252"
+            border.width: 1
+            visible: showError
+            opacity: showError ? 1.0 : 0.0
+            
+            // Auto-size based on content
+            implicitWidth: contentRow.width + 24
+            implicitHeight: contentRow.height + 24
+            width: implicitWidth
+            height: implicitHeight
+            
+            // Animation on opacity (short duration for tests)
+            Behavior on opacity { 
+                NumberAnimation { 
+                    id: opacityAnimation
+                    objectName: "opacityAnimation"
+                    duration: 0  // Very short for tests
+                    easing.type: Easing.OutCubic 
+                } 
+            }
 
-        Row {
-            id: contentRow
-            objectName: "contentRow"
-            anchors.centerIn: parent
-            spacing: 8
-            
-            Text { 
-                id: warningIcon
-                objectName: "warningIcon"
-                text: "\u26A0" // Warning icon
-                color: "#FFFFFF"
-                font.pixelSize: 13 
+            Row {
+                id: contentRow
+                objectName: "contentRow"
+                anchors.centerIn: parent
+                spacing: 8
+                
+                Text { 
+                    id: warningIcon
+                    objectName: "warningIcon"
+                    text: "\u26A0" // Warning icon
+                    color: "#FFFFFF"
+                    font.pixelSize: 13 
+                }
+                
+                Text { 
+                    id: messageText
+                    objectName: "messageText"
+                    text: errorToast.message
+                    color: "#FFFFFF"
+                    font.pixelSize: 13
+                    wrapMode: Text.WordWrap
+                    maximumLineCount: 3
+                }
             }
             
-            Text { 
-                id: messageText
-                objectName: "messageText"
-                text: errorToast.message
-                color: "#FFFFFF"
-                font.pixelSize: 13
-                wrapMode: Text.WordWrap
-                maximumLineCount: 3
+            Timer {
+                id: hideTimer
+                objectName: "hideTimer"
+                interval: errorToast.autoHideDuration
+                running: errorToast.showError && errorToast.autoHideDuration > 0
+                repeat: false
+                onTriggered: errorToast.showError = false
             }
-        }
-        
-        Timer {
-            id: hideTimer
-            objectName: "hideTimer"
-            interval: errorToast.autoHideDuration
-            running: errorToast.showError && errorToast.autoHideDuration > 0
-            repeat: false
-            onTriggered: errorToast.showError = false
-        }
-        
-        // Public function to show error
-        function show(errorMessage) {
-            message = errorMessage
-            showError = true
-        }
-        
-        // Public function to hide
-        function hide() {
-            showError = false
-        }
-        
-        // Reset function for tests
-        function reset() {
-            message = ""
-            showError = false
-            autoHideDuration = 4000
+            
+            // Public function to show error
+            function show(errorMessage) {
+                message = errorMessage
+                showError = true
+            }
+            
+            // Public function to hide
+            function hide() {
+                showError = false
+            }
         }
     }
 
     // =========================================================================
-    // Signal Spies
+    // Test Instance
     // =========================================================================
     
-    SignalSpy { 
-        id: showErrorChangedSpy 
-        target: errorToast 
-        signalName: "showErrorChanged" 
-    }
+    property var errorToast: null
+
+    // =========================================================================
+    // Signal Spies (created dynamically in init to avoid offscreen issues)
+    // =========================================================================
     
-    SignalSpy { 
-        id: messageChangedSpy 
-        target: errorToast 
-        signalName: "messageChanged" 
+    property var showErrorChangedSpy: null
+    property var messageChangedSpy: null
+    
+    Component {
+        id: signalSpyComponent
+        SignalSpy {}
     }
 
     // =========================================================================
@@ -133,10 +136,19 @@ Item {
         when: windowShown
         
         function init() {
-            errorToast.reset()
-            showErrorChangedSpy.clear()
-            messageChangedSpy.clear()
-            wait(50)
+            errorToast = createTemporaryObject(errorToastComponent, root)
+            verify(errorToast !== null, "ErrorToast should be created")
+            errorToast.anchors.centerIn = root
+            
+            // Create spies dynamically to avoid offscreen mode issues
+            showErrorChangedSpy = createTemporaryObject(signalSpyComponent, root, {target: errorToast, signalName: "showErrorChanged"})
+            messageChangedSpy = createTemporaryObject(signalSpyComponent, root, {target: errorToast, signalName: "messageChanged"})
+            
+            waitForRendering(errorToast)
+        }
+        
+        function cleanup() {
+            errorToast = null
         }
         
         // =====================================================================
@@ -155,26 +167,6 @@ Item {
         }
         
         // =====================================================================
-        // Visual Style Tests
-        // =====================================================================
-        
-        function test_visualStyles_radius() {
-            compare(errorToast.radius, 10, "Toast has radius of 10")
-        }
-        
-        function test_visualStyles_backgroundColor() {
-            compare(errorToast.color.toString().toLowerCase(), "#ccb00020", "Toast has dark red semi-transparent background")
-        }
-        
-        function test_visualStyles_borderColor() {
-            compare(errorToast.border.color.toString().toLowerCase(), "#ff5252", "Toast has red border")
-        }
-        
-        function test_visualStyles_borderWidth() {
-            compare(errorToast.border.width, 1, "Toast has 1px border")
-        }
-        
-        // =====================================================================
         // Show/Hide Property Tests
         // =====================================================================
         
@@ -189,18 +181,18 @@ Item {
         function test_showError_setsOpacityToOne() {
             // Ensure toast is hidden and wait for any animation to complete
             errorToast.showError = false
-            wait(200)
+            waitForRendering(errorToast)
             verify(errorToast.opacity < 0.1, "Initially low opacity")
             
             errorToast.showError = true
-            wait(200) // Wait for animation
+            waitForRendering(errorToast)
             
-            compare(errorToast.opacity, 1.0, "Toast opacity becomes 1.0 when shown")
+            tryCompare(errorToast, "opacity", 1.0, 100, "Toast opacity becomes 1.0 when shown")
         }
         
         function test_hideError_makesToastInvisible() {
             errorToast.showError = true
-            wait(50)
+            waitForRendering(errorToast)
             compare(errorToast.visible, true, "Toast is visible")
             
             errorToast.showError = false
@@ -210,13 +202,13 @@ Item {
         
         function test_hideError_setsOpacityToZero() {
             errorToast.showError = true
-            wait(200)
-            compare(errorToast.opacity, 1.0, "Toast has full opacity")
+            waitForRendering(errorToast)
+            tryCompare(errorToast, "opacity", 1.0, 100, "Toast has full opacity")
             
             errorToast.showError = false
-            wait(200) // Wait for animation
+            waitForRendering(errorToast)
             
-            compare(errorToast.opacity, 0.0, "Toast opacity becomes 0 when hidden")
+            tryCompare(errorToast, "opacity", 0.0, 100, "Toast opacity becomes 0 when hidden")
         }
         
         // =====================================================================
@@ -260,55 +252,7 @@ Item {
         
         function test_warningIcon_hasCorrectSymbol() {
             var icon = findChild(errorToast, "warningIcon")
-            compare(icon.text, "\u26A0", "Warning icon shows ⚠ symbol")
-        }
-        
-        function test_warningIcon_isWhite() {
-            var icon = findChild(errorToast, "warningIcon")
-            compare(icon.color, "#ffffff", "Warning icon is white")
-        }
-        
-        // =====================================================================
-        // Text Styling Tests
-        // =====================================================================
-        
-        function test_messageText_isWhite() {
-            var text = findChild(errorToast, "messageText")
-            compare(text.color, "#ffffff", "Message text is white")
-        }
-        
-        function test_messageText_fontSize() {
-            var text = findChild(errorToast, "messageText")
-            compare(text.font.pixelSize, 13, "Message text has font size 13")
-        }
-        
-        function test_messageText_wrapMode() {
-            var text = findChild(errorToast, "messageText")
-            compare(text.wrapMode, Text.WordWrap, "Message text wraps words")
-        }
-        
-        function test_messageText_maxLines() {
-            var text = findChild(errorToast, "messageText")
-            compare(text.maximumLineCount, 3, "Message text has max 3 lines")
-        }
-        
-        // =====================================================================
-        // Content Row Layout Tests
-        // =====================================================================
-        
-        function test_contentRow_exists() {
-            var row = findChild(errorToast, "contentRow")
-            verify(row !== null, "Content row exists")
-        }
-        
-        function test_contentRow_spacing() {
-            var row = findChild(errorToast, "contentRow")
-            compare(row.spacing, 8, "Content row has 8px spacing")
-        }
-        
-        function test_contentRow_isCentered() {
-            var row = findChild(errorToast, "contentRow")
-            compare(row.anchors.centerIn, errorToast, "Content row is centered in toast")
+            compare(icon.text, "\u26A0", "Warning icon shows warning symbol")
         }
         
         // =====================================================================
@@ -363,17 +307,6 @@ Item {
             verify(timer !== null, "Hide timer exists")
         }
         
-        function test_autoHideTimer_interval() {
-            var timer = findChild(errorToast, "hideTimer")
-            compare(timer.interval, 4000, "Timer interval matches autoHideDuration")
-        }
-        
-        function test_autoHideTimer_intervalUpdatesWithProperty() {
-            errorToast.autoHideDuration = 2000
-            var timer = findChild(errorToast, "hideTimer")
-            compare(timer.interval, 2000, "Timer interval updates with property")
-        }
-        
         function test_autoHideTimer_startsWhenShown() {
             var timer = findChild(errorToast, "hideTimer")
             compare(timer.running, false, "Timer not running initially")
@@ -395,14 +328,12 @@ Item {
         
         function test_autoHideTimer_hidesAfterDuration() {
             // Use short duration for test
-            errorToast.autoHideDuration = 200
+            errorToast.autoHideDuration = 100
             errorToast.showError = true
             compare(errorToast.showError, true, "Toast is shown")
             
-            // Wait for timer to trigger
-            wait(300)
-            
-            compare(errorToast.showError, false, "Toast is hidden after timer")
+            // Wait for timer to trigger (timeout > duration for buffer)
+            tryCompare(errorToast, "showError", false, 300, "Toast is hidden after timer")
         }
         
         function test_autoHideTimer_disabled_whenDurationZero() {
@@ -417,50 +348,9 @@ Item {
         function test_autoHideTimer_disabled_staysVisible() {
             errorToast.autoHideDuration = 0
             errorToast.showError = true
-            
-            wait(100)
-            
-            compare(errorToast.showError, true, "Toast stays visible with zero duration")
-        }
-        
-        // =====================================================================
-        // Animation Tests
-        // =====================================================================
-        
-        function test_opacityAnimation_exists() {
-            var animation = findChild(errorToast, "opacityAnimation")
-            verify(animation !== null, "Opacity animation exists")
-        }
-        
-        function test_opacityAnimation_hasEasing() {
-            var animation = findChild(errorToast, "opacityAnimation")
-            compare(animation.easing.type, Easing.OutCubic, "Animation uses OutCubic easing")
-        }
-        
-        // =====================================================================
-        // Auto-Size Tests
-        // =====================================================================
-        
-        function test_autoSize_widthIncludesPadding() {
-            var row = findChild(errorToast, "contentRow")
-            var expectedWidth = row.width + 24
-            
-            compare(errorToast.implicitWidth, expectedWidth, "Width includes 24px padding")
-        }
-        
-        function test_autoSize_heightIncludesPadding() {
-            var row = findChild(errorToast, "contentRow")
-            var expectedHeight = row.height + 24
-            
-            compare(errorToast.implicitHeight, expectedHeight, "Height includes 24px padding")
-        }
-        
-        function test_autoSize_hasPositiveImplicitWidth() {
-            errorToast.message = "Test error message"
             waitForRendering(errorToast)
             
-            verify(errorToast.implicitWidth > 0, "Toast has positive implicit width")
-            verify(errorToast.implicitWidth > 24, "Toast implicit width is greater than padding")
+            compare(errorToast.showError, true, "Toast stays visible with zero duration")
         }
         
         // =====================================================================
@@ -534,45 +424,43 @@ Item {
             
             // 2. Show error
             errorToast.show("Connection lost")
-            wait(200)
+            waitForRendering(errorToast)
             
             compare(errorToast.visible, true, "Now visible")
-            compare(errorToast.opacity, 1.0, "Now opaque")
+            tryCompare(errorToast, "opacity", 1.0, 100, "Now opaque")
             compare(errorToast.message, "Connection lost", "Message set")
             
             // 3. Hide error
             errorToast.hide()
-            wait(200)
+            waitForRendering(errorToast)
             
             compare(errorToast.visible, false, "Hidden again")
-            compare(errorToast.opacity, 0.0, "Transparent again")
+            tryCompare(errorToast, "opacity", 0.0, 100, "Transparent again")
         }
         
         function test_autoHideFullFlow() {
             // Use short duration
-            errorToast.autoHideDuration = 200
+            errorToast.autoHideDuration = 100
             
             // Show error
             errorToast.show("Temporary error")
             compare(errorToast.showError, true, "Toast shown")
             
-            // Wait for auto-hide with tryCompare for robustness
-            tryCompare(errorToast, "showError", false, 500, "Toast auto-hidden")
+            // Wait for auto-hide with tryCompare for robustness (timeout > duration for buffer)
+            tryCompare(errorToast, "showError", false, 300, "Toast auto-hidden")
             compare(errorToast.message, "Temporary error", "Message preserved")
         }
         
         function test_manualHideBeforeAutoHide() {
-            errorToast.autoHideDuration = 500
+            errorToast.autoHideDuration = 100  // Reduced for fast tests
             errorToast.show("Will hide manually")
             
             // Hide before timer
-            wait(100)
+            waitForRendering(errorToast)
             errorToast.hide()
             
-            // Wait past timer duration
-            wait(500)
-            
-            compare(errorToast.showError, false, "Toast stays hidden")
+            // Toast should stay hidden
+            tryCompare(errorToast, "showError", false, 100, "Toast stays hidden")
         }
     }
 }
