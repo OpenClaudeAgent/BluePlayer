@@ -44,6 +44,10 @@ Item {
             property real playbackRate: 1.0
             property bool chatVisible: false
             
+            // Picture-in-Picture properties
+            property bool pipActive: false
+            property bool pipEnabled: true
+            
             // Signals
             signal playPauseClicked()
             signal muteClicked()
@@ -51,6 +55,7 @@ Item {
             signal fullscreenClicked()
             signal playbackRateRequested(real rate)
             signal chatToggleClicked()
+            signal pipClicked()
             
             Row {
                 id: buttonRow
@@ -148,6 +153,20 @@ Item {
                     checked: controlBar.chatVisible
                     onClicked: controlBar.chatToggleClicked()
                 }
+                
+                // Picture-in-Picture Button
+                Button {
+                    id: pipBtn
+                    objectName: "pipButton"
+                    width: 48
+                    height: 48
+                    text: controlBar.pipActive ? "Exit PiP" : "PiP"
+                    enabled: controlBar.pipEnabled
+                    opacity: enabled ? 1.0 : 0.4
+                    checkable: true
+                    checked: controlBar.pipActive
+                    onClicked: controlBar.pipClicked()
+                }
             }
         }
     }
@@ -168,6 +187,7 @@ Item {
     property var fullscreenSpy: null
     property var rateSpy: null
     property var chatSpy: null
+    property var pipSpy: null
     
     Component {
         id: signalSpyComponent
@@ -208,6 +228,7 @@ Item {
             fullscreenSpy = createTemporaryObject(signalSpyComponent, root, {target: controlBar, signalName: "fullscreenClicked"})
             rateSpy = createTemporaryObject(signalSpyComponent, root, {target: controlBar, signalName: "playbackRateRequested"})
             chatSpy = createTemporaryObject(signalSpyComponent, root, {target: controlBar, signalName: "chatToggleClicked"})
+            pipSpy = createTemporaryObject(signalSpyComponent, root, {target: controlBar, signalName: "pipClicked"})
             
             waitForRendering(controlBar)
         }
@@ -456,6 +477,124 @@ Item {
             mouseClick(speedUp)
             compare(rateSpy.count, 3)
             compare(rateSpy.signalArguments[2][0], 1.75)
+        }
+
+        // =====================================================================
+        // TEST: Picture-in-Picture Button
+        // =====================================================================
+        
+        function test_pipButton_exists() {
+            if (!requiresSlider()) return
+            // Arrange
+            var button = findChild(controlBar, "pipButton")
+            
+            // Assert
+            verify(button !== null, "pipButton should exist")
+            verify(button.visible, "pipButton should be visible")
+        }
+        
+        function test_pipButton_click_emitsSignal() {
+            if (root.isOffscreen) { skip("Mouse events not supported in offscreen mode"); return }
+            // Arrange
+            var button = findChild(controlBar, "pipButton")
+            verify(button !== null, "pipButton should exist")
+            
+            // Act
+            mouseClick(button)
+            
+            // Assert
+            compare(pipSpy.count, 1, "pipClicked should be emitted once")
+        }
+        
+        function test_pipButton_showsPipText_initially() {
+            if (!requiresSlider()) return
+            // Arrange
+            var button = findChild(controlBar, "pipButton")
+            
+            // Assert
+            verify(button.text.indexOf("PiP") >= 0, "Should show PiP text initially")
+            compare(controlBar.pipActive, false, "pipActive should be false initially")
+        }
+        
+        function test_pipButton_showsExitText_whenActive() {
+            if (!requiresSlider()) return
+            // Arrange
+            var button = findChild(controlBar, "pipButton")
+            
+            // Act
+            controlBar.pipActive = true
+            waitForRendering(controlBar)
+            
+            // Assert
+            verify(button.text.indexOf("Exit") >= 0, "Should show Exit PiP text when active")
+        }
+        
+        function test_pipButton_enabled_byDefault() {
+            if (!requiresSlider()) return
+            // Arrange
+            var button = findChild(controlBar, "pipButton")
+            
+            // Assert
+            compare(controlBar.pipEnabled, true, "pipEnabled should be true by default")
+            compare(button.enabled, true, "Button should be enabled")
+            compare(button.opacity, 1.0, "Button opacity should be 1.0")
+        }
+        
+        function test_pipButton_disabled_whenPipNotEnabled() {
+            if (!requiresSlider()) return
+            // Arrange
+            var button = findChild(controlBar, "pipButton")
+            
+            // Act
+            controlBar.pipEnabled = false
+            waitForRendering(controlBar)
+            
+            // Assert
+            compare(button.enabled, false, "Button should be disabled")
+            compare(button.opacity, 0.4, "Button opacity should be 0.4 when disabled")
+        }
+        
+        function test_pipButton_click_whenDisabled_noSignal() {
+            if (root.isOffscreen) { skip("Mouse events not supported in offscreen mode"); return }
+            // Arrange
+            var button = findChild(controlBar, "pipButton")
+            controlBar.pipEnabled = false
+            waitForRendering(controlBar)
+            
+            // Act
+            mouseClick(button)
+            
+            // Assert
+            compare(pipSpy.count, 0, "pipClicked should NOT be emitted when disabled")
+        }
+        
+        function test_pipButton_togglesState_onMultipleClicks() {
+            if (root.isOffscreen) { skip("Mouse events not supported in offscreen mode"); return }
+            // Arrange
+            var button = findChild(controlBar, "pipButton")
+            
+            // Act - First click
+            mouseClick(button)
+            compare(pipSpy.count, 1, "First click emits signal")
+            
+            // Simulate state change
+            controlBar.pipActive = true
+            waitForRendering(controlBar)
+            
+            // Second click
+            mouseClick(button)
+            compare(pipSpy.count, 2, "Second click emits signal")
+        }
+        
+        // =====================================================================
+        // TEST: PiP Initial State
+        // =====================================================================
+        
+        function test_pipProperties_initialState() {
+            if (!requiresSlider()) return
+            // Assert
+            compare(controlBar.pipActive, false, "pipActive should be false")
+            compare(controlBar.pipEnabled, true, "pipEnabled should be true")
         }
     }
 }
