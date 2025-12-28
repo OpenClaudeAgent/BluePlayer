@@ -83,19 +83,30 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 
 ---
 
-## Milestones suggérés
+## Versions livrées
 
-| Milestone | Plans inclus | Objectif |
-|-----------|--------------|----------|
-| **v0.7 - Core Features** | 7 ✅, 8 ✅, 11 | Chat + Qualité + Bugfix |
-| **v0.8 - UX Polish** | 9 ✅, 10, 12 | Animations + Préférences |
-| **v0.9 - i18n** | 13 | Internationalisation |
-| **v0.10 - Sécurité** | 24.1-24.5 | Corrections critiques sécurité |
-| **v1.0 - Release** | 21, 24.6-24.30 | Stabilité + Refactoring complet |
-| **v1.x - Enhancements** | 14-20 | Nouvelles fonctionnalités |
+| Version | Plan | Contenu |
+|---------|------|---------|
+| **v0.7.0** | Plan 7 | Chat Twitch intégré |
+| **v0.8.0** | Plan 8 | Fix ligne vide Home |
+| **v0.9.0** | Plan 9 | Vitesse lecture intelligente |
+| **v0.10.0** | Plan 10 | Animations & Transitions |
+| **v0.11.0** | Plan 24 Sprint 1 | Sécurité (Keychain, validation IRC, thread-safety) |
+| **v0.12.0** | Plan 24 Sprint 2 | Refactoring PlayerView |
+| **v0.13.0** | Plan 24 Sprint 3 | Refactoring PlayerControlBar |
+| **v0.14.0** | Plan 24 Sprint 4 | BaseCard & Cards refactorées |
+| **v0.15.0** | Plan 24 Sprint 5 | TwitchService helper |
+| **v0.16.0** | Plan 24 Sprint 6 | downloadThumbnail() asynchrone |
 
-> **Recommandation** : Exécuter le Plan 24 (sous-tâches 24.1-24.5) **IMMÉDIATEMENT** - problèmes de sécurité critiques.
-> Exécuter le Plan 21 (Dette Technique) avant chaque release majeure.
+### Prochaines versions prévues
+
+| Version | Plan | Objectif |
+|---------|------|----------|
+| **v0.17.0** | Plan 24 Sprint 7 | Tests & CI/CD |
+| **v1.0** | Plans 11-13 | Qualité, Préférences, i18n |
+| **v1.x** | Plans 14-20 | Nouvelles fonctionnalités |
+
+> **Note** : Exécuter le Plan 21 (Dette Technique) avant chaque release majeure.
 
 ---
 
@@ -135,11 +146,16 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 
 | Type | Plan | Description |
 |------|------|-------------|
-| 🔄 Récurrent | Plan 21 | À exécuter après chaque milestone majeur |
+| 🔄 Récurrent | Plan 21 | **TEMPLATE** - Méthodologie d'audit dette technique à réexécuter périodiquement |
 | 📝 Placeholder | Plan 20 | Design à définir dans une future session |
-| 🚨 Critique | Plan 24 | Refactoring technique issu d'analyse complète (25 sous-tâches) |
+| 🚨 Critique | Plan 24 | **INSTANCE** - Audit Q4 2025 (27 décembre) basé sur le template Plan 21 |
 | 🎨 Design | Plan 25 | Audit UI/UX & Design System (20 sous-tâches) |
 | 🧹 Cleanup | Plan 27 | Suppression code legacy (remplace tâche 24.20) |
+
+> **Note Plan 21 vs Plan 24** :
+> - **Plan 21** est un template récurrent définissant la méthodologie d'audit qualité
+> - **Plan 24** est une instance concrète de ce template, exécutée le 27 décembre 2025
+> - Les prochains audits créeront de nouveaux plans (ex: Plan 28, Plan 35...) basés sur Plan 21
 
 ### Légende des statuts
 
@@ -178,7 +194,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 
 | Date | Évolution |
 |------|-----------|
-| 2025-12-XX | Création de la roadmap, tâches 1-9 définies |
+| 2025-12-27 | Création de la roadmap, tâches 1-9 définies |
 | 2025-12-26 | Ajout tâche 10 - Panel Préférences |
 | 2025-12-26 | Réorganisation : vitesse lecture (ex plan-02) devient plan-09, dépend de plan-05 (Cache/VOD) |
 | 2025-12-27 | Ajout colonne Version au tableau de suivi + tags git v0.1.0 à v0.5.0 |

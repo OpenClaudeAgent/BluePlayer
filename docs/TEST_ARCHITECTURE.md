@@ -1,57 +1,57 @@
-# BluePlayer Test Architecture Blueprint
+# BluePlayer - Architecture des tests
 
-## Executive Summary
+## Résumé
 
-This document presents a world-class test architecture for BluePlayer, incorporating best practices from Google, Microsoft, and Qt testing guidelines.
-
----
-
-## 1. Current State Analysis
-
-### Strengths
-- Qt Test Framework properly integrated
-- Comprehensive mock infrastructure (`MockHttpClient`, `MockNetworkReply`)
-- Good test data factories (`TwitchTestData`)
-- Separate test executables per module
-- Coverage support enabled
-- Data-driven tests used in `TestTwitchService`, `TestError`
-
-### Areas for Improvement
-- No base test class hierarchy
-- Duplicate setup/teardown code
-- No test categorization (smoke, regression, performance)
-- Missing Page Object pattern for UI tests
-- No chaos/fault injection tests
-- No performance benchmarks
-- Inconsistent naming conventions
-- Limited dependency injection
+Ce document présente une architecture de tests de classe mondiale pour BluePlayer, intégrant les meilleures pratiques de Google, Microsoft et les directives de test Qt.
 
 ---
 
-## 2. Test Pyramid Implementation
+## 1. Analyse de l'état actuel
 
-### Google Test Pyramid Ratios
+### Points forts
+- Framework Qt Test correctement intégré
+- Infrastructure de mock complète (`MockHttpClient`, `MockNetworkReply`)
+- Bonnes factories de données de test (`TwitchTestData`)
+- Exécutables de test séparés par module
+- Support de la couverture de code activé
+- Tests data-driven utilisés dans `TestTwitchService`, `TestError`
+
+### Axes d'amélioration
+- Pas de hiérarchie de classes de test de base
+- Code de setup/teardown dupliqué
+- Pas de catégorisation des tests (smoke, régression, performance)
+- Pattern Page Object manquant pour les tests UI
+- Pas de tests de chaos/injection de fautes
+- Pas de benchmarks de performance
+- Conventions de nommage incohérentes
+- Injection de dépendances limitée
+
+---
+
+## 2. Implémentation de la pyramide des tests
+
+### Ratios de la pyramide des tests Google
 ```
          /\
-        /  \   E2E Tests (5%)
-       /----\  Integration Tests (15%)
-      /------\ Unit Tests (80%)
+        /  \   Tests E2E (5%)
+       /----\  Tests d'intégration (15%)
+      /------\ Tests unitaires (80%)
      /________\
 ```
 
-### Current vs. Target Distribution
+### Distribution actuelle vs. cible
 
-| Test Type    | Current | Target | Gap   |
-|--------------|---------|--------|-------|
-| Unit Tests   | ~95%    | 80%    | Over  |
-| Integration  | ~5%     | 15%    | Under |
-| E2E/UI       | ~0%     | 5%     | Under |
+| Type de test     | Actuel | Cible  | Écart      |
+|------------------|--------|--------|------------|
+| Tests unitaires  | ~95%   | 80%    | Supérieur  |
+| Intégration      | ~5%    | 15%    | Inférieur  |
+| E2E/UI           | ~0%    | 5%     | Inférieur  |
 
 ---
 
-## 3. Base Test Class Hierarchy
+## 3. Hiérarchie des classes de test de base
 
-### 3.1 Core Base Classes
+### 3.1 Classes de base principales
 
 ```cpp
 // tests/base/TestBase.hpp
@@ -65,34 +65,34 @@ This document presents a world-class test architecture for BluePlayer, incorpora
 namespace blueplayer::test {
 
 /**
- * @brief Abstract base class for all tests
+ * @brief Classe de base abstraite pour tous les tests
  * 
- * Provides:
- * - Common setup/teardown lifecycle
- * - Temporary directory management
- * - Test timing and metrics
- * - Standard assertions and utilities
+ * Fournit :
+ * - Cycle de vie commun setup/teardown
+ * - Gestion des répertoires temporaires
+ * - Timing et métriques des tests
+ * - Assertions et utilitaires standards
  */
 class TestBase : public QObject {
   Q_OBJECT
 
 protected:
-  // Lifecycle hooks - override in derived classes
+  // Hooks de cycle de vie - à surcharger dans les classes dérivées
   virtual void onSetUp() {}
   virtual void onTearDown() {}
   virtual void onTestCaseSetUp() {}
   virtual void onTestCaseTearDown() {}
 
-  // Utilities
+  // Utilitaires
   [[nodiscard]] QString tempPath() const { return m_tempDir->path(); }
   [[nodiscard]] QString tempFile(const QString& name) const;
   void createTempFile(const QString& name, const QByteArray& content);
   
-  // Timing utilities
+  // Utilitaires de timing
   void startTimer() { m_timer.start(); }
   [[nodiscard]] qint64 elapsedMs() const { return m_timer.elapsed(); }
 
-  // Environment management
+  // Gestion de l'environnement
   void setEnv(const char* name, const QString& value);
   void unsetEnv(const char* name);
   void withEnv(const char* name, const QString& value, 
@@ -111,7 +111,7 @@ private:
 };
 
 /**
- * @brief Base class for network-dependent tests
+ * @brief Classe de base pour les tests dépendant du réseau
  */
 class NetworkTestBase : public TestBase {
   Q_OBJECT
@@ -122,7 +122,7 @@ protected:
 
   [[nodiscard]] MockHttpClient& mockHttp() { return *m_mockHttp; }
   
-  // Convenience methods
+  // Méthodes de commodité
   void queueJsonResponse(const QByteArray& json, int status = 200);
   void queueTwitchResponse(const QVariantList& data);
   void queueTwitchError(int status, const QString& message);
@@ -133,25 +133,25 @@ private:
 };
 
 /**
- * @brief Base class for async tests requiring event loop
+ * @brief Classe de base pour les tests asynchrones nécessitant une boucle d'événements
  */
 class AsyncTestBase : public TestBase {
   Q_OBJECT
 
 protected:
-  // Wait for signal with timeout
+  // Attendre un signal avec timeout
   template<typename Signal>
   bool waitForSignal(QObject* sender, Signal signal, int timeoutMs = 5000);
   
-  // Wait for condition with timeout
+  // Attendre une condition avec timeout
   bool waitFor(std::function<bool()> condition, int timeoutMs = 5000);
   
-  // Process events
+  // Traiter les événements
   void processEvents(int ms = 100);
 };
 
 /**
- * @brief Base class for database/cache tests
+ * @brief Classe de base pour les tests de base de données/cache
  */
 class PersistenceTestBase : public TestBase {
   Q_OBJECT
@@ -166,7 +166,7 @@ protected:
 };
 
 /**
- * @brief Base class for QML/UI tests
+ * @brief Classe de base pour les tests QML/UI
  */
 class QmlTestBase : public AsyncTestBase {
   Q_OBJECT
@@ -191,7 +191,7 @@ private:
 } // namespace blueplayer::test
 ```
 
-### 3.2 Test Categories via Traits
+### 3.2 Catégories de tests via traits
 
 ```cpp
 // tests/base/TestTraits.hpp
@@ -202,37 +202,37 @@ private:
 namespace blueplayer::test::traits {
 
 /**
- * @brief Marks a test as a smoke test (fast, critical path)
+ * @brief Marque un test comme test smoke (rapide, chemin critique)
  */
 #define SMOKE_TEST \
   private: void runAsSmoke() { QVERIFY(true); }
 
 /**
- * @brief Marks a test as performance-sensitive
+ * @brief Marque un test comme sensible aux performances
  */
 #define PERF_TEST \
   private: void runAsPerf() { QVERIFY(true); }
 
 /**
- * @brief Marks a test as requiring network
+ * @brief Marque un test comme nécessitant le réseau
  */
 #define NETWORK_TEST \
   private: void requiresNetwork() { QVERIFY(true); }
 
 /**
- * @brief Marks a test as slow (>1s execution time)
+ * @brief Marque un test comme lent (temps d'exécution >1s)
  */
 #define SLOW_TEST \
   private: void isSlow() { QVERIFY(true); }
 
 /**
- * @brief Skip test if condition not met
+ * @brief Sauter le test si la condition n'est pas remplie
  */
 #define SKIP_IF(condition, message) \
   if (condition) QSKIP(message)
 
 /**
- * @brief Timeout decorator for async tests
+ * @brief Décorateur de timeout pour les tests asynchrones
  */
 #define TEST_TIMEOUT(ms) \
   QTimer::singleShot(ms, []() { QFAIL("Test timed out"); })
@@ -242,9 +242,9 @@ namespace blueplayer::test::traits {
 
 ---
 
-## 4. Fixture Factories Pattern
+## 4. Pattern Factory pour les fixtures
 
-### 4.1 Generic Factory Interface
+### 4.1 Interface générique de factory
 
 ```cpp
 // tests/fixtures/FixtureFactory.hpp
@@ -256,7 +256,7 @@ namespace blueplayer::test::traits {
 namespace blueplayer::test {
 
 /**
- * @brief Generic factory for creating test fixtures
+ * @brief Factory générique pour créer des fixtures de test
  */
 template<typename T>
 class FixtureFactory {
@@ -283,7 +283,7 @@ public:
 } // namespace blueplayer::test
 ```
 
-### 4.2 Domain-Specific Factories
+### 4.2 Factories spécifiques au domaine
 
 ```cpp
 // tests/fixtures/TwitchFixtures.hpp
@@ -297,7 +297,7 @@ public:
 namespace blueplayer::test {
 
 /**
- * @brief Factory for creating Twitch stream fixtures
+ * @brief Factory pour créer des fixtures de stream Twitch
  */
 class StreamFixture {
 public:
@@ -375,7 +375,7 @@ private:
 };
 
 /**
- * @brief Factory for creating Twitch category fixtures
+ * @brief Factory pour créer des fixtures de catégorie Twitch
  */
 class CategoryFixture {
 public:
@@ -402,7 +402,7 @@ private:
 };
 
 /**
- * @brief Factory for creating complete API response fixtures
+ * @brief Factory pour créer des fixtures de réponse API complètes
  */
 class ApiResponseFixture {
 public:
@@ -447,9 +447,9 @@ private:
 
 ---
 
-## 5. Builder Pattern for Test Data
+## 5. Builder Pattern pour les données de test
 
-### 5.1 Fluent Builder Implementation
+### 5.1 Implémentation du builder fluent
 
 ```cpp
 // tests/builders/TestDataBuilder.hpp
@@ -463,7 +463,7 @@ private:
 namespace blueplayer::test {
 
 /**
- * @brief Fluent builder for Twitch stream test data
+ * @brief Builder fluent pour les données de test de stream Twitch
  */
 class StreamBuilder {
 public:
@@ -519,7 +519,7 @@ private:
 };
 
 /**
- * @brief Fluent builder for Twitch video/VOD test data
+ * @brief Builder fluent pour les données de test de vidéo/VOD Twitch
  */
 class VideoBuilder {
 public:
@@ -560,7 +560,7 @@ private:
 };
 
 /**
- * @brief Builder for API error responses
+ * @brief Builder pour les réponses d'erreur API
  */
 class ErrorResponseBuilder {
 public:
@@ -568,7 +568,7 @@ public:
   ErrorResponseBuilder& error(const QString& err) { m_error = err; return *this; }
   ErrorResponseBuilder& message(const QString& msg) { m_message = msg; return *this; }
   
-  // Common error presets
+  // Préréglages d'erreurs courantes
   ErrorResponseBuilder& unauthorized() { 
     return status(401).error("Unauthorized").message("Invalid access token"); 
   }
@@ -596,7 +596,7 @@ private:
   QString m_message = "Invalid request";
 };
 
-// Convenience functions
+// Fonctions de commodité
 inline StreamBuilder aStream() { return StreamBuilder::aStream(); }
 inline VideoBuilder aVideo() { return VideoBuilder::aVideo(); }
 inline ErrorResponseBuilder anError() { return ErrorResponseBuilder(); }
@@ -606,9 +606,9 @@ inline ErrorResponseBuilder anError() { return ErrorResponseBuilder(); }
 
 ---
 
-## 6. Page Object Pattern for UI Tests
+## 6. Pattern Page Object pour les tests UI
 
-### 6.1 Base Page Object
+### 6.1 Page Object de base
 
 ```cpp
 // tests/ui/pages/PageObject.hpp
@@ -623,11 +623,11 @@ inline ErrorResponseBuilder anError() { return ErrorResponseBuilder(); }
 namespace blueplayer::test::ui {
 
 /**
- * @brief Base class for Page Objects in UI testing
+ * @brief Classe de base pour les Page Objects dans les tests UI
  * 
- * Implements the Page Object pattern for QML UI testing.
- * Each page/view has a corresponding PageObject that encapsulates
- * all UI interactions.
+ * Implémente le pattern Page Object pour les tests UI QML.
+ * Chaque page/vue a un PageObject correspondant qui encapsule
+ * toutes les interactions UI.
  */
 class PageObject {
 public:
@@ -639,7 +639,7 @@ public:
   virtual void waitUntilLoaded(int timeoutMs = 5000);
   
 protected:
-  // Element finders
+  // Recherche d'éléments
   [[nodiscard]] QQuickItem* findByObjectName(const QString& name) const;
   [[nodiscard]] QQuickItem* findByProperty(const QString& property, const QVariant& value) const;
   [[nodiscard]] QList<QQuickItem*> findAllByObjectName(const QString& name) const;
@@ -654,18 +654,18 @@ protected:
   void pressKey(Qt::Key key, Qt::KeyboardModifiers modifiers = Qt::NoModifier);
   void scroll(QQuickItem* item, int deltaY);
   
-  // Property access
+  // Accès aux propriétés
   [[nodiscard]] QVariant getProperty(QQuickItem* item, const QString& property) const;
   [[nodiscard]] QVariant getProperty(const QString& objectName, const QString& property) const;
   void setProperty(QQuickItem* item, const QString& property, const QVariant& value);
   
-  // Waits
+  // Attentes
   bool waitForProperty(QQuickItem* item, const QString& property, 
                        const QVariant& expectedValue, int timeoutMs = 5000);
   bool waitForVisible(const QString& objectName, int timeoutMs = 5000);
   bool waitForHidden(const QString& objectName, int timeoutMs = 5000);
   
-  // View access
+  // Accès à la vue
   [[nodiscard]] QQuickView* view() const { return m_view; }
   [[nodiscard]] QQuickItem* rootItem() const { return m_view->rootObject(); }
 
@@ -676,7 +676,7 @@ private:
 } // namespace blueplayer::test::ui
 ```
 
-### 6.2 Concrete Page Objects
+### 6.2 Page Objects concrets
 
 ```cpp
 // tests/ui/pages/HomePageObject.hpp
@@ -687,13 +687,13 @@ private:
 namespace blueplayer::test::ui {
 
 /**
- * @brief Page Object for HomeView.qml
+ * @brief Page Object pour HomeView.qml
  */
 class HomePageObject : public PageObject {
 public:
   using PageObject::PageObject;
   
-  // Visibility
+  // Visibilité
   [[nodiscard]] bool isVisible() const override;
   
   // Sections
@@ -709,12 +709,12 @@ public:
   void scrollToSection(const QString& sectionName);
   void refreshContent();
   
-  // Stream cards
+  // Cartes de stream
   [[nodiscard]] QString streamCardTitle(int index) const;
   [[nodiscard]] QString streamCardStreamer(int index) const;
   [[nodiscard]] int streamCardViewers(int index) const;
   
-  // Search
+  // Recherche
   void openSearch();
   void search(const QString& query);
   void clearSearch();
@@ -725,7 +725,7 @@ public:
 };
 
 /**
- * @brief Page Object for PlayerView.qml
+ * @brief Page Object pour PlayerView.qml
  */
 class PlayerPageObject : public PageObject {
 public:
@@ -736,7 +736,7 @@ public:
   [[nodiscard]] bool isPaused() const;
   [[nodiscard]] bool isBuffering() const;
   
-  // Controls
+  // Contrôles
   void play();
   void pause();
   void togglePlayPause();
@@ -748,7 +748,7 @@ public:
   void seekBackward(int seconds = 10);
   void toggleFullscreen();
   
-  // Quality
+  // Qualité
   void openQualitySelector();
   void selectQuality(const QString& quality);
   [[nodiscard]] QString currentQuality() const;
@@ -758,12 +758,12 @@ public:
   void toggleChat();
   [[nodiscard]] bool isChatVisible() const;
   
-  // Back navigation
+  // Navigation retour
   HomePageObject goBack();
 };
 
 /**
- * @brief Page Object for LoginView.qml
+ * @brief Page Object pour LoginView.qml
  */
 class LoginPageObject : public PageObject {
 public:
@@ -787,9 +787,9 @@ public:
 
 ---
 
-## 7. Test Categorization
+## 7. Catégorisation des tests
 
-### 7.1 Test Tags and Categories
+### 7.1 Tags et catégories de tests
 
 ```cpp
 // tests/categories/TestCategories.hpp
@@ -798,32 +798,32 @@ public:
 namespace blueplayer::test {
 
 /**
- * Test categories for filtering and CI/CD pipelines
+ * Catégories de tests pour le filtrage et les pipelines CI/CD
  */
 enum class TestCategory {
-  Smoke,        // Fast, critical path tests (<100ms each)
-  Unit,         // Standard unit tests
-  Integration,  // Tests with real dependencies
-  Performance,  // Benchmark tests
-  Chaos,        // Fault injection tests
-  E2E,          // End-to-end UI tests
-  Regression    // Full regression suite
+  Smoke,        // Tests rapides, chemin critique (<100ms chacun)
+  Unit,         // Tests unitaires standards
+  Integration,  // Tests avec dépendances réelles
+  Performance,  // Tests de benchmark
+  Chaos,        // Tests d'injection de fautes
+  E2E,          // Tests end-to-end UI
+  Regression    // Suite de régression complète
 };
 
 /**
- * CTest labels mapping (used in CMakeLists.txt)
+ * Mapping des labels CTest (utilisé dans CMakeLists.txt)
  */
 // set_tests_properties(test_name PROPERTIES LABELS "smoke;unit")
 
 } // namespace blueplayer::test
 ```
 
-### 7.2 CMake Test Organization
+### 7.2 Organisation CMake des tests
 
 ```cmake
-# tests/CMakeLists.txt additions
+# Ajouts à tests/CMakeLists.txt
 
-# Define test categories
+# Définir les catégories de tests
 set(SMOKE_TESTS
   test_config
   test_error
@@ -856,21 +856,21 @@ set(INTEGRATION_TESTS
 )
 
 set(PERFORMANCE_TESTS
-  # Future: test_network_perf
-  # Future: test_cache_perf
+  # Futur: test_network_perf
+  # Futur: test_cache_perf
 )
 
 set(CHAOS_TESTS
-  # Future: test_network_chaos
-  # Future: test_auth_chaos
+  # Futur: test_network_chaos
+  # Futur: test_auth_chaos
 )
 
 set(E2E_TESTS
-  # Future: test_home_e2e
-  # Future: test_player_e2e
+  # Futur: test_home_e2e
+  # Futur: test_player_e2e
 )
 
-# Apply labels
+# Appliquer les labels
 foreach(test ${SMOKE_TESTS})
   set_tests_properties(${test} PROPERTIES LABELS "smoke;fast")
 endforeach()
@@ -883,7 +883,7 @@ foreach(test ${INTEGRATION_TESTS})
   set_tests_properties(${test} PROPERTIES LABELS "integration;slow")
 endforeach()
 
-# Custom targets for running test categories
+# Cibles personnalisées pour exécuter les catégories de tests
 add_custom_target(test-smoke
   COMMAND ${CMAKE_CTEST_COMMAND} -L smoke --output-on-failure
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
@@ -905,18 +905,18 @@ add_custom_target(test-all
 )
 ```
 
-### 7.3 Smoke Tests (Critical Path)
+### 7.3 Tests smoke (chemin critique)
 
 ```cpp
 // tests/smoke/SmokeTests.cpp
 /**
- * @brief Smoke tests for critical application paths
+ * @brief Tests smoke pour les chemins critiques de l'application
  * 
- * These tests should:
- * - Execute in < 100ms total
- * - Cover critical initialization paths
- * - Verify basic functionality works
- * - Run on every commit
+ * Ces tests doivent :
+ * - S'exécuter en < 100ms au total
+ * - Couvrir les chemins d'initialisation critiques
+ * - Vérifier que les fonctionnalités de base fonctionnent
+ * - S'exécuter à chaque commit
  */
 
 #include "base/TestBase.hpp"
@@ -930,7 +930,7 @@ class SmokeTests : public TestBase {
   Q_OBJECT
 
 private slots:
-  // Config smoke tests
+  // Tests smoke de configuration
   void testConfigSingletonExists() {
     startTimer();
     Config& config = Config::instance();
@@ -938,13 +938,13 @@ private slots:
     QVERIFY(elapsedMs() < 10);
   }
   
-  // Error handling smoke tests
+  // Tests smoke de gestion d'erreurs
   void testErrorCanBeCreated() {
     Error error(ErrorCode::Unknown);
     QVERIFY(!error.hasError() || error.code() != ErrorCode::Unknown);
   }
   
-  // Result type smoke tests
+  // Tests smoke du type Result
   void testResultSuccessWorks() {
     auto result = Result<int>::success(42);
     QVERIFY(result.isSuccess());
@@ -965,9 +965,9 @@ QTEST_MAIN(blueplayer::test::SmokeTests)
 
 ---
 
-## 8. Performance Tests (Benchmarks)
+## 8. Tests de performance (benchmarks)
 
-### 8.1 Benchmark Framework
+### 8.1 Framework de benchmark
 
 ```cpp
 // tests/performance/Benchmark.hpp
@@ -983,7 +983,7 @@ QTEST_MAIN(blueplayer::test::SmokeTests)
 namespace blueplayer::test {
 
 /**
- * @brief Benchmark results container
+ * @brief Conteneur de résultats de benchmark
  */
 struct BenchmarkResult {
   QString name;
@@ -997,18 +997,18 @@ struct BenchmarkResult {
   
   void print() const {
     qDebug() << "Benchmark:" << name;
-    qDebug() << "  Iterations:" << iterations;
+    qDebug() << "  Itérations:" << iterations;
     qDebug() << "  Total:" << totalMs << "ms";
     qDebug() << "  Min:" << minMs << "ms";
     qDebug() << "  Max:" << maxMs << "ms";
-    qDebug() << "  Avg:" << avgMs << "ms";
-    qDebug() << "  Median:" << medianMs << "ms";
-    qDebug() << "  StdDev:" << stdDevMs << "ms";
+    qDebug() << "  Moyenne:" << avgMs << "ms";
+    qDebug() << "  Médiane:" << medianMs << "ms";
+    qDebug() << "  Écart-type:" << stdDevMs << "ms";
   }
 };
 
 /**
- * @brief Benchmark runner utility
+ * @brief Utilitaire d'exécution de benchmarks
  */
 class Benchmark {
 public:
@@ -1016,12 +1016,12 @@ public:
                              std::function<void()> fn,
                              int iterations = 100,
                              int warmupIterations = 10) {
-    // Warmup
+    // Préchauffage
     for (int i = 0; i < warmupIterations; ++i) {
       fn();
     }
     
-    // Actual measurements
+    // Mesures réelles
     std::vector<qint64> times;
     times.reserve(iterations);
     
@@ -1032,7 +1032,7 @@ public:
       times.push_back(timer.elapsed());
     }
     
-    // Calculate statistics
+    // Calcul des statistiques
     BenchmarkResult result;
     result.name = name;
     result.iterations = iterations;
@@ -1053,10 +1053,10 @@ public:
     return result;
   }
   
-  // Assertion helpers
+  // Helpers d'assertion
   static void assertMaxTime(const BenchmarkResult& result, qint64 maxMs) {
     QVERIFY2(result.avgMs <= maxMs, 
-             qPrintable(QString("Benchmark %1 exceeded max time: %2ms > %3ms")
+             qPrintable(QString("Le benchmark %1 a dépassé le temps maximum : %2ms > %3ms")
                        .arg(result.name)
                        .arg(result.avgMs)
                        .arg(maxMs)));
@@ -1066,7 +1066,7 @@ public:
 } // namespace blueplayer::test
 ```
 
-### 8.2 Performance Test Examples
+### 8.2 Exemples de tests de performance
 
 ```cpp
 // tests/performance/TestNetworkPerformance.cpp
@@ -1081,15 +1081,15 @@ class TestNetworkPerformance : public NetworkTestBase {
 
 private slots:
   void benchmarkJsonParsing() {
-    // Create large JSON response
+    // Créer une grande réponse JSON
     QString largeJson = createLargeStreamResponse(1000);
     
-    auto result = Benchmark::run("JSON Parsing (1000 streams)", [&]() {
+    auto result = Benchmark::run("Parsing JSON (1000 streams)", [&]() {
       QJsonDocument::fromJson(largeJson.toUtf8());
     });
     
     result.print();
-    Benchmark::assertMaxTime(result, 50); // Max 50ms average
+    Benchmark::assertMaxTime(result, 50); // Max 50ms en moyenne
   }
   
   void benchmarkStreamTransformation() {
@@ -1101,14 +1101,14 @@ private slots:
                     .build());
     }
     
-    auto result = Benchmark::run("Stream Transformation (100 streams)", [&]() {
-      // Transform streams through ViewModel
+    auto result = Benchmark::run("Transformation de streams (100 streams)", [&]() {
+      // Transformer les streams via le ViewModel
       HomeViewModel vm;
       vm.transformTwitchStreams(streams);
     });
     
     result.print();
-    Benchmark::assertMaxTime(result, 10); // Max 10ms average
+    Benchmark::assertMaxTime(result, 10); // Max 10ms en moyenne
   }
   
 private:
@@ -1120,9 +1120,9 @@ private:
 
 ---
 
-## 9. Chaos Tests (Fault Injection)
+## 9. Tests de chaos (injection de fautes)
 
-### 9.1 Chaos Testing Framework
+### 9.1 Framework de tests de chaos
 
 ```cpp
 // tests/chaos/ChaosEngine.hpp
@@ -1135,7 +1135,7 @@ private:
 namespace blueplayer::test {
 
 /**
- * @brief Chaos engineering utilities for fault injection testing
+ * @brief Utilitaires d'ingénierie du chaos pour les tests d'injection de fautes
  */
 class ChaosEngine {
 public:
@@ -1152,7 +1152,7 @@ public:
   };
   
   /**
-   * @brief Injects a random fault based on probability
+   * @brief Injecte une faute aléatoire selon une probabilité
    */
   static bool shouldInjectFault(double probability = 0.1) {
     static std::random_device rd;
@@ -1162,7 +1162,7 @@ public:
   }
   
   /**
-   * @brief Gets a random fault type
+   * @brief Obtient un type de faute aléatoire
    */
   static FaultType randomFault() {
     static std::random_device rd;
@@ -1172,7 +1172,7 @@ public:
   }
   
   /**
-   * @brief Creates a MockResponse for a given fault type
+   * @brief Crée une MockResponse pour un type de faute donné
    */
   static MockResponse createFaultyResponse(FaultType fault) {
     switch (fault) {
@@ -1183,7 +1183,7 @@ public:
       case FaultType::SlowResponse:
         return MockResponse::json("{}").withDelay(5000);
       case FaultType::PartialResponse:
-        return MockResponse::json("{\"data\":");  // Incomplete JSON
+        return MockResponse::json("{\"data\":");  // JSON incomplet
       case FaultType::InvalidJson:
         return MockResponse::json("{not valid json}");
       case FaultType::EmptyResponse:
@@ -1200,7 +1200,7 @@ public:
 };
 
 /**
- * @brief Mock HTTP client that randomly injects faults
+ * @brief Client HTTP mock qui injecte des fautes aléatoirement
  */
 class ChaoticHttpClient : public MockHttpClient {
 public:
@@ -1224,7 +1224,7 @@ private:
 } // namespace blueplayer::test
 ```
 
-### 9.2 Chaos Test Examples
+### 9.2 Exemples de tests de chaos
 
 ```cpp
 // tests/chaos/TestNetworkChaos.cpp
@@ -1239,28 +1239,28 @@ class TestNetworkChaos : public NetworkTestBase {
 
 private slots:
   void testServiceSurvivesRandomFaults() {
-    // Create service with chaotic client
+    // Créer un service avec un client chaotique
     auto chaoticClient = std::make_unique<ChaoticHttpClient>(0.3);
-    // Inject client... (would need DI support)
+    // Injecter le client... (nécessiterait le support DI)
     
     TwitchService service;
     QSignalSpy errorSpy(&service, &TwitchService::errorOccurred);
     
-    // Hammer the service with requests
+    // Marteler le service avec des requêtes
     for (int i = 0; i < 100; ++i) {
       service.refreshStreams();
       service.refreshCategories();
       service.search("test");
       
-      // Process events
+      // Traiter les événements
       QCoreApplication::processEvents();
     }
     
-    // Service should not crash
+    // Le service ne doit pas planter
     QVERIFY(&service != nullptr);
     
-    // Some errors expected
-    qDebug() << "Errors encountered:" << errorSpy.count();
+    // Des erreurs sont attendues
+    qDebug() << "Erreurs rencontrées:" << errorSpy.count();
   }
   
   void testGracefulDegradationOnTimeout() {
@@ -1272,16 +1272,16 @@ private slots:
     service.refreshStreams();
     processEvents(1000);
     
-    // Should emit error
+    // Doit émettre une erreur
     QVERIFY(errorSpy.count() > 0);
-    // Data should be empty (not crash)
+    // Les données doivent être vides (pas de crash)
     QVERIFY(service.streams().isEmpty());
   }
   
   void testRecoveryAfterNetworkRestore() {
-    // First request fails
+    // La première requête échoue
     queueNetworkError(QNetworkReply::TimeoutError);
-    // Second request succeeds
+    // La deuxième requête réussit
     queueTwitchResponse(TwitchTestData::createStreams(5));
     
     TwitchService service;
@@ -1301,9 +1301,9 @@ private slots:
 
 ---
 
-## 10. Test Isolation Strategy
+## 10. Stratégie d'isolation des tests
 
-### 10.1 Dependency Injection Pattern
+### 10.1 Pattern d'injection de dépendances
 
 ```cpp
 // src/core/DependencyContainer.hpp
@@ -1317,7 +1317,7 @@ private slots:
 namespace blueplayer::core {
 
 /**
- * @brief Lightweight dependency injection container
+ * @brief Conteneur d'injection de dépendances léger
  */
 class DependencyContainer {
 public:
@@ -1347,13 +1347,13 @@ public:
   
   template<typename Interface>
   std::shared_ptr<Interface> resolve() {
-    // Check for registered instance first
+    // Vérifier d'abord l'instance enregistrée
     auto instIt = m_instances.find(typeid(Interface));
     if (instIt != m_instances.end()) {
       return std::static_pointer_cast<Interface>(instIt->second);
     }
     
-    // Fall back to factory
+    // Se rabattre sur la factory
     auto factIt = m_factories.find(typeid(Interface));
     if (factIt != m_factories.end()) {
       return std::static_pointer_cast<Interface>(factIt->second());
@@ -1375,7 +1375,7 @@ private:
 } // namespace blueplayer::core
 ```
 
-### 10.2 Mock Boundaries
+### 10.2 Frontières de mock
 
 ```
 +--------------------------------------------------+
@@ -1387,27 +1387,27 @@ private:
 |   +-----+------+     +------+-----+               |
 |         |                   |                     |
 |   +-----v-------------------v-----+               |
-|   |         API Clients           | <- MOCK HERE  |
+|   |        Clients API            | <- MOCK ICI   |
 |   +---------------+---------------+               |
 |                   |                               |
 +-------------------v-------------------------------+
                     |
           +---------v---------+
-          |  Network Layer    | <- MOCK HERE
+          |  Couche réseau    | <- MOCK ICI
           +---------+---------+
                     |
           +---------v---------+
-          |  External APIs    | <- REAL IN INTEGRATION
+          |   APIs externes   | <- RÉEL EN INTÉGRATION
           +-------------------+
 
-MOCK BOUNDARIES:
-1. MockHttpClient      - Replace network layer
-2. MockTwitchApiClient - Replace API client
-3. MockCacheManager    - Replace file system
-4. MockSecureStorage   - Replace keychain
+FRONTIÈRES DE MOCK :
+1. MockHttpClient      - Remplace la couche réseau
+2. MockTwitchApiClient - Remplace le client API
+3. MockCacheManager    - Remplace le système de fichiers
+4. MockSecureStorage   - Remplace le keychain
 ```
 
-### 10.3 Test Database/Cache Strategy
+### 10.3 Stratégie de base de données/cache de test
 
 ```cpp
 // tests/fixtures/TestEnvironment.hpp
@@ -1420,7 +1420,7 @@ MOCK BOUNDARIES:
 namespace blueplayer::test {
 
 /**
- * @brief Manages isolated test environment
+ * @brief Gère l'environnement de test isolé
  */
 class TestEnvironment {
 public:
@@ -1432,10 +1432,10 @@ public:
   void setUp() {
     m_tempDir = std::make_unique<QTemporaryDir>();
     
-    // Override standard paths for testing
+    // Surcharger les chemins standards pour les tests
     QStandardPaths::setTestModeEnabled(true);
     
-    // Set environment variables
+    // Définir les variables d'environnement
     qputenv("BLUEPLAYER_CONFIG_DIR", configPath().toUtf8());
     qputenv("BLUEPLAYER_CACHE_DIR", cachePath().toUtf8());
     qputenv("BLUEPLAYER_DATA_DIR", dataPath().toUtf8());
@@ -1475,13 +1475,13 @@ private:
 
 ---
 
-## 11. Naming and Organization Conventions
+## 11. Conventions de nommage et d'organisation
 
-### 11.1 Test File Naming
+### 11.1 Nommage des fichiers de test
 
 ```
 tests/
-  base/                          # Base classes
+  base/                          # Classes de base
     TestBase.hpp
     TestTraits.hpp
     
@@ -1493,13 +1493,13 @@ tests/
     FixtureFactory.hpp
     TestEnvironment.hpp
     
-  mocks/                         # Mock implementations
+  mocks/                         # Implémentations mock
     MockHttpClient.hpp
     MockNetworkReply.hpp
     MockCacheManager.hpp
     MockSecureStorage.hpp
     
-  helpers/                       # Test utilities
+  helpers/                       # Utilitaires de test
     TwitchTestData.hpp
     TestHelpers.hpp
     
@@ -1508,18 +1508,18 @@ tests/
     HomePageObject.hpp
     PlayerPageObject.hpp
     
-  smoke/                         # Smoke tests
+  smoke/                         # Tests smoke
     SmokeTests.cpp
     
-  performance/                   # Performance tests
+  performance/                   # Tests de performance
     Benchmark.hpp
     TestNetworkPerformance.cpp
     
-  chaos/                         # Chaos tests
+  chaos/                         # Tests de chaos
     ChaosEngine.hpp
     TestNetworkChaos.cpp
     
-  # Domain tests (mirroring src/ structure)
+  # Tests par domaine (miroir de la structure src/)
   api/twitch/
     TestTwitchApiClient.cpp
     TestTwitchAuthManager.cpp
@@ -1541,19 +1541,19 @@ tests/
     
   ui/
     TestHomeViewModel.cpp
-    TestPlayerE2E.cpp           # E2E tests
+    TestPlayerE2E.cpp           # Tests E2E
     
   integration/
     TestTwitchFlow.cpp
 ```
 
-### 11.2 Test Method Naming Convention
+### 11.2 Convention de nommage des méthodes de test
 
 ```cpp
 /**
- * Pattern: test<Method>_<Scenario>_<ExpectedBehavior>
+ * Pattern: test<Méthode>_<Scénario>_<ComportementAttendu>
  * 
- * Examples:
+ * Exemples :
  * - testParseJson_ValidResponse_ReturnsData
  * - testParseJson_MalformedInput_ReturnsError
  * - testLogin_WithValidCredentials_EmitsAuthenticatedSignal
@@ -1564,60 +1564,60 @@ class TestTwitchService : public QObject {
   Q_OBJECT
 
 private slots:
-  // Good naming
+  // Bon nommage
   void testRefreshStreams_WhenAuthenticated_EmitsStreamsChanged();
   void testRefreshStreams_WhenNotAuthenticated_DoesNotCrash();
   void testSearch_WithEmptyQuery_ReturnsEmpty();
   void testPlayStream_WithInvalidIndex_EmitsError();
   
-  // Alternative: Given-When-Then style
+  // Alternative : style Given-When-Then
   void givenAuthenticated_whenRefreshStreams_thenStreamsChanged();
   void givenNotAuthenticated_whenRefreshStreams_thenEmptyResult();
 };
 ```
 
-### 11.3 Test Class Organization
+### 11.3 Organisation des classes de test
 
 ```cpp
 class TestTwitchApiClient : public NetworkTestBase {
   Q_OBJECT
 
 private slots:
-  // === Lifecycle (inherited from base) ===
+  // === Cycle de vie (hérité de la base) ===
   // init(), cleanup(), initTestCase(), cleanupTestCase()
   
-  // === Section 1: Initialization Tests ===
+  // === Section 1 : Tests d'initialisation ===
   void testConstructor();
   void testSetAccessToken();
   void testSetAccessToken_Empty();
   void testSetAccessToken_Null();
   
-  // === Section 2: Core Functionality Tests ===
+  // === Section 2 : Tests de fonctionnalités principales ===
   void testListStreams_Success();
   void testListStreams_Empty();
   void testListStreams_WithPagination();
   
-  // === Section 3: Error Handling Tests ===
+  // === Section 3 : Tests de gestion d'erreurs ===
   void testListStreams_NetworkError();
   void testListStreams_Unauthorized();
   void testListStreams_RateLimited();
   
-  // === Section 4: Edge Cases ===
+  // === Section 4 : Cas limites ===
   void testListStreams_NegativeLimit();
   void testListStreams_ZeroLimit();
   void testListStreams_LargeLimit();
   
-  // === Section 5: Signal Tests ===
+  // === Section 5 : Tests de signaux ===
   void testStreamsReadySignal();
   void testErrorSignal();
   void testTokenInvalidatedSignal();
   
-  // === Section 6: Data-Driven Tests ===
+  // === Section 6 : Tests data-driven ===
   void testErrorCodes_data();
   void testErrorCodes();
 
 private:
-  // Helper methods
+  // Méthodes helper
   void queueStreamResponse(int count);
   void verifyStreamData(const QVariantList& streams);
 };
@@ -1625,69 +1625,69 @@ private:
 
 ---
 
-## 12. Implementation Roadmap
+## 12. Roadmap d'implémentation
 
-### Phase 1: Foundation (Week 1-2)
-- [ ] Create `tests/base/` directory with base classes
-- [ ] Implement `TestBase`, `NetworkTestBase`, `AsyncTestBase`
-- [ ] Create test environment isolation
-- [ ] Add CMake infrastructure for test categories
+### Phase 1 : Fondations (Semaine 1-2)
+- [ ] Créer le répertoire `tests/base/` avec les classes de base
+- [ ] Implémenter `TestBase`, `NetworkTestBase`, `AsyncTestBase`
+- [ ] Créer l'isolation de l'environnement de test
+- [ ] Ajouter l'infrastructure CMake pour les catégories de tests
 
-### Phase 2: Fixtures & Builders (Week 2-3)
-- [ ] Implement builder pattern classes
-- [ ] Create fixture factories
-- [ ] Refactor existing tests to use builders
+### Phase 2 : Fixtures et builders (Semaine 2-3)
+- [ ] Implémenter les classes du builder pattern
+- [ ] Créer les fixture factories
+- [ ] Refactoriser les tests existants pour utiliser les builders
 
-### Phase 3: UI Testing (Week 3-4)
-- [ ] Implement Page Object base class
-- [ ] Create page objects for main views
-- [ ] Add first E2E tests
+### Phase 3 : Tests UI (Semaine 3-4)
+- [ ] Implémenter la classe de base Page Object
+- [ ] Créer les Page Objects pour les vues principales
+- [ ] Ajouter les premiers tests E2E
 
-### Phase 4: Performance & Chaos (Week 4-5)
-- [ ] Implement benchmark framework
-- [ ] Add performance tests for critical paths
-- [ ] Implement chaos engine
-- [ ] Add fault injection tests
+### Phase 4 : Performance et chaos (Semaine 4-5)
+- [ ] Implémenter le framework de benchmark
+- [ ] Ajouter des tests de performance pour les chemins critiques
+- [ ] Implémenter le moteur de chaos
+- [ ] Ajouter des tests d'injection de fautes
 
-### Phase 5: CI/CD Integration (Week 5-6)
-- [ ] Configure smoke tests for every commit
-- [ ] Configure nightly full regression
-- [ ] Add performance regression detection
-- [ ] Create test reporting dashboard
-
----
-
-## 13. Summary Metrics
-
-| Metric | Current | Target |
-|--------|---------|--------|
-| Unit Test Coverage | ~60% | 85% |
-| Integration Test Coverage | ~10% | 50% |
-| E2E Test Coverage | 0% | 20% |
-| Smoke Test Execution Time | N/A | <5s |
-| Full Suite Execution Time | ~30s | <60s |
-| Flaky Test Rate | Unknown | <1% |
-| Test/Code Ratio | 0.4:1 | 1:1 |
+### Phase 5 : Intégration CI/CD (Semaine 5-6)
+- [ ] Configurer les tests smoke pour chaque commit
+- [ ] Configurer la régression complète nocturne
+- [ ] Ajouter la détection de régression de performance
+- [ ] Créer un tableau de bord de reporting des tests
 
 ---
 
-## Appendix A: Qt Test Best Practices Checklist
+## 13. Métriques récapitulatives
 
-- [x] Use `QCOMPARE` instead of `QVERIFY` for value comparisons
-- [x] Use `QSignalSpy` for async signal testing
-- [ ] Use data-driven tests with `_data()` suffix
-- [ ] Use `QBENCHMARK` for performance testing
-- [ ] Avoid `QTest::qWait()` - use signal-based waiting
-- [x] Clean up resources in `cleanup()` not destructor
-- [x] Use `QTemporaryDir` for file-based tests
-- [ ] Use `QStandardPaths::setTestModeEnabled(true)`
+| Métrique | Actuel | Cible |
+|----------|--------|-------|
+| Couverture des tests unitaires | ~60% | 85% |
+| Couverture des tests d'intégration | ~10% | 50% |
+| Couverture des tests E2E | 0% | 20% |
+| Temps d'exécution des tests smoke | N/A | <5s |
+| Temps d'exécution de la suite complète | ~30s | <60s |
+| Taux de tests flaky | Inconnu | <1% |
+| Ratio test/code | 0.4:1 | 1:1 |
 
 ---
 
-## Appendix B: References
+## Annexe A : Checklist des bonnes pratiques Qt Test
 
-1. Google Testing Blog - Test Pyramid
-2. Microsoft Testing Guidelines for C++
-3. Qt Test Framework Documentation
-4. Martin Fowler - Page Object Pattern
-5. Netflix Chaos Engineering Principles
+- [x] Utiliser `QCOMPARE` au lieu de `QVERIFY` pour les comparaisons de valeurs
+- [x] Utiliser `QSignalSpy` pour les tests de signaux asynchrones
+- [ ] Utiliser les tests data-driven avec le suffixe `_data()`
+- [ ] Utiliser `QBENCHMARK` pour les tests de performance
+- [ ] Éviter `QTest::qWait()` - utiliser l'attente basée sur les signaux
+- [x] Nettoyer les ressources dans `cleanup()` et non dans le destructeur
+- [x] Utiliser `QTemporaryDir` pour les tests basés sur les fichiers
+- [ ] Utiliser `QStandardPaths::setTestModeEnabled(true)`
+
+---
+
+## Annexe B : Références
+
+1. Google Testing Blog - Pyramide des tests
+2. Directives de test Microsoft pour C++
+3. Documentation du framework Qt Test
+4. Martin Fowler - Pattern Page Object
+5. Principes d'ingénierie du chaos Netflix

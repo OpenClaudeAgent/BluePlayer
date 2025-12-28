@@ -8,15 +8,14 @@
 ## Vue d'Ensemble
 ```
 src/
-  api/twitch        -> Authentification OAuth2 + récupération des manifestes HLS/DASH + service Qt exposé à QML
-  core/             -> Configuration, télémétrie, utilitaires
+  api/twitch/       -> Authentification OAuth2, API Helix, service Qt exposé à QML
+  chat/             -> Client IRC Twitch pour le chat en direct
+  core/             -> Configuration, logging, gestion d'erreurs, cache, stockage sécurisé
     network/        -> Couche réseau abstraite (HttpClient, ApiClientBase)
-    media           -> Bridges FFmpeg, gestion des codecs/accélérations
-    system          -> Monitoring CPU/GPU, préférences utilisateur
-  media/            -> Sessions média, pipelines de décodage (Note: Ce module gère les sessions média et les pipelines de décodage, tandis que src/core/media pourrait être utilisé pour des "bridges" plus bas niveau vers des librairies comme FFmpeg.)
-  streaming/        -> Fetcher HLS/DASH, adaptation de qualité, cache segments
-  player/           -> Orchestrateur Audio/Vidéo, synchronisation, rendu GPU
-  ui/               -> Composants QML, commandes playback, statistiques
+  media/            -> Intégration MPV, filtrage publicités HLS, contrôle vitesse
+  ui/               -> Vues QML, ViewModels, composants réutilisables
+    components/     -> PlayerControlBar, Cards, boutons, overlays
+    themes/         -> Thèmes visuels (BlueTheme.js)
 ```
 
 ## Modules
@@ -29,11 +28,14 @@ src/
 
 ### 2. `core`
 - `Config` : configuration centralisée depuis variables d'environnement et fichiers.
-- `Logger` : système de logging structuré avec catégories.
+- `Logger` / `FileLogger` : système de logging structuré avec catégories et persistance fichier.
 - `Error` / `ErrorHandler` : gestion d'erreurs standardisée avec codes d'erreur typés.
 - `InputValidator` : validation d'entrées utilisateur (URLs, chemins, tokens).
-- `SecureStorage` : stockage sécurisé des données sensibles.
+- `SecureStorage` : stockage sécurisé des données sensibles (tokens OAuth).
 - `NetworkCache` : cache réseau avec TTL configurable.
+- `CacheManager` : gestion du cache des VODs pour lecture hors-ligne.
+- `WatchHistory` : historique de visionnage persistant.
+- `StateMachineLiveReplay` : machine d'état pour la gestion live/replay.
 - `Application` : point d'entrée principal, orchestre les services.
 
 #### 2.1 `core/network` (Nouveau)
@@ -45,30 +47,37 @@ src/
 - `ErrorHandler` : utilitaires pour créer des erreurs typées (réseau, Twitch, média, validation).
 - Tous les services utilisent maintenant `Error` pour une gestion d'erreurs cohérente, avec conversion automatique vers `QString` pour compatibilité QML.
 
-### 3. `media`
-- `FFmpegBridge` : encapsulation de l’API C FFmpeg.
-- `DecoderPipeline` : gestion des codecs + fallback logiciel.
+### 3. `chat`
+- `TwitchChatClient` : client IRC pour la connexion au chat Twitch. Gère l'authentification, l'envoi/réception de messages et le parsing des commandes IRC.
 
-### 4. `streaming`
-- `ManifestParser` : HLS (.m3u8) / DASH (.mpd).
-- `SegmentFetcher` : téléchargements parallèles, cache adaptatif.
-- `AdaptiveController` : sélection bitrate selon bande passante / charge système.
+### 4. `media`
+- `MpvQuickItem` : intégration du lecteur MPV dans Qt Quick via rendu OpenGL direct.
+- `MpvFboItem` : alternative utilisant QQuickFramebufferObject pour le rendu MPV (déprécié).
+- `HlsAdFilter` : filtrage des segments publicitaires dans les flux HLS Twitch.
+- `PlaybackSpeedLogic` : gestion de la vitesse de lecture (0.25x à 2x).
 
-### 5. `player`
-- `MediaSession` : coordination audio/vidéo, tampons, synchronisation.
-- `VideoSurfaceRenderer` : rendu GPU via QQuickFramebufferObject.
-- `AudioOutput` : intégration QtMultimedia/portaudio (selon besoin).
+### 5. `ui`
+- `main.qml` : point d'entrée QML, navigation entre vues.
+- `HomeView.qml` + `HomeViewModel` : liste des streams et catégories.
+- `PlayerView.qml` + `VideoPlayer.qml` : lecteur vidéo avec contrôles.
+- `LoginView.qml` : authentification OAuth Twitch.
+- `PreferencesView.qml` : paramètres utilisateur.
+- `CacheManagerView.qml` + `CacheManagerViewModel` : gestion du cache VOD.
 
-### 6. `ui`
-- `MainView.qml` : commandes principales.
-- `QualityOverlay.qml`, `StatsOverlay.qml`, `ChatPanel.qml`.
+#### 5.1 `ui/components`
+- `PlayerControlBar.qml` : barre de contrôle du lecteur (play/pause, volume, qualité).
+- `BaseCard.qml`, `StreamCard.qml`, `GameCard.qml`, `VodCard.qml` : cartes pour afficher streams, jeux et VODs.
+- `FollowButton.qml`, `FullscreenButton.qml`, `VolumeButton.qml` : boutons réutilisables.
+- `QualitySelector.qml`, `PlaybackSpeedSelector.qml` : sélecteurs de qualité et vitesse.
+
+#### 5.2 `ui/themes`
+- `BlueTheme.js` : définition des couleurs, polices et espacements du thème.
 
 ## Architecture Modulaire
 
 ### Dépendances entre modules
-- `blueplayer_core` : contient les utilitaires de base (Logger, Error, InputValidator, HttpClient, ApiClientBase) et les services API Twitch.
-- `blueplayer_media` : dépend de `blueplayer_core` pour Logger et InputValidator.
-- Dépendance circulaire résolue : `Application` (dans `blueplayer_core`) utilise `FFmpegMediaService` (dans `blueplayer_media`) via forward declarations dans le header et inclusion complète dans le `.cpp`.
+- `blueplayer_core` : contient les utilitaires de base (Logger, Error, InputValidator, HttpClient, ApiClientBase), les services API Twitch et le client chat.
+- `blueplayer_media` : dépend de `blueplayer_core` pour Logger et InputValidator. Intègre MPV pour la lecture vidéo.
 
 ### Patterns de conception
 - **Couche réseau abstraite** : `HttpClient` centralise toutes les requêtes HTTP avec cache et gestion d'erreurs. `ApiClientBase` fournit une base commune pour tous les clients API.
