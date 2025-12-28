@@ -18,7 +18,13 @@ using blueplayer::core::ErrorHandler;
 namespace blueplayer::api::twitch {
 
 TwitchApiClient::TwitchApiClient(const QString& clientId, QObject* parent)
-    : ApiClientBase(nullptr, parent),
+    : TwitchApiClient(clientId, nullptr, parent) {
+}
+
+TwitchApiClient::TwitchApiClient(const QString& clientId, 
+                                 blueplayer::core::network::IHttpClient* httpClient,
+                                 QObject* parent)
+    : ApiClientBase(httpClient, parent),
       m_clientId(clientId),
       m_curlClient(std::make_unique<blueplayer::core::network::CurlHttpClient>(this)) {
   // Configurer le header Client-ID par défaut (avec tiret, comme attendu par l'API Twitch)

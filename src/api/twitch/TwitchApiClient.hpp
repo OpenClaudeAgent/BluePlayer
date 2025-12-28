@@ -11,6 +11,9 @@ class QNetworkReply;
 class QUrl;
 QT_END_NAMESPACE
 
+// Forward declaration for test access
+class TestTwitchApiClient;
+
 namespace blueplayer::api::twitch {
 
 /**
@@ -22,6 +25,9 @@ namespace blueplayer::api::twitch {
 class TwitchApiClient : public blueplayer::core::network::ApiClientBase {
   Q_OBJECT
 
+  // Friend class for testing private methods
+  friend class ::TestTwitchApiClient;
+
 public:
   /**
    * @brief Constructeur
@@ -29,6 +35,16 @@ public:
    * @param parent Le parent QObject
    */
   explicit TwitchApiClient(const QString& clientId, QObject* parent = nullptr);
+  
+  /**
+   * @brief Constructeur de test avec injection de dépendances
+   * @param clientId L'ID client Twitch
+   * @param httpClient Client HTTP injecté pour les tests
+   * @param parent Le parent QObject
+   */
+  explicit TwitchApiClient(const QString& clientId, 
+                           blueplayer::core::network::IHttpClient* httpClient,
+                           QObject* parent = nullptr);
 
   /**
    * @brief Configure le token d'accès OAuth
