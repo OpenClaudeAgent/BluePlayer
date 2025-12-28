@@ -39,9 +39,10 @@ set(TEST_LIBS
 )
 
 # Helpers et fixtures pour les tests
-# Note: Mocks are header-only and included directly where needed
+# Note: MockNetworkReply needs Q_OBJECT moc generation
 add_library(test_helpers STATIC
   TestHelpers.cpp
+  mocks/MockNetworkReply.cpp
 )
 target_link_libraries(test_helpers PUBLIC 
   ${TEST_LIBS}
@@ -162,6 +163,20 @@ target_link_directories(test_secure_storage PRIVATE /opt/homebrew/lib)
 apply_coverage_flags(test_secure_storage)
 add_test(NAME SecureStorage COMMAND test_secure_storage)
 
+# Tests unitaires pour LanguageManager
+add_executable(test_language_manager
+  core/TestLanguageManager.cpp
+)
+target_link_libraries(test_language_manager PRIVATE
+  ${TEST_LIBS}
+  Qt6::Qml
+  blueplayer_core
+)
+target_include_directories(test_language_manager PRIVATE ${TEST_INCLUDE_DIRS})
+target_link_directories(test_language_manager PRIVATE /opt/homebrew/lib)
+apply_coverage_flags(test_language_manager)
+add_test(NAME LanguageManager COMMAND test_language_manager)
+
 # Tests unitaires pour les modules network
 add_executable(test_http_client
   core/network/TestHttpClient.cpp
@@ -179,6 +194,7 @@ add_executable(test_api_client_base
   core/network/TestApiClientBase.cpp
 )
 target_link_libraries(test_api_client_base PRIVATE
+  test_helpers
   ${TEST_LIBS}
   blueplayer_core
 )
