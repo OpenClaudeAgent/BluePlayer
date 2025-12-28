@@ -169,7 +169,14 @@ target_link_libraries(test_e2e_scenarios PRIVATE
 - [x] Fixtures JSON chargees (3 streams, 4 users, token)
 - [x] 6 tests d'infrastructure passants
 
-### Premier test E2E (Phase 2 - A venir)
+### Integration API (Phase 2 - Terminee)
+- [x] Config lit BLUEPLAYER_TEST_MODE et BLUEPLAYER_MOCK_API_URL
+- [x] TwitchApiClient utilise URLs configurables (buildHelixUrl)
+- [x] Securite: seules les URLs localhost acceptees en mode test
+- [x] Test integration: TwitchApiClient -> MockTwitchServer -> Fixtures
+- [x] 7 tests E2E passants
+
+### Tests UI complets (Phase 3 - A venir)
 - [ ] L'application demarre sans erreur en mode test
 - [ ] La Home affiche les streams mockes
 - [ ] Le clic sur un stream ouvre PlayerView
