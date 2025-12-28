@@ -113,6 +113,7 @@ Consultez la [Roadmap](roadmap/README.md) pour le suivi des tâches planifiées 
 
 | Version | Date | Description |
 |---------|------|-------------|
+| v0.18.0 | 2025-12-28 | Sélecteur qualité stream (bouton HD/SD dynamique, popup, qualité VOD cachée) |
 | v0.17.0 | 2025-12-28 | Tests Plan 24 (+32 tests unitaires et intégration) - **Plan 24 TERMINÉ** |
 | v0.16.0 | 2025-12-28 | Refactoring Media (downloadThumbnail asynchrone, thread UI non bloqué) |
 | v0.15.0 | 2025-12-28 | Refactoring TwitchService (helper ensureTokenAndExecute, -29 lignes) |

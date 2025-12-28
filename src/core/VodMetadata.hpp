@@ -30,6 +30,7 @@ struct VodMetadata {
   QString gameCategory;    ///< Catégorie/jeu du stream
   QDateTime lastPlayedAt;  ///< Dernière lecture (pour stratégie LRU)
   qint64 watchPosition;    ///< Position de lecture sauvegardée (secondes)
+  QString quality;         ///< Qualité de l'enregistrement (ex: "1080p60")
 
   /**
    * @brief Génère un nouvel ID unique
@@ -55,6 +56,7 @@ struct VodMetadata {
     obj[QStringLiteral("gameCategory")] = gameCategory;
     obj[QStringLiteral("lastPlayedAt")] = lastPlayedAt.toString(Qt::ISODate);
     obj[QStringLiteral("watchPosition")] = watchPosition;
+    obj[QStringLiteral("quality")] = quality;
     return obj;
   }
 
@@ -77,6 +79,7 @@ struct VodMetadata {
     meta.lastPlayedAt =
         QDateTime::fromString(obj[QStringLiteral("lastPlayedAt")].toString(), Qt::ISODate);
     meta.watchPosition = obj[QStringLiteral("watchPosition")].toInteger();
+    meta.quality = obj[QStringLiteral("quality")].toString();
     return meta;
   }
 
@@ -98,6 +101,7 @@ struct VodMetadata {
     map[QStringLiteral("gameCategory")] = gameCategory;
     map[QStringLiteral("lastPlayedAt")] = lastPlayedAt;
     map[QStringLiteral("watchPosition")] = watchPosition;
+    map[QStringLiteral("quality")] = quality;
     
     // Champs formatés pour l'affichage
     map[QStringLiteral("durationFormatted")] = formatDuration(duration);

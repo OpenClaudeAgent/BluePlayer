@@ -154,6 +154,8 @@ qt_add_qml_module(BluePlayer
     ui/components/ControlButton.qml
     ui/components/SeekBar.qml
     ui/components/VolumeControl.qml
+    ui/components/QualitySelector.qml
+    ui/components/QualityControl.qml
 )
 
 target_link_libraries(BluePlayer

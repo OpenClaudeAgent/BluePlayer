@@ -269,6 +269,7 @@ class CacheManager : public QObject {
    * @param streamTitle Titre du stream
    * @param thumbnailPath Chemin du thumbnail
    * @param recordingStartMs Timestamp de début (ms depuis epoch)
+   * @param quality Qualité de l'enregistrement (ex: "1080p60")
    * @return true si finalisé avec succès (durée >= 30s)
    */
   Q_INVOKABLE bool finalizeRecording(const QString& recordingPath,
@@ -276,7 +277,8 @@ class CacheManager : public QObject {
                                       const QString& streamerName,
                                       const QString& streamTitle,
                                       const QString& thumbnailPath,
-                                      qint64 recordingStartMs);
+                                      qint64 recordingStartMs,
+                                      const QString& quality = QString());
 
  signals:
   // ===== Signaux existants =====

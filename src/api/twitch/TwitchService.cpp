@@ -576,6 +576,43 @@ QString TwitchService::accessToken() const {
   return m_authManager ? m_authManager->accessToken() : QString();
 }
 
+QVariantList TwitchService::availableQualities() const {
+  return m_availableQualities;
+}
+
+QString TwitchService::currentQuality() const {
+  return m_currentQuality.isEmpty() ? QStringLiteral("Auto") : m_currentQuality;
+}
+
+void TwitchService::setStreamQuality(const QString& qualityName) {
+  Logger::debug(LogCategory::Twitch,
+                QStringLiteral("setStreamQuality() called with: %1").arg(qualityName));
+
+  if (qualityName == m_currentQuality) {
+    return;
+  }
+
+  // Find the URL for the requested quality
+  for (const QVariant& qualityVar : m_availableQualities) {
+    QVariantMap quality = qualityVar.toMap();
+    if (quality.value(QStringLiteral("name")).toString() == qualityName) {
+      QString url = quality.value(QStringLiteral("url")).toString();
+      if (!url.isEmpty()) {
+        m_currentQuality = qualityName;
+        m_currentHlsUrl = url;
+        emit currentQualityChanged();
+        emit qualityChanged(url);
+        Logger::info(LogCategory::Twitch,
+                     QStringLiteral("Quality changed to: %1").arg(qualityName));
+        return;
+      }
+    }
+  }
+
+  Logger::warning(LogCategory::Twitch,
+                  QStringLiteral("Quality not found: %1").arg(qualityName));
+}
+
 bool TwitchService::ensureTokenAndExecute(std::function<void()> action) {
   QString token = m_authManager ? m_authManager->accessToken() : QString();
   if (token.isEmpty()) {
@@ -754,9 +791,8 @@ void TwitchService::getStreamHlsUrl(const QString &streamerLogin) {
     Logger::debug(LogCategory::Twitch,
                   QStringLiteral("[PROXY] URL: %1").arg(proxyUrl));
 
-    // Emit directly - no need for AdFilter since proxy already strips ads
-    m_currentHlsUrl = proxyUrl;
-    emit hlsUrlReady(proxyUrl);
+    // Fetch and parse the proxy's master playlist to get quality options
+    fetchAndSelectBestQuality(proxyUrl);
     return;
   }
 
@@ -1004,6 +1040,8 @@ TwitchService::selectBestQualityFromPlaylist(const QString &playlistContent) {
     Logger::warning(
         LogCategory::Twitch,
         QStringLiteral("[WARNING] No quality variants found in playlist"));
+    m_availableQualities.clear();
+    emit availableQualitiesChanged();
     return QString();
   }
 
@@ -1013,8 +1051,33 @@ TwitchService::selectBestQualityFromPlaylist(const QString &playlistContent) {
               return a.priority > b.priority;
             });
 
+  // Stocker toutes les qualités disponibles pour le sélecteur
+  m_availableQualities.clear();
+  for (const QualityVariant &v : variants) {
+    QVariantMap qualityMap;
+    // Afficher un nom plus lisible pour "chunked"
+    QString displayName = v.name;
+    if (v.name == QStringLiteral("chunked")) {
+      displayName = QStringLiteral("Source (%1p)").arg(v.height);
+    }
+    qualityMap[QStringLiteral("name")] = displayName;
+    qualityMap[QStringLiteral("value")] = v.name;
+    qualityMap[QStringLiteral("url")] = v.url;
+    qualityMap[QStringLiteral("bandwidth")] = v.bandwidth;
+    qualityMap[QStringLiteral("width")] = v.width;
+    qualityMap[QStringLiteral("height")] = v.height;
+    m_availableQualities.append(qualityMap);
+  }
+  emit availableQualitiesChanged();
+  Logger::info(LogCategory::Twitch,
+               QStringLiteral("Found %1 quality options").arg(m_availableQualities.size()));
+
   // Sélectionner la meilleure qualité
   const QualityVariant &best = variants.first();
+  m_currentQuality = (best.name == QStringLiteral("chunked")) 
+                     ? QStringLiteral("Source (%1p)").arg(best.height)
+                     : best.name;
+  emit currentQualityChanged();
   Logger::debug(LogCategory::Twitch,
                 QStringLiteral("[DEBUG] Selected best quality: %1 (%2x%3)")
                     .arg(best.name)

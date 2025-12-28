@@ -53,6 +53,10 @@ Item {
   property bool chatVisible: false
   property bool chatEnabled: !isVodMode  // Chat disabled in VOD mode
   
+  // Quality selector properties
+  property var availableQualities: []
+  property string currentQuality: "Auto"
+  
   signal backRequested()
   
   Settings {
@@ -161,7 +165,8 @@ Item {
         streamerName || streamerLogin,
         streamTitle || qsTr("Stream enregistré"),
         currentThumbnailPath,
-        startMs
+        startMs,
+        playerRoot.currentQuality || "Auto"
       )
     }
     
@@ -556,6 +561,8 @@ Item {
       cropVideo: playerRoot.cropMode
       chatVisible: playerRoot.chatVisible
       chatEnabled: playerRoot.chatEnabled
+      availableQualities: playerRoot.availableQualities
+      currentQuality: playerRoot.currentQuality
       
       onPlayPauseClicked: togglePlayPause()
       onStopClicked: {
@@ -604,6 +611,12 @@ Item {
           chatClient.connectToChannel(playerRoot.streamerLogin)
         } else {
           chatClient.disconnect()
+        }
+      }
+      onQualitySelected: function(quality) {
+        console.log("[PlayerView] Quality selected:", quality)
+        if (twitchService) {
+          twitchService.setStreamQuality(quality)
         }
       }
     }
@@ -768,6 +781,14 @@ Item {
         toggleCropMode()
         event.accepted = true
         break
+      case Qt.Key_Q:
+        // Toggle quality selector (only if available)
+        if (playerRoot.availableQualities.length > 0 && !isVodMode) {
+          // Quality popup is handled by PlayerControlBar
+          toast.show(qsTr("Utilisez le bouton qualite"))
+        }
+        event.accepted = true
+        break
     }
   }
   
@@ -811,6 +832,34 @@ Item {
     }
     function onAdFilterLog(message) {
       console.log("[PlayerView AdFilter]", message)
+    }
+    function onAvailableQualitiesChanged() {
+      playerRoot.availableQualities = twitchService.availableQualities
+      console.log("[PlayerView] Available qualities:", playerRoot.availableQualities.length)
+    }
+    function onCurrentQualityChanged() {
+      playerRoot.currentQuality = twitchService.currentQuality
+      console.log("[PlayerView] Current quality:", playerRoot.currentQuality)
+    }
+    function onQualityChanged(url) {
+      console.log("[PlayerView] Quality changed, new URL:", url.substring(0, 80) + "...")
+      // Switch mpv to the new quality URL while preserving playback state
+      if (mpvPlayer && url) {
+        // Store current position to resume after quality switch
+        var currentPos = playerRoot.position
+        var wasPlaying = playerRoot.playing && !playerRoot.paused
+        
+        mpvPlayer.play(url)
+        
+        // Seek to previous position after a short delay
+        if (currentPos > 5) {
+          Qt.callLater(function() {
+            mpvPlayer.seek(currentPos)
+          })
+        }
+        
+        toast.show(qsTr("Qualite: %1").arg(playerRoot.currentQuality))
+      }
     }
   }
   

@@ -43,6 +43,8 @@ class TwitchService : public QObject {
   Q_PROPERTY(QString userId READ userId NOTIFY userIdChanged)
   Q_PROPERTY(QString userName READ userName NOTIFY userNameChanged)
   Q_PROPERTY(QString accessToken READ accessToken NOTIFY accessTokenChanged)
+  Q_PROPERTY(QVariantList availableQualities READ availableQualities NOTIFY availableQualitiesChanged)
+  Q_PROPERTY(QString currentQuality READ currentQuality NOTIFY currentQualityChanged)
 
 public:
   /**
@@ -155,6 +157,18 @@ public:
   [[nodiscard]] QString accessToken() const;
 
   /**
+   * @brief Obtient la liste des qualités disponibles pour le stream actuel
+   * @return La liste des qualités ({name, url, bandwidth, resolution})
+   */
+  [[nodiscard]] QVariantList availableQualities() const;
+
+  /**
+   * @brief Obtient le nom de la qualité actuellement sélectionnée
+   * @return Le nom de la qualité (ex: "1080p60", "Auto")
+   */
+  [[nodiscard]] QString currentQuality() const;
+
+  /**
    * @brief Lance le processus d'authentification OAuth
    */
   Q_INVOKABLE void login();
@@ -243,6 +257,12 @@ public:
    */
   Q_INVOKABLE QString currentHlsUrl() const;
 
+  /**
+   * @brief Change la qualité du stream actuel
+   * @param qualityName Le nom de la qualité (ex: "1080p60", "720p", "Auto")
+   */
+  Q_INVOKABLE void setStreamQuality(const QString& qualityName);
+
 signals:
   void authenticatedChanged(bool authenticated);
   void streamsChanged();
@@ -265,6 +285,9 @@ signals:
   void adsDetected(int segmentCount);
   void adsFinished();
   void adFilterLog(const QString& message);
+  void availableQualitiesChanged();
+  void currentQualityChanged();
+  void qualityChanged(const QString& url);
 
 private:
   void selectUrl(int index);
@@ -327,6 +350,8 @@ private:
   QString m_userName;
   QString m_currentHlsUrl;
   QString m_pendingStreamerLogin;
+  QVariantList m_availableQualities;
+  QString m_currentQuality;
 };
 
 }  // namespace blueplayer::api::twitch

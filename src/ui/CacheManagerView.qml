@@ -368,6 +368,29 @@ Item {
                   }
                 }
 
+                // Badge qualité (coin supérieur droit)
+                Rectangle {
+                  id: qualityBadge
+                  visible: modelData.quality && modelData.quality.length > 0
+                  anchors.right: parent.right
+                  anchors.top: parent.top
+                  anchors.margins: 6
+                  width: qualityBadgeText.width + 10
+                  height: 18
+                  radius: 4
+                  color: "#CC000000"
+
+                  Text {
+                    id: qualityBadgeText
+                    anchors.centerIn: parent
+                    text: modelData.quality || ""
+                    font.family: BlueTheme.fontFamily
+                    font.pixelSize: 10
+                    font.bold: true
+                    color: "#FFFFFF"
+                  }
+                }
+
                 // Checkbox sélection
                 Rectangle {
                   id: selectionCheckbox

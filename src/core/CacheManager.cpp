@@ -833,7 +833,8 @@ bool CacheManager::finalizeRecording(const QString& recordingPath,
                                       const QString& streamerName,
                                       const QString& streamTitle,
                                       const QString& thumbnailPath,
-                                      qint64 recordingStartMs) {
+                                      qint64 recordingStartMs,
+                                      const QString& quality) {
   if (recordingPath.isEmpty()) {
     LOG_WARNING(Core, "finalizeRecording: empty recordingPath");
     return false;
@@ -879,9 +880,10 @@ bool CacheManager::finalizeRecording(const QString& recordingPath,
   metadata.recordedAt = QDateTime::fromMSecsSinceEpoch(recordingStartMs);
   metadata.gameCategory = QString();
   metadata.watchPosition = 0;
+  metadata.quality = quality;
   
-  LOG_INFO(Core, QString("Finalizing recording: %1 (%2s, %3 bytes)")
-                     .arg(recordingPath).arg(durationSecs).arg(fileSize));
+  LOG_INFO(Core, QString("Finalizing recording: %1 (%2s, %3 bytes, quality: %4)")
+                     .arg(recordingPath).arg(durationSecs).arg(fileSize).arg(quality));
   
   return addVod(metadata);
 }

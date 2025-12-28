@@ -76,7 +76,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 12 (Préférences) | 11 (Sélecteur qualité) - partiel | Qualité par défaut nécessite le sélecteur |
 | 13.7 (Sélecteur langue) | 12 (Préférences) | Le sélecteur sera dans le panel préférences |
 | 15 (Historique VOD) | 5 (Cache/VOD) ✅ | Étend les métadonnées du cache existant |
-| 16 (Audio only) | 11 (Qualité) - optionnel | Peut utiliser le même système de sélection |
+| 16 (Audio only) | 11 (Qualité) ✅ | Base technique implémentée, reste le placeholder visuel |
 | 18 (Thème) | 12 (Préférences) | Sélecteur de thème dans les préférences |
 | 19.2-19.3 (Channels offline) | 6 (Search) ✅ | Étend la recherche existante |
 | **24 (Refactoring)** | Aucune | Peut démarrer immédiatement, sous-tâches 24.1-24.3 CRITIQUES |
@@ -124,7 +124,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 8 | Fix ligne vide Home | [plan-08](./plan-08-home-empty-row.md) | `feature/fix-home-row` | v0.8.0 | 🟢 Terminé |
 | 9 | Vitesse lecture intelligente | [plan-09](./plan-09-playback-speed.md) | `feature/playback-speed` | v0.9.0 | 🟢 Terminé |
 | 10 | Animations & Transitions | [plan-10](./plan-10-animations.md) | `feature/animations` | v0.10.0 | 🟢 Terminé |
-| 11 | Sélecteur Qualité Stream | [plan-11](./plan-11-quality-selector.md) | `feature/quality-selector` | - | 🔴 En attente |
+| 11 | Sélecteur Qualité Stream | [plan-11](./plan-11-quality-selector.md) | `feature/quality-selector` | v0.18.0 | 🟢 Terminé |
 | 12 | Panel Préférences | [plan-12](./plan-12-preferences.md) | `feature/preferences` | - | 🔴 En attente |
 | 13 | Internationalisation (i18n) | [plan-13](./plan-13-internationalization.md) | `feature/i18n` | - | 🔴 En attente |
 | 14 | Bouton Follow/Unfollow | [plan-14](./plan-14-follow-button.md) | `feature/follow-button` | - | 🔴 En attente |
@@ -189,6 +189,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 2025-12-28 | Plan 24 Sprint 6 terminé - downloadThumbnail() asynchrone (thread UI non bloqué) |
 | 2025-12-28 | Plan 24 Sprint 7 terminé - +32 tests (unitaires + intégration), CI/CD reporté |
 | 2025-12-28 | **Plan 24 TERMINÉ** - Refactoring Profond complet (7 sprints, v0.11.0 → v0.17.0) |
+| 2025-12-28 | Tâche 11 terminée - Sélecteur qualité stream (bouton HD/SD, popup, qualité VOD cachée) |
 
 ---
 

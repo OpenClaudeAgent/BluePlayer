@@ -4,9 +4,13 @@
 
 BluePlayer dispose déjà d'un toggle "Hardware/Software acceleration" dans le PlayerView pour gérer les performances. Le mode "Audio only" s'inscrit dans cette même logique : réduire l'utilisation des ressources en désactivant le rendu vidéo.
 
+> **Note (Plan 11 implémenté)** : Le sélecteur de qualité (Plan 11) est maintenant disponible. Si Twitch expose une qualité "audio_only" dans le manifest HLS, elle apparaît automatiquement dans la liste des qualités. Ce plan se concentre désormais sur l'**amélioration de l'expérience audio** : placeholder visuel, indicateur dédié, et optimisations spécifiques au mode audio.
+
 ## Objectif
 
-Ajouter une option "Audio only" dans le groupe de boutons performance existant, permettant d'écouter un stream sans afficher la vidéo (économie de bande passante et de ressources CPU/GPU).
+~~Ajouter une option "Audio only" dans le groupe de boutons performance existant.~~
+
+**Objectif révisé** : Améliorer l'expérience du mode audio existant (accessible via le sélecteur de qualité) en ajoutant un placeholder visuel élégant et des optimisations de ressources.
 
 ## Spécifications
 
@@ -128,3 +132,18 @@ Si le plan-11 est implémenté avant :
 ### Tests
 - [ ] L'app compile sans erreur
 - [ ] Pas de régression sur les modes HW/SW existants
+
+---
+
+## Bonus (ajouté via Plan 11)
+
+Le Plan 11 (Sélecteur Qualité Stream) a implémenté la base technique pour le mode audio :
+
+- **Sélecteur de qualité fonctionnel** : L'utilisateur peut changer de qualité en cliquant sur le bouton HD/SD
+- **Qualité audio_only accessible** : Si Twitch expose cette qualité dans le manifest HLS, elle apparaît dans la liste
+- **Bouton dynamique HD/SD** : Le bouton affiche "HD" (1440p/1080p/720p) ou "SD" (autres) selon la qualité actuelle
+
+**Ce qui reste à implémenter (amélioration)** :
+- Placeholder visuel quand le mode audio est actif (thumbnail statique + infos streamer)
+- Indicateur visuel spécifique "Audio" dans le bouton qualité
+- Optimisations CPU/GPU spécifiques au mode audio

@@ -123,31 +123,31 @@ L'API Twitch/UsherTV retourne les qualités disponibles :
 ## Checklist de validation
 
 ### UI
-- [ ] Bouton qualité visible dans la barre de contrôle
-- [ ] Bouton affiche la qualité actuelle (ex: "1080p")
-- [ ] Menu popup s'ouvre au clic
-- [ ] Menu liste toutes les qualités disponibles
-- [ ] Qualité actuelle est mise en évidence
-- [ ] Menu se ferme après sélection
-- [ ] Menu se ferme au clic en dehors
-- [ ] Menu se ferme avec Échap
+- [x] Bouton qualité visible dans la barre de contrôle
+- [x] Bouton affiche la qualité actuelle (HD/SD dynamique)
+- [x] Menu popup s'ouvre au clic
+- [x] Menu liste toutes les qualités disponibles
+- [x] Qualité actuelle est mise en évidence
+- [x] Menu se ferme après sélection
+- [x] Menu se ferme au clic en dehors
+- [x] Menu se ferme avec Échap
 
 ### Fonctionnel
-- [ ] Changement de qualité fonctionne
-- [ ] Pas d'interruption visible lors du changement
-- [ ] Option "Auto" disponible
-- [ ] La qualité persiste pendant la session
+- [x] Changement de qualité fonctionne
+- [x] Pas d'interruption visible lors du changement
+- [ ] Option "Auto" disponible (non implémenté - qualité manuelle uniquement)
+- [x] La qualité persiste pendant la session
 
 ### Cas particuliers
-- [ ] Fonctionne pour les streams live
-- [ ] Fonctionne pour les VOD
-- [ ] Gère le cas où peu de qualités sont disponibles
-- [ ] Affichage correct si stream audio-only
+- [x] Fonctionne pour les streams live
+- [x] Fonctionne pour les VOD (qualité stockée dans métadonnées)
+- [x] Gère le cas où peu de qualités sont disponibles
+- [x] Affichage correct si stream audio-only
 
 ### Technique
-- [ ] Pas de fuite mémoire
-- [ ] Transitions fluides
-- [ ] Logs appropriés pour debug
+- [x] Pas de fuite mémoire
+- [x] Transitions fluides
+- [x] Logs appropriés pour debug
 
 ## Notes pour plan-12
 
@@ -161,3 +161,13 @@ Une fois ce plan implémenté, le plan-12 (Préférences) pourra ajouter :
 - **Complexité** : Moyenne à élevée
 - **Points d'incertitude** : Intégration mpv, changement sans interruption
 - **Suggestion** : Commencer par l'analyse technique (spike)
+
+---
+
+## Bonus (ajouté lors de l'implémentation)
+
+- **Bouton HD/SD dynamique** : Le bouton affiche "HD" pour 1440p/1080p/720p et "SD" pour les autres qualités
+- **Qualité stockée dans métadonnées VOD** : Les enregistrements locaux conservent la qualité utilisée lors de l'enregistrement
+- **Badge qualité dans CacheManager** : Les VOD cachées affichent un badge avec la qualité d'enregistrement
+- **Composant QualityControl encapsulé** : Bouton et popup dans un seul composant (pattern VolumeControl)
+- **Prépare le Plan 16 (Audio Only)** : La qualité audio_only est accessible via le sélecteur si exposée par Twitch

@@ -10,6 +10,7 @@ import "../themes/BlueTheme.js" as BlueTheme
  */
 Rectangle {
     id: controlBar
+    clip: false  // Allow popups to render outside bounds
 
     // Properties
     property bool playing: false
@@ -28,6 +29,10 @@ Rectangle {
     property bool cropVideo: false
     property bool chatVisible: false
     property bool chatEnabled: true  // Disabled in VOD mode
+    
+    // Quality selector properties
+    property var availableQualities: []      // List of {name: "1080p60", url: "..."}
+    property string currentQuality: "Auto"   // Currently selected quality
 
     // Chip button dimensions (for consistent sizing)
     readonly property int chipWidth: 64
@@ -50,6 +55,7 @@ Rectangle {
     signal hardwareToggleClicked()
     signal cropToggleClicked()
     signal chatToggleClicked()
+    signal qualitySelected(string quality)
 
     height: 80
 
@@ -366,6 +372,19 @@ Rectangle {
                         ctx.lineTo(9, 9)
                         ctx.stroke()
                     }
+                }
+            }
+
+            // Quality Selector (live mode only, hidden when no qualities available)
+            QualityControl {
+                id: qualityControl
+                visible: !controlBar.isReplayMode && controlBar.availableQualities.length > 0
+                Layout.preferredWidth: chipHeight
+                Layout.preferredHeight: chipHeight
+                qualities: controlBar.availableQualities
+                currentQuality: controlBar.currentQuality
+                onQualitySelected: function(quality) {
+                    controlBar.qualitySelected(quality)
                 }
             }
 
