@@ -1,5 +1,8 @@
 #include "Setup.hpp"
 
+#include "api/twitch/TwitchService.hpp"
+#include "core/CacheManager.hpp"
+
 #include <QCoreApplication>
 #include <QDebug>
 #include <QDir>
@@ -14,6 +17,13 @@ Setup::~Setup() = default;
 
 void Setup::applicationAvailable()
 {
+    qInfo() << "[E2E Setup] Initializing E2E test environment...";
+    
+    // Initialize core Application (provides twitchService, cacheManager)
+    m_coreApp = std::make_unique<blueplayer::core::Application>();
+    m_coreApp->initialize();
+    qInfo() << "[E2E Setup] Core Application initialized";
+
     qInfo() << "[E2E Setup] Starting mock servers...";
 
     // Create mock servers
@@ -132,6 +142,15 @@ void Setup::qmlEngineAvailable(QQmlEngine* engine)
 
     // Expose the UI path as a context property for tests to use
     engine->rootContext()->setContextProperty("E2E_QML_PATH", uiPath);
+
+    // Expose core services to QML (same as main.mm does)
+    if (m_coreApp) {
+        engine->rootContext()->setContextProperty("twitchService", 
+            qobject_cast<QObject*>(m_coreApp->twitchService()));
+        engine->rootContext()->setContextProperty("cacheManager", 
+            qobject_cast<QObject*>(m_coreApp->cacheManager()));
+        qInfo() << "[E2E Setup] Core services exposed to QML";
+    }
 
     qInfo() << "[E2E Setup] Import paths configured:";
     qInfo() << "  - Source:" << srcPath;
