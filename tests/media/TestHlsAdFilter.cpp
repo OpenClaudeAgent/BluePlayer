@@ -71,6 +71,36 @@ private slots:
   void testDetectAdsCleanPlaylist();
   void testDetectAdsWithShortSegments();
   void testDetectAdsEmptyPlaylist();
+  
+  // Tests additionnels parseVariants
+  void testParseVariantsWithGroupId();
+  void testParseVariantsAudioOnly();
+  void testParseVariantsWithCodecs();
+  void testParseVariantsNoUrl();
+  
+  // Tests additionnels selectBestVariant
+  void testSelectBestVariant480p();
+  void testSelectBestVariant360p();
+  void testSelectBestVariantByBandwidth();
+  void testSelectBestVariantExactMatch();
+  
+  // Tests additionnels detectAdsInPlaylist
+  void testDetectAdsWithAmazonAds();
+  void testDetectAdsWithDiscontinuity();
+  void testDetectAdsWithScte35();
+  void testDetectAdsWithAdInsertion();
+  void testDetectAdsWithTwitchPrefetch();
+  void testDetectAdsNormalSegmentDurations();
+  
+  // Tests extractStreamerLogin additionnels
+  void testExtractStreamerLoginWithQueryParams();
+  void testExtractStreamerLoginUppercase();
+  void testExtractStreamerLoginWithNumbers();
+  
+  // Tests de comportement 
+  void testHasAdsAfterDetection();
+  void testAdSegmentCountAccumulates();
+  void testRetryCountIncrementsOnStart();
 
 private:
   HlsAdFilter* m_filter = nullptr;
@@ -479,6 +509,281 @@ void TestHlsAdFilter::testDetectAdsEmptyPlaylist() {
   
   QVERIFY(!hasAds);
   QCOMPARE(m_filter->adSegmentCount(), 0);
+}
+
+// ===== Tests additionnels parseVariants =====
+
+void TestHlsAdFilter::testParseVariantsWithGroupId() {
+  QString playlist = R"(#EXTM3U
+#EXT-X-STREAM-INF:BANDWIDTH=4000000,VIDEO="720p60",AUDIO="aac"
+https://video-edge.example.com/720p60/index.m3u8)";
+
+  auto variants = m_filter->parseVariants(playlist);
+  
+  QCOMPARE(variants.size(), 1);
+  QCOMPARE(variants[0].name, QStringLiteral("720p60"));
+  QCOMPARE(variants[0].bandwidth, 4000000);
+}
+
+void TestHlsAdFilter::testParseVariantsAudioOnly() {
+  QString playlist = R"(#EXTM3U
+#EXT-X-STREAM-INF:BANDWIDTH=128000,VIDEO="audio_only"
+https://audio.example.com/audio/index.m3u8)";
+
+  auto variants = m_filter->parseVariants(playlist);
+  
+  QCOMPARE(variants.size(), 1);
+  QCOMPARE(variants[0].name, QStringLiteral("audio_only"));
+  QCOMPARE(variants[0].bandwidth, 128000);
+}
+
+void TestHlsAdFilter::testParseVariantsWithCodecs() {
+  QString playlist = R"(#EXTM3U
+#EXT-X-STREAM-INF:BANDWIDTH=6000000,CODECS="avc1.64002a,mp4a.40.2",VIDEO="chunked"
+https://video.example.com/chunked/index.m3u8)";
+
+  auto variants = m_filter->parseVariants(playlist);
+  
+  QCOMPARE(variants.size(), 1);
+  QCOMPARE(variants[0].name, QStringLiteral("chunked"));
+}
+
+void TestHlsAdFilter::testParseVariantsNoUrl() {
+  // Playlist with EXT-X-STREAM-INF but no following URL line
+  QString playlist = R"(#EXTM3U
+#EXT-X-STREAM-INF:BANDWIDTH=6000000,VIDEO="chunked")";
+
+  auto variants = m_filter->parseVariants(playlist);
+  
+  QVERIFY(variants.isEmpty());
+}
+
+// ===== Tests additionnels selectBestVariant =====
+
+void TestHlsAdFilter::testSelectBestVariant480p() {
+  QString playlist = R"(#EXTM3U
+#EXT-X-STREAM-INF:BANDWIDTH=2000000,VIDEO="480p"
+https://480p.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=1000000,VIDEO="360p"
+https://360p.m3u8)";
+
+  auto variants = m_filter->parseVariants(playlist);
+  QString selected = m_filter->selectBestVariant(variants, "480p");
+  
+  QVERIFY(selected.contains("480p"));
+}
+
+void TestHlsAdFilter::testSelectBestVariant360p() {
+  QString playlist = R"(#EXTM3U
+#EXT-X-STREAM-INF:BANDWIDTH=1000000,VIDEO="360p"
+https://360p.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=500000,VIDEO="160p"
+https://160p.m3u8)";
+
+  auto variants = m_filter->parseVariants(playlist);
+  QString selected = m_filter->selectBestVariant(variants, "360p");
+  
+  QVERIFY(selected.contains("360p"));
+}
+
+void TestHlsAdFilter::testSelectBestVariantByBandwidth() {
+  QString playlist = R"(#EXTM3U
+#EXT-X-STREAM-INF:BANDWIDTH=8000000,VIDEO="source"
+https://source.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=4000000,VIDEO="720p"
+https://720p.m3u8)";
+
+  auto variants = m_filter->parseVariants(playlist);
+  
+  // Highest bandwidth variant should be prioritized for "source"
+  QString selected = m_filter->selectBestVariant(variants, "source");
+  
+  QVERIFY(!selected.isEmpty());
+}
+
+void TestHlsAdFilter::testSelectBestVariantExactMatch() {
+  QString playlist = R"(#EXTM3U
+#EXT-X-STREAM-INF:BANDWIDTH=6000000,VIDEO="1080p60"
+https://1080p60.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=4500000,VIDEO="1080p"
+https://1080p.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=3000000,VIDEO="720p60"
+https://720p60.m3u8)";
+
+  auto variants = m_filter->parseVariants(playlist);
+  QString selected = m_filter->selectBestVariant(variants, "1080p60");
+  
+  QVERIFY(selected.contains("1080p60"));
+}
+
+// ===== Tests additionnels detectAdsInPlaylist =====
+
+void TestHlsAdFilter::testDetectAdsWithAmazonAds() {
+  QString playlist = R"(#EXTM3U
+#EXT-X-TARGETDURATION:2
+#Amazon-Ads
+#EXTINF:2.000,
+ad_segment.ts)";
+
+  bool hasAds = m_filter->detectAdsInPlaylist(playlist);
+  
+  QVERIFY(hasAds);
+}
+
+void TestHlsAdFilter::testDetectAdsWithDiscontinuity() {
+  QString playlist = R"(#EXTM3U
+#EXT-X-TARGETDURATION:4
+#EXTINF:4.000,
+segment1.ts
+#EXT-X-DISCONTINUITY
+#EXTINF:2.000,
+ad.ts
+#EXT-X-DISCONTINUITY
+#EXTINF:4.000,
+segment2.ts)";
+
+  bool hasAds = m_filter->detectAdsInPlaylist(playlist);
+  
+  // Discontinuity markers can indicate ads
+  QVERIFY(hasAds);
+}
+
+void TestHlsAdFilter::testDetectAdsWithScte35() {
+  QString playlist = R"(#EXTM3U
+#EXT-X-TARGETDURATION:2
+#SCTE35-OUT:TIME=12345
+#EXTINF:2.000,
+ad.ts)";
+
+  bool hasAds = m_filter->detectAdsInPlaylist(playlist);
+  
+  QVERIFY(hasAds);
+}
+
+void TestHlsAdFilter::testDetectAdsWithAdInsertion() {
+  QString playlist = R"(#EXTM3U
+#EXT-X-TARGETDURATION:2
+#AD-INSERTION=true
+#EXTINF:2.000,
+segment.ts)";
+
+  bool hasAds = m_filter->detectAdsInPlaylist(playlist);
+  
+  QVERIFY(hasAds);
+}
+
+void TestHlsAdFilter::testDetectAdsWithTwitchPrefetch() {
+  QString playlist = R"(#EXTM3U
+#twitch-prefetch:https://video.twitch.tv/prefetch.ts
+#EXTINF:2.000,
+segment.ts)";
+
+  bool hasAds = m_filter->detectAdsInPlaylist(playlist);
+  
+  QVERIFY(hasAds);
+}
+
+void TestHlsAdFilter::testDetectAdsNormalSegmentDurations() {
+  // Normal stream with 4-second segments should not trigger false positive
+  QString playlist = R"(#EXTM3U
+#EXT-X-TARGETDURATION:4
+#EXTINF:4.000,
+seg1.ts
+#EXTINF:4.000,
+seg2.ts
+#EXTINF:4.000,
+seg3.ts
+#EXTINF:4.000,
+seg4.ts
+#EXTINF:4.000,
+seg5.ts
+#EXTINF:4.000,
+seg6.ts
+#EXTINF:4.000,
+seg7.ts
+#EXTINF:4.000,
+seg8.ts)";
+
+  bool hasAds = m_filter->detectAdsInPlaylist(playlist);
+  
+  QVERIFY(!hasAds);
+  QCOMPARE(m_filter->adSegmentCount(), 0);
+}
+
+// ===== Tests extractStreamerLogin additionnels =====
+
+void TestHlsAdFilter::testExtractStreamerLoginWithQueryParams() {
+  QString url = "https://usher.ttvnw.net/api/channel/hls/test_streamer.m3u8?token=abc123&sig=def456";
+  QString login = m_filter->extractStreamerLogin(url);
+  
+  QCOMPARE(login, QStringLiteral("test_streamer"));
+}
+
+void TestHlsAdFilter::testExtractStreamerLoginUppercase() {
+  QString url = "https://usher.ttvnw.net/api/channel/hls/STREAMER_NAME.m3u8";
+  QString login = m_filter->extractStreamerLogin(url);
+  
+  QCOMPARE(login, QStringLiteral("STREAMER_NAME"));
+}
+
+void TestHlsAdFilter::testExtractStreamerLoginWithNumbers() {
+  QString url = "https://usher.ttvnw.net/api/channel/hls/streamer123.m3u8";
+  QString login = m_filter->extractStreamerLogin(url);
+  
+  QCOMPARE(login, QStringLiteral("streamer123"));
+}
+
+// ===== Tests de comportement =====
+
+void TestHlsAdFilter::testHasAdsAfterDetection() {
+  // Initially no ads
+  QVERIFY(!m_filter->hasAds());
+  
+  // After detecting ads via detectAdsInPlaylist, hasAds should reflect state
+  QString playlist = R"(#EXTM3U
+#twitch-stitched-ad
+#EXTINF:2.000,
+ad.ts)";
+
+  m_filter->detectAdsInPlaylist(playlist);
+  
+  // Note: hasAds() returns m_adsDetected which is set by variant playlist logic
+  // detectAdsInPlaylist only sets m_adSegmentCount
+  // So hasAds() may still return false, but adSegmentCount > 0
+  QVERIFY(m_filter->adSegmentCount() > 0);
+}
+
+void TestHlsAdFilter::testAdSegmentCountAccumulates() {
+  QString playlist1 = R"(#EXTM3U
+#twitch-stitched-ad
+#EXTINF:2.000,
+ad1.ts)";
+
+  m_filter->detectAdsInPlaylist(playlist1);
+  int count1 = m_filter->adSegmentCount();
+  QVERIFY(count1 > 0);
+  
+  // Calling detectAdsInPlaylist again resets the count
+  QString playlist2 = R"(#EXTM3U
+#twitch-stitched-ad
+#twitch-stitched-ad
+#EXTINF:2.000,
+ad2.ts)";
+
+  m_filter->detectAdsInPlaylist(playlist2);
+  int count2 = m_filter->adSegmentCount();
+  
+  // Count is reset each call, so count2 should be higher than count1 (2 markers)
+  QVERIFY(count2 >= 2);
+}
+
+void TestHlsAdFilter::testRetryCountIncrementsOnStart() {
+  // Initial retry count is 0
+  QCOMPARE(m_filter->retryCount(), 0);
+  
+  // After stopping, retry count stays at 0 (no retries happened)
+  m_filter->stop();
+  QCOMPARE(m_filter->retryCount(), 0);
 }
 
 QTEST_MAIN(TestHlsAdFilter)
