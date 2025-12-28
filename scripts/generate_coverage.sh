@@ -12,18 +12,36 @@ BUILD_DIR="$PROJECT_ROOT/build"
 COVERAGE_DIR="$PROJECT_ROOT/coverage"
 LOAD_ENV_SCRIPT="$SCRIPT_DIR/load_env.sh"
 
-# Vérifier que llvm-profdata et llvm-cov sont disponibles
-if ! command -v llvm-profdata &> /dev/null; then
-    echo "Erreur: llvm-profdata n'est pas trouvé. Assurez-vous qu'il est installé."
-    echo "Sur macOS, il est disponible via Xcode ou LLVM complet."
+# Trouver llvm-profdata et llvm-cov (macOS: via xcrun, Linux: dans PATH)
+find_llvm_tool() {
+    local tool=$1
+    if command -v "$tool" &> /dev/null; then
+        echo "$tool"
+    elif command -v xcrun &> /dev/null; then
+        xcrun --find "$tool" 2>/dev/null || echo ""
+    else
+        echo ""
+    fi
+}
+
+LLVM_PROFDATA=$(find_llvm_tool llvm-profdata)
+LLVM_COV=$(find_llvm_tool llvm-cov)
+
+if [ -z "$LLVM_PROFDATA" ]; then
+    echo "Erreur: llvm-profdata n'est pas trouvé."
+    echo "Sur macOS, installez Xcode Command Line Tools: xcode-select --install"
     exit 1
 fi
 
-if ! command -v llvm-cov &> /dev/null; then
-    echo "Erreur: llvm-cov n'est pas trouvé. Assurez-vous qu'il est installé."
-    echo "Sur macOS, il est disponible via Xcode ou LLVM complet."
+if [ -z "$LLVM_COV" ]; then
+    echo "Erreur: llvm-cov n'est pas trouvé."
+    echo "Sur macOS, installez Xcode Command Line Tools: xcode-select --install"
     exit 1
 fi
+
+echo "Outils LLVM trouvés:"
+echo "  llvm-profdata: $LLVM_PROFDATA"
+echo "  llvm-cov: $LLVM_COV"
 
 echo "=== Génération du rapport de couverture de code ==="
 echo ""
@@ -38,18 +56,30 @@ mkdir -p "$COVERAGE_DIR"
 
 # Configurer et compiler avec la couverture activée
 echo "Configuration et compilation avec couverture activée..."
+mkdir -p "$BUILD_DIR"
 cd "$BUILD_DIR"
-"$LOAD_ENV_SCRIPT" cmake .. -G Ninja -DCMAKE_PREFIX_PATH="${QT6_DIR}" -DBLUEPLAYER_ENABLE_COVERAGE=ON
-"$LOAD_ENV_SCRIPT" cmake --build .
+"$LOAD_ENV_SCRIPT" cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH="${QT6_DIR}" -DBLUEPLAYER_ENABLE_COVERAGE=ON
+
+# Builder uniquement les bibliothèques et les tests (pas l'app BluePlayer qui échoue avec coverage)
+echo "Compilation des bibliothèques..."
+"$LOAD_ENV_SCRIPT" cmake --build . --target blueplayer_core blueplayer_media -j8
+
+echo "Compilation des tests..."
+"$LOAD_ENV_SCRIPT" cmake --build . --target $(cmake --build . --target help 2>/dev/null | grep -E "^\.\.\. test_" | sed 's/\.\.\. //' | tr '\n' ' ') -j8 || {
+    # Fallback: builder tous les tests un par un
+    for target in $(find tests -name "CMakeLists.txt" -exec grep -l "add_executable" {} \; 2>/dev/null | xargs -I{} dirname {} | xargs -I{} basename {}); do
+        "$LOAD_ENV_SCRIPT" cmake --build . --target "test_$target" -j8 2>/dev/null || true
+    done
+}
 
 # Définir la variable d'environnement pour la génération de profils
 export LLVM_PROFILE_FILE="$BUILD_DIR/%p.profraw"
 
-# Exécuter les tests
+# Exécuter les tests C++ (exclure les tests fonctionnels UI qui ne contribuent pas au coverage C++)
 echo ""
 echo "Exécution des tests avec génération de profils..."
 cd "$BUILD_DIR"
-"$LOAD_ENV_SCRIPT" ctest --output-on-failure || {
+"$LOAD_ENV_SCRIPT" ctest -E "Functional" --output-on-failure --timeout 120 || {
     echo "Attention: Certains tests ont échoué, mais le rapport de couverture sera généré pour les tests réussis."
 }
 
@@ -69,7 +99,7 @@ echo "$PROFRAW_FILES"
 # Merger les profils
 echo ""
 echo "Fusion des profils..."
-llvm-profdata merge -sparse "$BUILD_DIR"/*.profraw -o "$BUILD_DIR"/default.profdata
+"$LLVM_PROFDATA" merge -sparse "$BUILD_DIR"/*.profraw -o "$BUILD_DIR"/default.profdata
 
 # Trouver les binaires de test et les bibliothèques
 TEST_BINARIES=$(find "$BUILD_DIR/tests" -type f -perm +111 -not -name "*.dylib" -not -name "*.so" 2>/dev/null | grep -E "test_|Test" || true)
@@ -116,7 +146,7 @@ for pattern in "${EXCLUDE_PATTERNS[@]}"; do
 done
 
 # Générer le rapport HTML
-llvm-cov show \
+"$LLVM_COV" show \
     -instr-profile="$BUILD_DIR"/default.profdata \
     $COV_OBJECTS \
     $EXCLUDE_ARGS \
@@ -131,7 +161,7 @@ llvm-cov show \
 # Générer le rapport texte
 echo ""
 echo "Génération du rapport texte..."
-llvm-cov report \
+"$LLVM_COV" report \
     -instr-profile="$BUILD_DIR"/default.profdata \
     $COV_OBJECTS \
     $EXCLUDE_ARGS \
