@@ -107,7 +107,84 @@ struct VodMetadata {
     map[QStringLiteral("durationFormatted")] = formatDuration(duration);
     map[QStringLiteral("fileSizeFormatted")] = formatFileSize(fileSize);
     map[QStringLiteral("recordedAtFormatted")] = recordedAt.toString(QStringLiteral("dd/MM/yyyy HH:mm"));
+    
+    // Progression de visionnage
+    double progressPercent = 0.0;
+    if (duration > 0 && watchPosition > 0) {
+      progressPercent = (static_cast<double>(watchPosition) / static_cast<double>(duration)) * 100.0;
+    }
+    map[QStringLiteral("progressPercent")] = progressPercent;
+    map[QStringLiteral("isCompleted")] = progressPercent >= 90.0;
+    map[QStringLiteral("watchPositionFormatted")] = formatDuration(watchPosition);
+    
+    // "Vu il y a X jours"
+    map[QStringLiteral("lastWatchedFormatted")] = formatLastWatched(lastPlayedAt);
+    
     return map;
+  }
+  
+  /**
+   * @brief Formate la date de dernier visionnage en texte relatif
+   */
+  static QString formatLastWatched(const QDateTime& lastWatchedAt) {
+    if (!lastWatchedAt.isValid()) {
+      return QString();
+    }
+
+    QDateTime now = QDateTime::currentDateTime();
+    qint64 secsAgo = lastWatchedAt.secsTo(now);
+
+    if (secsAgo < 0) {
+      return QString();
+    }
+
+    // Moins d'une minute
+    if (secsAgo < 60) {
+      return QStringLiteral("Vu a l'instant");
+    }
+
+    // Moins d'une heure
+    if (secsAgo < 3600) {
+      qint64 minutes = secsAgo / 60;
+      if (minutes == 1) {
+        return QStringLiteral("Vu il y a 1 minute");
+      }
+      return QStringLiteral("Vu il y a %1 minutes").arg(minutes);
+    }
+
+    // Moins d'un jour
+    if (secsAgo < 86400) {
+      qint64 hours = secsAgo / 3600;
+      if (hours == 1) {
+        return QStringLiteral("Vu il y a 1 heure");
+      }
+      return QStringLiteral("Vu il y a %1 heures").arg(hours);
+    }
+
+    // Moins d'une semaine
+    if (secsAgo < 604800) {
+      qint64 days = secsAgo / 86400;
+      if (days == 1) {
+        return QStringLiteral("Vu hier");
+      }
+      return QStringLiteral("Vu il y a %1 jours").arg(days);
+    }
+
+    // Moins d'un mois
+    if (secsAgo < 2592000) {
+      qint64 weeks = secsAgo / 604800;
+      if (weeks == 1) {
+        return QStringLiteral("Vu il y a 1 semaine");
+      }
+      return QStringLiteral("Vu il y a %1 semaines").arg(weeks);
+    }
+
+    // Plus d'un mois
+    qint64 months = secsAgo / 2592000;
+    if (months == 1) {
+      return QStringLiteral("Vu il y a 1 mois");
+    }
+    return QStringLiteral("Vu il y a %1 mois").arg(months);
   }
 
   /**

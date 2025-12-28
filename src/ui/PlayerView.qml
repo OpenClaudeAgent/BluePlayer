@@ -57,7 +57,40 @@ Item {
   property var availableQualities: []
   property string currentQuality: "Auto"
   
+  // Watch history properties
+  property int lastSavedPosition: 0  // Track last saved position to avoid redundant saves
+  property int pendingSeekPosition: 0  // Position to seek to when media is ready
+  
   signal backRequested()
+  
+  // Timer pour la sauvegarde automatique de la progression (toutes les 30s)
+  Timer {
+    id: autoSaveTimer
+    interval: 30000  // 30 secondes
+    repeat: true
+    running: playerRoot.isVodMode && playerRoot.playing && !playerRoot.paused
+    onTriggered: {
+      saveWatchProgress()
+    }
+  }
+  
+  // Fonction pour sauvegarder la progression de visionnage
+  function saveWatchProgress() {
+    if (!isVodMode || !vodId || vodId.length === 0) return
+    if (position <= 0 || duration <= 0) return
+    
+    // Éviter les sauvegardes redondantes (moins de 5s de différence)
+    if (Math.abs(position - lastSavedPosition) < 5) return
+    
+    lastSavedPosition = position
+    
+    console.log("[PlayerView] Saving watch progress for VOD", vodId, "at position", Math.floor(position))
+    
+    // Mettre à jour le CacheManager avec la position
+    if (typeof cacheManager !== "undefined" && cacheManager) {
+      cacheManager.updateWatchPosition(vodId, Math.floor(position))
+    }
+  }
   
   Settings {
     id: playerSettings
@@ -111,6 +144,13 @@ Item {
       chatClient.disconnect()
     }
     chatVisible = false
+    
+    // Sauvegarder la progression de visionnage VOD à la fermeture
+    if (isVodMode && vodId && vodId.length > 0 && position > 0) {
+      console.log("[PlayerView] Saving watch progress on stop:", Math.floor(position))
+      saveWatchProgress()
+    }
+    
     // Sauvegarder l'enregistrement si en cours
     saveRecordingIfNeeded()
     mpvPlayer.stop()
@@ -195,18 +235,15 @@ Item {
     mpvPlayer.cropVideo = cropMode
     mpvPlayer.playbackRate = playbackRate
     
-    // Charger le fichier local
+    // Sauvegarder la position de reprise (sera appliquée quand le média est prêt)
+    pendingSeekPosition = (vodMetadata && vodMetadata.watchPosition > 5) ? vodMetadata.watchPosition : 0
+    
     console.log("[PlayerView] Playing VOD file:", vodFilePath)
+    if (pendingSeekPosition > 0) {
+      console.log("[PlayerView] Will resume at position:", pendingSeekPosition)
+    }
     mpvPlayer.play(vodFilePath)
     controlsVisible = true
-    
-    // Reprendre à la position sauvegardée si disponible
-    if (vodMetadata && vodMetadata.watchPosition > 0) {
-      console.log("[PlayerView] Resuming from position:", vodMetadata.watchPosition)
-      Qt.callLater(function() {
-        mpvPlayer.seek(vodMetadata.watchPosition)
-      })
-    }
   }
   
   function togglePlayPause() {
@@ -356,6 +393,12 @@ Item {
       onMutedChanged: function(isMuted) { playerRoot.muted = isMuted }
       onDurationChanged: function(dur) {
         playerRoot.duration = dur
+        // Appliquer le seek de reprise quand le média est prêt
+        if (dur > 0 && playerRoot.pendingSeekPosition > 0) {
+          console.log("[PlayerView] Media ready, seeking to:", playerRoot.pendingSeekPosition)
+          mpvPlayer.seek(playerRoot.pendingSeekPosition)
+          playerRoot.pendingSeekPosition = 0
+        }
       }
       onPositionChanged: function(pos) {
         playerRoot.position = pos

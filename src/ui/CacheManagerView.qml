@@ -114,6 +114,7 @@ Item {
       Repeater {
         model: [
           { text: qsTr("Date"), value: "recordedAt" },
+          { text: qsTr("Last watched"), value: "lastPlayedAt" },
           { text: qsTr("Size"), value: "fileSize" },
           { text: qsTr("Duration"), value: "duration" }
         ]
@@ -272,46 +273,55 @@ Item {
     }
 
     // Liste des VOD
-    ScrollView {
+    // Liste des VOD avec Flow pour hauteur dynamique
+    Flickable {
       Layout.fillWidth: true
       Layout.fillHeight: true
       Layout.leftMargin: BlueTheme.spacingLarge
       Layout.rightMargin: BlueTheme.spacingLarge
       Layout.topMargin: BlueTheme.spacingMedium
       clip: true
-      ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+      contentWidth: width
+      contentHeight: vodFlowLayout.implicitHeight
+      boundsBehavior: Flickable.StopAtBounds
+      
+      ScrollBar.vertical: ScrollBar {
+        policy: ScrollBar.AsNeeded
+      }
 
-      GridView {
-        id: vodGridView
-        anchors.fill: parent
-        cellWidth: 280
-        cellHeight: 180
-        model: viewModel.vodList
+      Flow {
+        id: vodFlowLayout
+        width: parent.width
+        spacing: BlueTheme.spacingMedium
 
-        delegate: Item {
-          width: vodGridView.cellWidth
-          height: vodGridView.cellHeight
+        Repeater {
+          model: viewModel.vodList
 
           Rectangle {
             id: cardRect
-            anchors.fill: parent
-            anchors.margins: 8
+            width: 200
+            implicitHeight: cardContent.implicitHeight + BlueTheme.spacingMedium * 2
             radius: 12
-            // Force re-evaluation when selectedCount changes
+            
             property bool isCardSelected: viewModel.selectedCount >= 0 && viewModel.isSelected(modelData.id)
             color: delegateMouseArea.containsMouse ? BlueTheme.surfaceSoft : BlueTheme.surface
             border.color: isCardSelected ? BlueTheme.accent : "transparent"
             border.width: isCardSelected ? 2 : 0
 
             ColumnLayout {
-              anchors.fill: parent
-              anchors.margins: 12
-              spacing: 8
+              id: cardContent
+              anchors.left: parent.left
+              anchors.right: parent.right
+              anchors.top: parent.top
+              anchors.leftMargin: BlueTheme.spacingMedium
+              anchors.rightMargin: BlueTheme.spacingMedium
+              anchors.topMargin: BlueTheme.spacingMedium
+              spacing: BlueTheme.spacingSmall
 
-              // Thumbnail area
+              // Thumbnail area - ratio 16:9
               Rectangle {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 90
+                Layout.preferredHeight: (cardRect.width - BlueTheme.spacingMedium * 2) * 9 / 16
                 radius: 8
                 color: BlueTheme.divider
                 clip: true
@@ -320,6 +330,8 @@ Item {
                   anchors.fill: parent
                   source: modelData.thumbnailPath || ""
                   fillMode: Image.PreserveAspectCrop
+                  asynchronous: true
+                  cache: true
                   visible: modelData.thumbnailPath && modelData.thumbnailPath.length > 0
                 }
 
@@ -353,9 +365,8 @@ Item {
                   }
                 }
 
-                // Badge qualité (coin supérieur droit)
+                // Badge qualité
                 Rectangle {
-                  id: qualityBadge
                   visible: modelData.quality && modelData.quality.length > 0
                   anchors.right: parent.right
                   anchors.top: parent.top
@@ -378,7 +389,6 @@ Item {
 
                 // Checkbox sélection
                 Rectangle {
-                  id: selectionCheckbox
                   visible: viewModel.selectionMode
                   anchors.left: parent.left
                   anchors.top: parent.top
@@ -386,7 +396,6 @@ Item {
                   width: 22
                   height: 22
                   radius: 11
-                  // Force re-evaluation when selectedCount changes
                   property bool isChecked: viewModel.selectedCount >= 0 && viewModel.isSelected(modelData.id)
                   color: isChecked ? BlueTheme.accent : BlueTheme.surface
                   border.color: isChecked ? BlueTheme.accent : BlueTheme.divider
@@ -398,7 +407,7 @@ Item {
                     font.pixelSize: 12
                     font.bold: true
                     color: "#FFFFFF"
-                    visible: selectionCheckbox.isChecked
+                    visible: parent.isChecked
                   }
                 }
 
@@ -434,14 +443,14 @@ Item {
                   color: "#80000000"
 
                   Rectangle {
-                    width: parent.width * (modelData.watchPosition / modelData.duration)
+                    width: parent.width * Math.min(1, modelData.watchPosition / Math.max(1, modelData.duration))
                     height: parent.height
                     color: BlueTheme.accent
                   }
                 }
               }
 
-              // Info
+              // Info section
               ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 2
@@ -467,7 +476,7 @@ Item {
 
                 RowLayout {
                   Layout.fillWidth: true
-                  spacing: 8
+                  spacing: 6
 
                   Text {
                     text: modelData.recordedAtFormatted || ""
@@ -488,6 +497,17 @@ Item {
                     font.pixelSize: 10
                     color: BlueTheme.mutedText
                   }
+                }
+                
+                // "Vu il y a X jours"
+                Text {
+                  visible: modelData.lastWatchedFormatted && modelData.lastWatchedFormatted.length > 0
+                  text: modelData.lastWatchedFormatted || ""
+                  font.family: BlueTheme.fontFamily
+                  font.pixelSize: 10
+                  font.italic: true
+                  color: modelData.isCompleted ? BlueTheme.accent : BlueTheme.secondaryText
+                  Layout.fillWidth: true
                 }
               }
             }
@@ -511,47 +531,46 @@ Item {
             }
           }
         }
+      }
 
-        // État vide
-        Item {
+      // État vide (dans le Flow)
+      Item {
+        width: vodFlowLayout.width
+        height: 200
+        visible: viewModel.vodCount === 0
+
+        ColumnLayout {
           anchors.centerIn: parent
-          width: 300
-          height: 200
-          visible: viewModel.vodCount === 0
+          spacing: BlueTheme.spacingMedium
 
-          ColumnLayout {
-            anchors.centerIn: parent
-            spacing: 16
-
-            Text {
-              Layout.alignment: Qt.AlignHCenter
-              text: "\uD83D\uDCF9"
-              font.pixelSize: 48
-              opacity: 0.5
-            }
-
-            Text {
-              Layout.alignment: Qt.AlignHCenter
-              text: qsTr("No replays")
-              font.family: BlueTheme.fontFamily
-              font.pixelSize: 16
-              font.bold: true
-              color: BlueTheme.secondaryText
-            }
-
-            Text {
-              Layout.alignment: Qt.AlignHCenter
-              text: qsTr("Watched streams will appear here")
-              font.family: BlueTheme.fontFamily
-              font.pixelSize: 13
-              color: BlueTheme.mutedText
-              horizontalAlignment: Text.AlignHCenter
-            }
+          Text {
+            Layout.alignment: Qt.AlignHCenter
+            text: "\uD83D\uDCF9"
+            font.pixelSize: 48
+            opacity: 0.5
           }
+
+          Text {
+            Layout.alignment: Qt.AlignHCenter
+            text: qsTr("No replays")
+            font.family: BlueTheme.fontFamily
+            font.pixelSize: 16
+            font.bold: true
+            color: BlueTheme.secondaryText
+          }
+
+          Text {
+          Layout.alignment: Qt.AlignHCenter
+          text: qsTr("Watched streams will appear here")
+          font.family: BlueTheme.fontFamily
+          font.pixelSize: 13
+          color: BlueTheme.mutedText
+          horizontalAlignment: Text.AlignHCenter
         }
       }
     }
-  }
+  }  // Flow
+}  // Flickable
 
   // Dialog suppression sélection
   Popup {

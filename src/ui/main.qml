@@ -118,10 +118,10 @@ ApplicationWindow {
         item.streamerName = root.playerStreamerName
         item.streamTitle = root.playerStreamTitle
         item.streamerLogin = root.playerStreamerLogin  // This triggers onStreamerLoginChanged - set last
-        // VOD properties
+        // VOD properties - vodMetadata MUST be set BEFORE vodFilePath (which triggers loadVod)
         item.vodId = root.vodId
-        item.vodFilePath = root.vodFilePath
         item.vodMetadata = root.vodMetadata
+        item.vodFilePath = root.vodFilePath  // This triggers loadVod() via onVodFilePathChanged
         item.isVodMode = root.vodFilePath.length > 0
         item.backRequested.connect(function() {
           console.log("[main.qml] Back requested, returning to previous view")

@@ -78,13 +78,7 @@ Pour exécuter l'application avec validation complète (recommandé) :
 make run
 ```
 
-> Cette commande effectue : **clean → build → test → run**. L'application ne se lance que si tous les tests passent.
-
-Pour un lancement rapide sans tests (mode développement) :
-
-```bash
-make run-quick
-```
+> Cette commande effectue : **build → run**.
 
 ## Tests
 
@@ -96,11 +90,10 @@ make test
 
 ## Autres commandes Make
 
--   `make run`       : Clean, build, test, puis run (bloque si tests échouent).
--   `make run-quick` : Build et run sans tests (mode dev rapide).
--   `make clean`     : Nettoie le répertoire de build.
--   `make test`      : Compile et exécute les tests.
--   `make help`      : Affiche toutes les cibles disponibles.
+-   `make run`   : Build et run l'application.
+-   `make clean` : Nettoie le répertoire de build.
+-   `make test`  : Compile et exécute les tests.
+-   `make help`  : Affiche toutes les cibles disponibles.
 
 ## Structure du Projet
 
@@ -124,6 +117,7 @@ Consultez la [Roadmap](roadmap/README.md) pour le suivi des tâches planifiées 
 
 | Version | Date | Description |
 |---------|------|-------------|
+| v0.23.0 | 2025-12-28 | Historique VOD (reprise automatique, sauvegarde 30s, tri "Dernier vu") |
 | v0.22.0 | 2025-12-28 | Internationalisation (i18n) avec changement de langue à chaud (EN/FR) |
 | v0.21.0 | 2025-12-28 | Persistance qualité par défaut (QSettings, intégration TwitchService, fallback) |
 | v0.20.0 | 2025-12-28 | Navigation globale (CircleButton, PanelHeader, boutons cachés dans panels) |

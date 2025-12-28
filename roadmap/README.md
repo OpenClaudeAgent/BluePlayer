@@ -130,7 +130,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 12 | Panel Préférences | [plan-12](./plan-12-preferences.md) | `feature/preferences` | v0.19.0 | 🟢 Terminé |
 | 13 | Internationalisation (i18n) | [plan-13](./plan-13-internationalization.md) | `feature/i18n` | v0.22.0 | 🟢 Terminé |
 | 14 | Bouton Follow/Unfollow | [plan-14](./plan-14-follow-button.md) | `feature/follow-button` | - | ❌ Annulé (API Twitch non disponible) |
-| 15 | Historique VOD cachés | [plan-15](./plan-15-watch-history.md) | `feature/watch-history` | - | 🔴 En attente |
+| 15 | Historique VOD cachés | [plan-15](./plan-15-watch-history.md) | `feature/watch-history` | v0.23.0 | 🟢 Terminé |
 | 16 | Mode Audio uniquement | [plan-16](./plan-16-audio-only.md) | `feature/audio-only` | - | 🔴 En attente |
 | 17 | Picture-in-Picture | [plan-17](./plan-17-picture-in-picture.md) | `feature/pip` | - | 🔴 En attente |
 | 18 | Thème Clair/Sombre | [plan-18](./plan-18-theme-switcher.md) | `feature/theme` | - | 🔴 En attente |
@@ -200,6 +200,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 2025-12-28 | Tâche 29 terminée - Persistance qualité par défaut (QSettings, TwitchService, fallback intelligent) |
 | 2025-12-28 | Tâche 13 terminée - Internationalisation (i18n) avec changement de langue à chaud |
 | 2025-12-28 | Tâche 14 annulée - API Twitch ne permet pas de follow/unfollow programmatiquement |
+| 2025-12-28 | Tâche 15 terminée - Historique VOD (reprise auto, sauvegarde 30s, tri "Dernier vu") |
 
 ---
 

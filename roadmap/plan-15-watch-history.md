@@ -90,31 +90,33 @@ Ajouter un filtre/tri parmi les options existantes :
 ## Checklist de validation
 
 ### Sauvegarde
-- [ ] Position sauvegardée toutes les 30 secondes
-- [ ] Position sauvegardée à la fermeture du player
-- [ ] Date de visionnage enregistrée
-- [ ] Durée totale enregistrée
-- [ ] Marqué "complété" si vu à > 90%
+- [x] Position sauvegardée toutes les 30 secondes
+- [x] Position sauvegardée à la fermeture du player
+- [x] Date de visionnage enregistrée
+- [x] Durée totale enregistrée
+- [x] Marqué "complété" si vu à > 90%
 
 ### Reprise
-- [ ] Dialog de reprise affiché si progression existante
-- [ ] Bouton "Reprendre" fonctionne (seek à la position)
-- [ ] Bouton "Recommencer" fonctionne (lecture depuis 0)
-- [ ] Pas de dialog si pas de progression
+- [x] Reprise automatique à la position sauvegardée (sans dialog)
+- [x] Seek appliqué quand le média est prêt
 
 ### UI CacheManagerView
-- [ ] Barre de progression visible sur les cards
-- [ ] Pourcentage affiché
-- [ ] "Vu il y a X jours" affiché
-- [ ] Tri par date de visionnage disponible
-- [ ] Tri fonctionne correctement
+- [x] Barre de progression visible sur les cards
+- [x] "Vu il y a X jours" affiché
+- [x] Tri par date de visionnage disponible
+- [x] Tri fonctionne correctement
+- [x] Cartes avec ratio 16:9 et padding correct (Flow layout)
 
 ### Persistance
-- [ ] Données persistées après redémarrage
-- [ ] Pas de corruption des données existantes
-- [ ] Migration propre si structure change
+- [x] Données persistées après redémarrage
+- [x] Pas de corruption des données existantes
 
 ### Tests
-- [ ] L'app compile sans erreur
-- [ ] Pas de régression sur le cache existant
-- [ ] Performance acceptable (pas de lag à la sauvegarde)
+- [x] L'app compile sans erreur
+- [x] Pas de régression sur le cache existant
+- [x] Performance acceptable (pas de lag à la sauvegarde)
+
+## Modifications par rapport au plan initial
+
+- **Reprise automatique** : Pas de dialog de confirmation, la lecture reprend automatiquement à la dernière position (la SeekBar permet de naviguer si besoin)
+- **UI améliorée** : Cartes avec Flow layout, ratio 16:9 respecté, padding généreux

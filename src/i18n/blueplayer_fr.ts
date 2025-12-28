@@ -364,6 +364,10 @@ Espace libéré : %2</translation>
         <translation>Durée</translation>
     </message>
     <message>
+        <source>Last watched</source>
+        <translation>Dernier vu</translation>
+    </message>
+    <message>
         <source>Cancel</source>
         <translation>Annuler</translation>
     </message>

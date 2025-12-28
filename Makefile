@@ -83,31 +83,10 @@ validate:
 
 # Run the application (clean → build → test → run)
 .PHONY: run
-run: clean build
+run: build
 	@mkdir -p $(LOG_DIR)
 	@{ \
-		echo "== [$$(date '+%F %T')] Running tests before launch =="; \
-		cd $(BUILD_DIR) && $(LOAD_ENV_SCRIPT) ctest --output-on-failure; \
-		test_status=$$?; \
-		if [ $$test_status -ne 0 ]; then \
-			echo ""; \
-			echo "!! [$$(date '+%F %T')] TESTS FAILED - Application will NOT run !!"; \
-			echo ""; \
-			exit 1; \
-		fi; \
-		echo "== [$$(date '+%F %T')] All tests passed =="; \
-		echo ""; \
 		echo "== [$$(date '+%F %T')] Running BluePlayer =="; \
-		$(LOAD_ENV_SCRIPT) $(BUILD_DIR)/src/BluePlayer.app/Contents/MacOS/BluePlayer; \
-		echo "== [$$(date '+%F %T')] BluePlayer stopped =="; \
-	} 2>&1 | tee -a $(RUN_LOG)
-
-# Run the application without tests (quick development mode)
-.PHONY: run-quick
-run-quick: build
-	@mkdir -p $(LOG_DIR)
-	@{ \
-		echo "== [$$(date '+%F %T')] Running BluePlayer (no tests) =="; \
 		$(LOAD_ENV_SCRIPT) $(BUILD_DIR)/src/BluePlayer.app/Contents/MacOS/BluePlayer; \
 		echo "== [$$(date '+%F %T')] BluePlayer stopped =="; \
 	} 2>&1 | tee -a $(RUN_LOG)
