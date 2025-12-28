@@ -7,6 +7,9 @@
 #include <QTimer>
 #include <functional>
 
+// Forward declaration for unit testing
+class TestHlsAdFilter;
+
 namespace blueplayer::media {
 
 /**
@@ -116,6 +119,9 @@ private:
   bool detectAdsInPlaylist(const QString &playlistContent);
   QString filterAdsFromPlaylist(const QString &playlistContent);
   QString extractStreamerLogin(const QString &url);
+
+  // Friend class for unit testing private methods
+  friend class ::TestHlsAdFilter;
 
   QNetworkAccessManager *m_networkManager = nullptr;
   QTimer *m_adCheckTimer = nullptr;
