@@ -533,3 +533,7 @@ if(Qt6QuickTest_FOUND)
 else()
   message(WARNING "Qt6 QuickTest not found - functional UI tests disabled. Install Qt6 QuickTest module to enable.")
 endif()
+
+# ===== E2E Tests =====
+# End-to-end tests with mock Twitch/HLS servers
+add_subdirectory(e2e)

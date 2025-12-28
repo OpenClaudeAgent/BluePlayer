@@ -1,0 +1,52 @@
+{
+  "data": [
+    {
+      "id": "12345",
+      "login": "teststreamer",
+      "display_name": "TestStreamer",
+      "type": "",
+      "broadcaster_type": "partner",
+      "description": "Welcome to my channel! I stream a variety of games and just chatting.",
+      "profile_image_url": "https://static-cdn.jtvnw.net/jtv_user_pictures/teststreamer-profile_image.png",
+      "offline_image_url": "https://static-cdn.jtvnw.net/jtv_user_pictures/teststreamer-offline_image.png",
+      "view_count": 1234567,
+      "created_at": "2015-01-15T12:00:00Z"
+    },
+    {
+      "id": "23456",
+      "login": "gamestreamer",
+      "display_name": "GameStreamer",
+      "type": "",
+      "broadcaster_type": "affiliate",
+      "description": "Gaming content creator. Fortnite, Warzone, and more!",
+      "profile_image_url": "https://static-cdn.jtvnw.net/jtv_user_pictures/gamestreamer-profile_image.png",
+      "offline_image_url": "https://static-cdn.jtvnw.net/jtv_user_pictures/gamestreamer-offline_image.png",
+      "view_count": 567890,
+      "created_at": "2018-06-20T15:30:00Z"
+    },
+    {
+      "id": "34567",
+      "login": "frenchstreamer",
+      "display_name": "FrenchStreamer",
+      "type": "",
+      "broadcaster_type": "affiliate",
+      "description": "Streamer francais - League of Legends et plus!",
+      "profile_image_url": "https://static-cdn.jtvnw.net/jtv_user_pictures/frenchstreamer-profile_image.png",
+      "offline_image_url": "https://static-cdn.jtvnw.net/jtv_user_pictures/frenchstreamer-offline_image.png",
+      "view_count": 234567,
+      "created_at": "2019-03-10T09:00:00Z"
+    },
+    {
+      "id": "99999",
+      "login": "testuser",
+      "display_name": "TestUser",
+      "type": "",
+      "broadcaster_type": "",
+      "description": "E2E Test User Account",
+      "profile_image_url": "https://static-cdn.jtvnw.net/jtv_user_pictures/testuser-profile_image.png",
+      "offline_image_url": "",
+      "view_count": 100,
+      "created_at": "2025-01-01T00:00:00Z"
+    }
+  ]
+}

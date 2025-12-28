@@ -1,0 +1,58 @@
+{
+  "data": [
+    {
+      "id": "123456789",
+      "user_id": "12345",
+      "user_login": "teststreamer",
+      "user_name": "TestStreamer",
+      "game_id": "509658",
+      "game_name": "Just Chatting",
+      "type": "live",
+      "title": "Test Stream for E2E Testing",
+      "viewer_count": 1234,
+      "started_at": "2025-12-28T10:00:00Z",
+      "language": "en",
+      "thumbnail_url": "https://static-cdn.jtvnw.net/previews-ttv/live_user_teststreamer-{width}x{height}.jpg",
+      "tag_ids": [],
+      "tags": ["English"],
+      "is_mature": false
+    },
+    {
+      "id": "234567890",
+      "user_id": "23456",
+      "user_login": "gamestreamer",
+      "user_name": "GameStreamer",
+      "game_id": "33214",
+      "game_name": "Fortnite",
+      "type": "live",
+      "title": "Playing Fortnite - Come hang out!",
+      "viewer_count": 5678,
+      "started_at": "2025-12-28T08:30:00Z",
+      "language": "en",
+      "thumbnail_url": "https://static-cdn.jtvnw.net/previews-ttv/live_user_gamestreamer-{width}x{height}.jpg",
+      "tag_ids": [],
+      "tags": ["English", "Gaming"],
+      "is_mature": false
+    },
+    {
+      "id": "345678901",
+      "user_id": "34567",
+      "user_login": "frenchstreamer",
+      "user_name": "FrenchStreamer",
+      "game_id": "21779",
+      "game_name": "League of Legends",
+      "type": "live",
+      "title": "Ranked grind - Diamond incoming!",
+      "viewer_count": 890,
+      "started_at": "2025-12-28T12:00:00Z",
+      "language": "fr",
+      "thumbnail_url": "https://static-cdn.jtvnw.net/previews-ttv/live_user_frenchstreamer-{width}x{height}.jpg",
+      "tag_ids": [],
+      "tags": ["French", "Competitive"],
+      "is_mature": false
+    }
+  ],
+  "pagination": {
+    "cursor": ""
+  }
+}

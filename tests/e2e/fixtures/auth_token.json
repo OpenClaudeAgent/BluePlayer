@@ -1,0 +1,17 @@
+{
+  "access_token": "e2e_test_token_12345",
+  "refresh_token": "e2e_refresh_token_12345",
+  "expires_in": 14400,
+  "scope": [
+    "user:read:email",
+    "chat:read",
+    "chat:edit",
+    "user:read:follows"
+  ],
+  "token_type": "bearer",
+  "user": {
+    "id": "99999",
+    "login": "testuser",
+    "display_name": "TestUser"
+  }
+}
