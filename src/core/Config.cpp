@@ -4,6 +4,7 @@
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QSettings>
 #include <QStandardPaths>
 
 namespace blueplayer::core {
@@ -150,6 +151,17 @@ QString Config::getEnvVar(const QString& key, const QString& defaultValue) const
 
 QString Config::logLevel(const QString& category) const {
   return m_logLevels.value(category, "info");
+}
+
+QString Config::defaultQuality() const {
+  QSettings settings(QStringLiteral("BluePlayer"), QStringLiteral("BluePlayer"));
+  return settings.value(QStringLiteral("playback/defaultQuality"), QStringLiteral("Auto")).toString();
+}
+
+void Config::setDefaultQuality(const QString& quality) {
+  QSettings settings(QStringLiteral("BluePlayer"), QStringLiteral("BluePlayer"));
+  settings.setValue(QStringLiteral("playback/defaultQuality"), quality);
+  settings.sync();
 }
 
 }  // namespace blueplayer::core

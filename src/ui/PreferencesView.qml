@@ -10,8 +10,11 @@ Item {
 
     signal closeRequested()
 
-    // Default quality preference (will be connected to backend later)
-    property string defaultQuality: "Auto"
+    // Default quality preference - connected to backend TwitchService
+    property string defaultQuality: {
+        var service = getTwitchService()
+        return service ? service.defaultQuality : "Auto"
+    }
 
     // Quality options
     readonly property var qualityOptions: ["Auto", "1080p60", "1080p", "720p60", "720p", "480p", "360p"]
@@ -153,7 +156,12 @@ Item {
                                 placeholder: qsTr("Qualite")
                                 
                                 onValueSelected: function(value) {
-                                    preferencesRoot.defaultQuality = value
+                                    // Save to backend (persisted via QSettings)
+                                    var service = getTwitchService()
+                                    if (service) {
+                                        service.setDefaultQuality(value)
+                                        console.log("[PreferencesView] Default quality saved: " + value)
+                                    }
                                 }
                             }
                         }
@@ -712,6 +720,21 @@ Item {
         enabled: getCacheManager() !== null
         function onMaxCacheSizeChanged() {
             preferencesRoot.cacheRefreshTrigger++
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Default quality sync with backend
+    // ═══════════════════════════════════════════════════════════════════════════
+    Connections {
+        target: getTwitchService()
+        enabled: getTwitchService() !== null
+        function onDefaultQualityChanged() {
+            // Re-evaluate the binding to update UI
+            var service = getTwitchService()
+            if (service) {
+                qualityDropdown.selectedValue = service.defaultQuality
+            }
         }
     }
 

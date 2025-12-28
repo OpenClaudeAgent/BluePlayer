@@ -94,41 +94,41 @@ Pour le fallback intelligent, utiliser cette hiérarchie (de la meilleure à la 
 ## Checklist de validation
 
 ### Persistance
-- [ ] La qualité par défaut sélectionnée persiste après fermeture de l'application
-- [ ] Au redémarrage, le dropdown affiche la valeur sauvegardée
-- [ ] La sauvegarde est immédiate (pas de bouton "Enregistrer")
+- [x] La qualité par défaut sélectionnée persiste après fermeture de l'application
+- [x] Au redémarrage, le dropdown affiche la valeur sauvegardée
+- [x] La sauvegarde est immédiate (pas de bouton "Enregistrer")
 
 ### Intégration lecteur - Stream live
-- [ ] Ouvrir un stream live applique automatiquement la qualité par défaut
-- [ ] Le sélecteur de qualité dans le player reflète la qualité appliquée
-- [ ] Le changement est silencieux (pas de popup, pas de notification)
+- [x] Ouvrir un stream live applique automatiquement la qualité par défaut
+- [x] Le sélecteur de qualité dans le player reflète la qualité appliquée
+- [x] Le changement est silencieux (pas de popup, pas de notification)
 
 ### Intégration lecteur - VOD Twitch
-- [ ] Ouvrir une VOD Twitch applique automatiquement la qualité par défaut
-- [ ] Même comportement que pour les streams live
+- [x] Ouvrir une VOD Twitch applique automatiquement la qualité par défaut
+- [x] Même comportement que pour les streams live
 
 ### Fallback intelligent
-- [ ] Si qualité demandée non disponible, la plus proche inférieure est sélectionnée
-- [ ] Si aucune qualité inférieure, la plus proche supérieure est sélectionnée
-- [ ] Aucun message d'erreur affiché lors du fallback
+- [x] Si qualité demandée non disponible, la plus proche inférieure est sélectionnée
+- [x] Si aucune qualité inférieure, la plus proche supérieure est sélectionnée
+- [x] Aucun message d'erreur affiché lors du fallback
 
 ### Option Auto
-- [ ] Avec "Auto" configuré, le comportement actuel est préservé
-- [ ] "Auto" sélectionne la meilleure qualité disponible
+- [x] Avec "Auto" configuré, le comportement actuel est préservé
+- [x] "Auto" sélectionne la meilleure qualité disponible
 
 ### VOD cachée
-- [ ] Les VOD cachées utilisent leur qualité d'enregistrement originale
-- [ ] La préférence de qualité par défaut est ignorée pour les VOD cachées
+- [x] Les VOD cachées utilisent leur qualité d'enregistrement originale
+- [x] La préférence de qualité par défaut est ignorée pour les VOD cachées
 
 ### Cas limites
-- [ ] Stream avec une seule qualité disponible : cette qualité est utilisée
-- [ ] Qualité "audio_only" demandée : fonctionne si disponible
-- [ ] Premier lancement (aucune préférence) : comportement "Auto"
+- [x] Stream avec une seule qualité disponible : cette qualité est utilisée
+- [x] Qualité "audio_only" demandée : fonctionne si disponible
+- [x] Premier lancement (aucune préférence) : comportement "Auto"
 
 ### Non-régression
-- [ ] Le sélecteur de qualité dans le player fonctionne toujours
-- [ ] Changer la qualité manuellement dans le player fonctionne toujours
-- [ ] Les autres préférences (cache) ne sont pas affectées
+- [x] Le sélecteur de qualité dans le player fonctionne toujours
+- [x] Changer la qualité manuellement dans le player fonctionne toujours
+- [x] Les autres préférences (cache) ne sont pas affectées
 
 ---
 
