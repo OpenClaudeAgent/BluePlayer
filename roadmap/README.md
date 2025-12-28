@@ -149,6 +149,15 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 28 | Strategie Navigation Globale | [plan-28](./plan-28-navigation-strategy.md) | `feature/navigation-strategy` | v0.20.0 | 🟢 Terminé |
 | 29 | Persistance Qualité par Défaut | [plan-29](./plan-29-default-quality-persistence.md) | `feature/default-quality` | v0.21.0 | 🟢 Terminé |
 | 30 | Harmonisation des Toasts | [plan-30](./plan-30-toast-harmonization.md) | `feature/toast-harmonization` | - | 🔴 En attente |
+| 31 | Supprimer section Recommandation | [plan-31](./plan-31-remove-recommendations.md) | `fix/remove-recommendations` | - | 🔴 En attente |
+| 32 | Section Continuer à regarder | [plan-32](./plan-32-continue-watching.md) | `feature/continue-watching` | - | 🔴 En attente |
+| 33 | Emotes BTTV/FFZ/7TV | [plan-33](./plan-33-third-party-emotes.md) | `feature/third-party-emotes` | - | 🔴 En attente |
+| 34 | Points de chaîne | [plan-34](./plan-34-channel-points.md) | `feature/channel-points` | - | 🔴 En attente |
+| 35 | Créer des clips | [plan-35](./plan-35-create-clips.md) | `feature/create-clips` | - | 🔴 En attente |
+| 36 | Multi-stream | [plan-36](./plan-36-multi-stream.md) | `feature/multi-stream` | - | 🔴 En attente |
+| 37 | Raccourcis clavier globaux | [plan-37](./plan-37-global-hotkeys.md) | `feature/global-hotkeys` | - | 🔴 En attente |
+| 38 | Mode Debug | [plan-38](./plan-38-debug-mode.md) | `feature/debug-mode` | - | 🔴 En attente |
+| 39 | Export des VOD cachées | [plan-39](./plan-39-export-cached-vod.md) | `feature/export-vod` | - | 🔴 En attente |
 
 ### Plans spéciaux
 
@@ -232,3 +241,6 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 2025-12-28 | Ajout plan 28 - Stratégie Navigation Globale (TopBar, CircleButton, refactoring headers) |
 | 2025-12-28 | Ajout plan 29 - Persistance Qualité par Défaut (persistance, intégration TwitchService, fallback) |
 | 2025-12-28 | Ajout plan 30 - Harmonisation des Toasts (feedback visuel pour tous les contrôles player) |
+| 2025-12-28 | Ajout plan 31 - Supprimer section Recommandation (nettoyage interface cassée) |
+| 2025-12-28 | Ajout plan 32 - Section Continuer à regarder (raccourci VOD cachées depuis Home) |
+| 2025-12-28 | Ajout plans 33-39 - Emotes tierces, Points chaîne, Clips, Multi-stream, Hotkeys, Debug, Export VOD |
