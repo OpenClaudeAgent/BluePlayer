@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#0b1727"/>
+      <stop offset="100%" style="stop-color:#040b15"/>
+    </linearGradient>
+    <linearGradient id="wave1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#5bc0ff;stop-opacity:0.3"/>
+      <stop offset="100%" style="stop-color:#3da2ff;stop-opacity:0.3"/>
+    </linearGradient>
+    <linearGradient id="wave2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#5bc0ff;stop-opacity:0.5"/>
+      <stop offset="100%" style="stop-color:#3da2ff;stop-opacity:0.5"/>
+    </linearGradient>
+    <linearGradient id="wave3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#5bc0ff;stop-opacity:0.8"/>
+      <stop offset="100%" style="stop-color:#3da2ff;stop-opacity:0.8"/>
+    </linearGradient>
+    <linearGradient id="centerGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#7dd3ff"/>
+      <stop offset="100%" style="stop-color:#5bc0ff"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Fond arrondi -->
+  <rect x="40" y="40" width="944" height="944" rx="212" ry="212" fill="url(#bgGradient)"/>
+  <rect x="40" y="40" width="944" height="944" rx="212" ry="212" 
+        fill="none" stroke="#5bc0ff" stroke-width="2" stroke-opacity="0.2"/>
+  
+  <!-- Onde externe -->
+  <circle cx="512" cy="512" r="380" fill="none" stroke="url(#wave1)" stroke-width="40"/>
+  
+  <!-- Onde moyenne -->
+  <circle cx="512" cy="512" r="280" fill="none" stroke="url(#wave2)" stroke-width="45"/>
+  
+  <!-- Onde interne -->
+  <circle cx="512" cy="512" r="180" fill="none" stroke="url(#wave3)" stroke-width="50"/>
+  
+  <!-- Cercle central -->
+  <circle cx="512" cy="512" r="100" fill="url(#centerGradient)"/>
+  
+  <!-- Triangle Play au centre -->
+  <path d="M485 470 L485 554 L560 512 Z" fill="#ffffff" fill-opacity="0.95"/>
+</svg>

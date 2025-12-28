@@ -395,7 +395,8 @@ void TwitchService::refreshStreams() {
 - **Signature de code automatique** : L'app est signée à chaque build pour éviter les prompts Keychain répétés
 
 ### Refactoring C++ (Sprints 5-6)
-- [ ] 24.16-24.19 - TwitchService splitté
+- [x] 24.16 - Helper ensureTokenAndExecute() créé (9 duplications éliminées)
+- [ ] 24.17-24.19 - TwitchService splitté (reporté)
 - [ ] 24.20-24.21 - Media refactoré
 
 ### Tests (Sprint 7)

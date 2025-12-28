@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QString>
 #include <QVariantList>
+#include <functional>
 
 namespace blueplayer::core {
 class ISecureStorage;
@@ -269,6 +270,17 @@ private:
   void selectUrl(int index);
   void fetchAndSelectBestQuality(const QString& masterPlaylistUrl);
   QString selectBestQualityFromPlaylist(const QString& playlistContent);
+  
+  /**
+   * @brief Helper pour exécuter une action avec le token d'authentification
+   * 
+   * Ce helper encapsule le pattern répétitif de vérification et configuration
+   * du token d'accès avant d'exécuter une action sur l'API.
+   * 
+   * @param action La fonction à exécuter si le token est valide
+   * @return true si l'action a été exécutée, false si le token est vide
+   */
+  bool ensureTokenAndExecute(std::function<void()> action);
 
 private slots:
   void onAuthStateChanged(bool authenticated);

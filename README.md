@@ -113,6 +113,7 @@ Consultez la [Roadmap](roadmap/README.md) pour le suivi des tâches planifiées 
 
 | Version | Date | Description |
 |---------|------|-------------|
+| v0.15.0 | 2025-12-28 | Refactoring TwitchService (helper ensureTokenAndExecute, -29 lignes) |
 | v0.14.0 | 2025-12-28 | Refactoring Cards (BaseCard créé, 5 cards refactorées, -239 lignes) |
 | v0.13.0 | 2025-12-27 | Refactoring PlayerControlBar (ControlButton, SeekBar, VolumeControl) + signature code automatique |
 | v0.12.0 | 2025-12-27 | Refactoring PlayerView (composants QML extraits, logique recording en C++, injection dépendances) |

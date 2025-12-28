@@ -251,25 +251,11 @@ void TwitchService::refreshRecommendedStreams() {
 
   // Les streams recommandés peuvent être chargés même sans authentification
   // mais avec authentification, on peut personnaliser les recommandations
-  QString token = m_authManager ? m_authManager->accessToken() : QString();
-  if (!token.isEmpty()) {
-    Logger::debug(
-        LogCategory::Twitch,
-        QStringLiteral(
-            "Setting access token for recommended streams, length: %1")
-            .arg(token.length()));
-    m_apiClient->setAccessToken(token);
-  } else {
-    // Même sans token, on peut récupérer les streams populaires (sans
-    // authentification)
-    Logger::debug(
-        LogCategory::Twitch,
-        QStringLiteral("No token available, requesting public streams"));
-  }
+  ensureTokenAndExecute([]() {});  // Configure le token si disponible
 
   Logger::debug(LogCategory::Twitch,
                 QStringLiteral("Requesting recommended streams"));
-  m_apiClient->getRecommendedStreams(20); // Récupérer 20 streams recommandés
+  m_apiClient->getRecommendedStreams(20);  // Récupérer 20 streams recommandés
 }
 
 void TwitchService::refreshCategories() {
@@ -284,18 +270,11 @@ void TwitchService::refreshCategories() {
 
   // Les catégories peuvent être chargées même sans authentification
   // Un token peut être utile pour personnaliser, mais n'est pas requis
-  QString token = m_authManager ? m_authManager->accessToken() : QString();
-  if (!token.isEmpty()) {
-    Logger::debug(
-        LogCategory::Twitch,
-        QStringLiteral("Setting access token for categories, length: %1")
-            .arg(token.length()));
-    m_apiClient->setAccessToken(token);
-  }
+  ensureTokenAndExecute([]() {});  // Configure le token si disponible
 
   Logger::debug(LogCategory::Twitch,
                 QStringLiteral("Requesting top categories"));
-  m_apiClient->getTopCategories(20); // Récupérer 20 catégories populaires
+  m_apiClient->getTopCategories(20);  // Récupérer 20 catégories populaires
 }
 
 void TwitchService::refreshPopularClips() {
@@ -305,10 +284,8 @@ void TwitchService::refreshPopularClips() {
     return;
   }
 
-  QString token = m_authManager ? m_authManager->accessToken() : QString();
-  if (!token.isEmpty()) {
-    m_apiClient->setAccessToken(token);
-  }
+  // Token optionnel - configure le token si disponible
+  ensureTokenAndExecute([]() {});
 
   Logger::debug(LogCategory::Twitch, QStringLiteral("Requesting popular clips"));
   m_apiClient->getPopularClips(20);
@@ -358,13 +335,10 @@ void TwitchService::refreshFollowedClips() {
     return;
   }
 
-  QString token = m_authManager->accessToken();
-  if (!token.isEmpty()) {
-    m_apiClient->setAccessToken(token);
-  }
-
-  Logger::debug(LogCategory::Twitch, QStringLiteral("Requesting followed clips for %1 broadcasters").arg(broadcasterIds.size()));
-  m_apiClient->getFollowedClips(broadcasterIds, 5);
+  ensureTokenAndExecute([this, broadcasterIds]() {
+    Logger::debug(LogCategory::Twitch, QStringLiteral("Requesting followed clips for %1 broadcasters").arg(broadcasterIds.size()));
+    m_apiClient->getFollowedClips(broadcasterIds, 5);
+  });
 }
 
 void TwitchService::refreshVideos() {
@@ -380,13 +354,10 @@ void TwitchService::refreshVideos() {
     return;
   }
 
-  QString token = m_authManager->accessToken();
-  if (!token.isEmpty()) {
-    m_apiClient->setAccessToken(token);
-  }
-
-  Logger::debug(LogCategory::Twitch, QStringLiteral("Requesting videos"));
-  m_apiClient->getVideos(m_userId, 20);
+  ensureTokenAndExecute([this]() {
+    Logger::debug(LogCategory::Twitch, QStringLiteral("Requesting videos"));
+    m_apiClient->getVideos(m_userId, 20);
+  });
 }
 
 void TwitchService::refreshFollowedChannels() {
@@ -402,13 +373,10 @@ void TwitchService::refreshFollowedChannels() {
     return;
   }
 
-  QString token = m_authManager->accessToken();
-  if (!token.isEmpty()) {
-    m_apiClient->setAccessToken(token);
-  }
-
-  Logger::debug(LogCategory::Twitch, QStringLiteral("Requesting followed channels"));
-  m_apiClient->getFollowedChannels(m_userId);
+  ensureTokenAndExecute([this]() {
+    Logger::debug(LogCategory::Twitch, QStringLiteral("Requesting followed channels"));
+    m_apiClient->getFollowedChannels(m_userId);
+  });
 }
 
 void TwitchService::refreshNewStreamers() {
@@ -430,15 +398,12 @@ void TwitchService::refreshNewStreamers() {
     return;
   }
 
-  QString token = m_authManager->accessToken();
-  if (!token.isEmpty()) {
-    m_apiClient->setAccessToken(token);
-  }
-
-  Logger::debug(
-      LogCategory::Twitch,
-      QStringLiteral("Requesting new streamers for userId: %1").arg(m_userId));
-  m_apiClient->getNewFollowedStreamers(m_userId, 20);
+  ensureTokenAndExecute([this]() {
+    Logger::debug(
+        LogCategory::Twitch,
+        QStringLiteral("Requesting new streamers for userId: %1").arg(m_userId));
+    m_apiClient->getNewFollowedStreamers(m_userId, 20);
+  });
 }
 
 void TwitchService::refreshCategoryStreams(const QString &gameId) {
@@ -454,10 +419,8 @@ void TwitchService::refreshCategoryStreams(const QString &gameId) {
     return;
   }
 
-  QString token = m_authManager ? m_authManager->accessToken() : QString();
-  if (!token.isEmpty()) {
-    m_apiClient->setAccessToken(token);
-  }
+  // Token optionnel - configure le token si disponible
+  ensureTokenAndExecute([]() {});
 
   Logger::debug(LogCategory::Twitch, QStringLiteral("Requesting streams for category: %1").arg(gameId));
   m_apiClient->getStreamsByCategory(gameId, 20);
@@ -477,10 +440,8 @@ void TwitchService::search(const QString &query) {
     return;
   }
 
-  QString token = m_authManager ? m_authManager->accessToken() : QString();
-  if (!token.isEmpty()) {
-    m_apiClient->setAccessToken(token);
-  }
+  // Token optionnel - configure le token si disponible
+  ensureTokenAndExecute([]() {});
 
   // Lancer les deux recherches en parallèle
   Logger::debug(LogCategory::Twitch, QStringLiteral("Starting parallel search for channels and categories"));
@@ -613,6 +574,16 @@ QString TwitchService::userName() const { return m_userName; }
 
 QString TwitchService::accessToken() const {
   return m_authManager ? m_authManager->accessToken() : QString();
+}
+
+bool TwitchService::ensureTokenAndExecute(std::function<void()> action) {
+  QString token = m_authManager ? m_authManager->accessToken() : QString();
+  if (token.isEmpty()) {
+    return false;
+  }
+  m_apiClient->setAccessToken(token);
+  action();
+  return true;
 }
 
 void TwitchService::login() {
