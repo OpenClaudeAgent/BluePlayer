@@ -15,7 +15,7 @@ ApplicationWindow {
   font.family: BlueTheme.fontFamily
   title: qsTr("BluePlayer")
   property string currentView: "home"
-  property string statusText: qsTr("Sélectionnez un stream ou une vidéo locale pour commencer.")
+  property string statusText: qsTr("Select a stream or local video to start.")
   property string playerStreamerLogin: ""
   property string playerStreamerName: ""
   property string playerStreamTitle: ""
@@ -75,9 +75,9 @@ ApplicationWindow {
       active: cacheActive
       tooltipText: {
         if (typeof cacheManager !== "undefined" && cacheManager) {
-          return qsTr("Mes Replays (%1)").arg(cacheManager.vodCount)
+          return qsTr("My Replays (%1)").arg(cacheManager.vodCount)
         }
-        return qsTr("Mes Replays")
+        return qsTr("My Replays")
       }
       onClicked: currentView = "cache"
     }
@@ -87,7 +87,7 @@ ApplicationWindow {
       iconText: "\u2699"
       iconSize: 18
       active: preferencesActive
-      tooltipText: qsTr("Préférences")
+      tooltipText: qsTr("Preferences")
       onClicked: currentView = "preferences"
     }
   }

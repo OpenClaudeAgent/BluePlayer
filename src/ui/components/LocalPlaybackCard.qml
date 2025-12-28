@@ -10,7 +10,7 @@ BlueCard {
   id: root
   property var ffmpegService
   property string selectedPath: ""
-  property string statusText: qsTr("Sélectionnez une vidéo pour commencer.")
+  property string statusText: qsTr("Select a video to start.")
   signal statusChanged(string message)
 
   function updateStatus(message) {
@@ -58,7 +58,7 @@ BlueCard {
       }
 
       Button {
-        text: qsTr("Parcourir")
+        text: qsTr("Browse")
         onClicked: fileDialog.open()
         background: Rectangle {
           radius: 12
@@ -74,7 +74,7 @@ BlueCard {
       spacing: BlueTheme.spacingMedium
 
       Button {
-        text: qsTr("Lecture locale")
+        text: qsTr("Local playback")
         enabled: selectedPath.length > 0
         Layout.preferredWidth: 160
         onClicked: {
@@ -118,12 +118,12 @@ BlueCard {
 
   FileDialog {
     id: fileDialog
-    title: qsTr("Choisir une vidéo locale")
+    title: qsTr("Choose a local video")
     fileMode: FileDialog.OpenFile
-    nameFilters: [qsTr("Vidéos (*.mp4 *.mkv *.mov *.avi *.m4v)"), qsTr("Tous les fichiers (*)")]
+    nameFilters: [qsTr("Videos (*.mp4 *.mkv *.mov *.avi *.m4v)"), qsTr("All files (*)")]
     onAccepted: {
       selectedPath = selectedFile
-      updateStatus(qsTr("Prêt à lancer %1").arg(selectedPath.split("/").pop()))
+      updateStatus(qsTr("Ready to play %1").arg(selectedPath.split("/").pop()))
     }
   }
 
@@ -135,7 +135,7 @@ BlueCard {
     target: ffmpegService !== undefined ? ffmpegService : placeholderService
     ignoreUnknownSignals: true
     function onPlayingChanged(playing) {
-      updateStatus(playing ? qsTr("Lecture en cours…") : qsTr("Lecture arrêtée."))
+      updateStatus(playing ? qsTr("Playing...") : qsTr("Playback stopped."))
     }
     function onErrorOccurred(message) {
       updateStatus(message)

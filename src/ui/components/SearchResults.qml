@@ -79,7 +79,7 @@ Rectangle {
           anchors.leftMargin: 8
           anchors.bottom: parent.bottom
           anchors.bottomMargin: 4
-          text: "En direct"
+          text: qsTr("Live")
           font.family: BlueTheme.fontFamily
           font.pixelSize: 11
           font.bold: true
@@ -244,7 +244,7 @@ Rectangle {
           anchors.leftMargin: 8
           anchors.bottom: parent.bottom
           anchors.bottomMargin: 4
-          text: "Dans le cache"
+          text: qsTr("In cache")
           font.family: BlueTheme.fontFamily
           font.pixelSize: 11
           font.bold: true
@@ -385,7 +385,7 @@ Rectangle {
       // No results
       Text {
         visible: searchResultsRoot.totalCount === 0
-        text: "Aucun resultat"
+        text: qsTr("No results")
         font.family: BlueTheme.fontFamily
         font.pixelSize: 13
         color: BlueTheme.mutedText

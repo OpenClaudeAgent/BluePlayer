@@ -92,7 +92,7 @@ Rectangle {
             }
             
             Text {
-                text: streamTitle || qsTr("Stream en direct")
+                text: streamTitle || qsTr("Live stream")
                 font.family: BlueTheme.fontFamily
                 font.pixelSize: 13
                 color: "#DDFFFFFF"

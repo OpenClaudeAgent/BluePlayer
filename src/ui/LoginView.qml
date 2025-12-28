@@ -55,7 +55,7 @@ Item {
       }
 
       Text {
-        text: qsTr("Lecteur Twitch natif")
+        text: qsTr("Native Twitch player")
         font.family: BlueTheme.fontFamily
         font.pixelSize: 16
         font.weight: 400
@@ -90,7 +90,7 @@ Item {
 
         // Section titre simplifiée
         Text {
-          text: qsTr("Connexion requise")
+          text: qsTr("Login required")
           font.family: BlueTheme.fontFamily
           font.pixelSize: 22
           font.weight: 500
@@ -103,7 +103,7 @@ Item {
 
         // Texte descriptif avec meilleur espacement
         Text {
-          text: qsTr("Pour accéder à vos streams suivis et profiter de toutes les fonctionnalités de BluePlayer, connectez-vous avec votre compte Twitch.")
+          text: qsTr("To access your followed streams and enjoy all BluePlayer features, please sign in with your Twitch account.")
           font.family: BlueTheme.fontFamily
           font.pixelSize: 15
           font.weight: 400
@@ -148,7 +148,7 @@ Item {
           
           Text {
             anchors.centerIn: parent
-            text: qsTr("Se connecter à Twitch")
+            text: qsTr("Sign in with Twitch")
             font.family: BlueTheme.fontFamily
             font.pixelSize: 15
             font.weight: 600

@@ -71,7 +71,7 @@ Item {
         }
 
         ToolTip.visible: qualityMouseArea.containsMouse && !root.showPopup
-        ToolTip.text: qsTr("Qualite: %1 (Q)").arg(root.currentQuality)
+        ToolTip.text: qsTr("Quality: %1 (Q)").arg(root.currentQuality)
         ToolTip.delay: 800
     }
 
@@ -114,7 +114,7 @@ Item {
 
             // Header
             Text {
-                text: qsTr("Qualite")
+                text: qsTr("Quality")
                 color: BlueTheme.secondaryText
                 font.pixelSize: 11
                 font.family: BlueTheme.fontFamily

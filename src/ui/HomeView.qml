@@ -350,7 +350,7 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
             verticalAlignment: Text.AlignVCenter
-            placeholderText: qsTr("Rechercher...")
+            placeholderText: qsTr("Search...")
             placeholderTextColor: BlueTheme.mutedText
             font.family: BlueTheme.fontFamily
             font.pixelSize: 14

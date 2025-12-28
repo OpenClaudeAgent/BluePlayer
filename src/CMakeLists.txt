@@ -113,12 +113,33 @@ setup_compiler_warnings(blueplayer_media)
 # On lie blueplayer_media après sa création pour permettre la résolution des symboles
 target_link_libraries(blueplayer_core PRIVATE blueplayer_media)
 
+# ============================================================================
+# Internationalization (i18n)
+# ============================================================================
+set(BLUEPLAYER_TS_FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/i18n/blueplayer_fr.ts
+)
+
+# Generate .qm files from .ts files
+qt_add_translations(blueplayer_core
+    TS_FILES ${BLUEPLAYER_TS_FILES}
+    QM_FILES_OUTPUT_VARIABLE BLUEPLAYER_QM_FILES
+    LUPDATE_OPTIONS -no-obsolete
+)
+
 qt_add_executable(BluePlayer
   main.mm
 )
 
 qt_policy(SET QTP0001 NEW)
 qt_policy(SET QTP0004 NEW)
+
+# Add .qm files as resources
+qt_add_resources(BluePlayer "translations"
+    PREFIX "/i18n"
+    BASE ${CMAKE_CURRENT_BINARY_DIR}
+    FILES ${BLUEPLAYER_QM_FILES}
+)
 
 qt_add_qml_module(BluePlayer
   URI BluePlayer

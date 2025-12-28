@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 6.5
 import QtQuick.Layouts 1.15
+import Qt.labs.settings 1.1
 
 import "themes/BlueTheme.js" as BlueTheme
 import "components"
@@ -21,6 +22,21 @@ Item {
 
     // Cache refresh trigger (incremented to force binding refresh)
     property int cacheRefreshTrigger: 0
+
+    // Language settings
+    Settings {
+        id: languageSettings
+        category: "i18n"
+        property string language: "system"
+    }
+
+    // Language preference
+    property string currentLanguage: languageSettings.language
+
+    function setLanguage(lang) {
+        languageSettings.language = lang
+        console.log("[PreferencesView] Language set to:", lang)
+    }
 
     // Access helpers
     function getCacheManager() {
@@ -77,7 +93,7 @@ Item {
                     // ═══════════════════════════════════════════════════════════
                     PreferencesSection {
                         Layout.fillWidth: true
-                        title: qsTr("Lecture")
+                        title: qsTr("Playback")
                         icon: "\uD83C\uDFAC"
 
                         RowLayout {
@@ -85,7 +101,7 @@ Item {
                             spacing: BlueTheme.spacingMedium
 
                             Text {
-                                text: qsTr("Qualite par defaut")
+                                text: qsTr("Default quality")
                                 font.family: BlueTheme.fontFamily
                                 font.pixelSize: 14
                                 color: BlueTheme.primaryText
@@ -99,7 +115,7 @@ Item {
                                 Layout.preferredHeight: 36
                                 model: preferencesRoot.qualityOptions
                                 selectedValue: preferencesRoot.defaultQuality
-                                placeholder: qsTr("Qualite")
+                                placeholder: qsTr("Quality")
                                 
                                 onValueSelected: function(value) {
                                     // Save to backend (persisted via QSettings)
@@ -114,11 +130,72 @@ Item {
                     }
 
                     // ═══════════════════════════════════════════════════════════
+                    // SECTION: Language
+                    // ═══════════════════════════════════════════════════════════
+                    PreferencesSection {
+                        Layout.fillWidth: true
+                        title: qsTr("Language")
+                        icon: "\uD83C\uDF10"
+
+                        ColumnLayout {
+                            width: parent.width
+                            spacing: BlueTheme.spacingMedium
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: BlueTheme.spacingMedium
+
+                                Text {
+                                    text: qsTr("App language")
+                                    font.family: BlueTheme.fontFamily
+                                    font.pixelSize: 14
+                                    color: BlueTheme.primaryText
+                                    Layout.fillWidth: true
+                                }
+
+                                BlueDropdown {
+                                    id: languageDropdown
+                                    Layout.preferredWidth: 140
+                                    Layout.preferredHeight: 36
+                                    model: [qsTr("System"), "English", "Français"]
+                                    selectedValue: {
+                                        var lang = preferencesRoot.currentLanguage
+                                        if (lang === "en") return "English"
+                                        if (lang === "fr") return "Français"
+                                        return qsTr("System")
+                                    }
+                                    placeholder: qsTr("Language")
+
+                                    onValueSelected: function(value) {
+                                        var langCode = "system"
+                                        if (value === "English") langCode = "en"
+                                        else if (value === "Français") langCode = "fr"
+                                        preferencesRoot.setLanguage(langCode)
+                                        restartHint.visible = true
+                                    }
+                                }
+                            }
+
+                            // Restart hint
+                            Text {
+                                id: restartHint
+                                visible: false
+                                text: qsTr("Restart required to apply language change")
+                                font.family: BlueTheme.fontFamily
+                                font.pixelSize: 12
+                                font.italic: true
+                                color: BlueTheme.statusWarning
+                                Layout.fillWidth: true
+                            }
+                        }
+                    }
+
+                    // ═══════════════════════════════════════════════════════════
                     // SECTION: Compte Twitch
                     // ═══════════════════════════════════════════════════════════
                     PreferencesSection {
                         Layout.fillWidth: true
-                        title: qsTr("Compte Twitch")
+                        title: qsTr("Twitch Account")
                         icon: "\uD83D\uDC64"
 
                         ColumnLayout {
@@ -159,10 +236,10 @@ Item {
                                         if (service && service.authenticated) {
                                             var userName = service.userName || ""
                                             return userName ? 
-                                                qsTr("Connecte en tant que @%1").arg(userName) : 
-                                                qsTr("Connecte a Twitch")
+                                                qsTr("Connected as @%1").arg(userName) : 
+                                                qsTr("Connected to Twitch")
                                         }
-                                        return qsTr("Non connecte")
+                                        return qsTr("Not connected")
                                     }
                                     font.family: BlueTheme.fontFamily
                                     font.pixelSize: 14
@@ -202,7 +279,7 @@ Item {
                                     Text {
                                         id: twitchActionText
                                         anchors.centerIn: parent
-                                        text: twitchActionButton.isLoggedIn ? qsTr("Se deconnecter") : qsTr("Se connecter")
+                                        text: twitchActionButton.isLoggedIn ? qsTr("Sign out") : qsTr("Sign in")
                                         font.family: BlueTheme.fontFamily
                                         font.pixelSize: 13
                                         font.weight: Font.Medium
@@ -237,7 +314,7 @@ Item {
                     // ═══════════════════════════════════════════════════════════
                     PreferencesSection {
                         Layout.fillWidth: true
-                        title: qsTr("Cache & Stockage")
+                        title: qsTr("Cache & Storage")
                         icon: "\uD83D\uDCBE"
 
                         ColumnLayout {
@@ -249,11 +326,11 @@ Item {
                                 text: {
                                     var cm = getCacheManager()
                                     if (cm) {
-                                        return qsTr("%1 replays - %2 utilises")
+                                        return qsTr("%1 replays - %2 used")
                                             .arg(cm.vodCount)
                                             .arg(cm.formattedTotalSize())
                                     }
-                                    return qsTr("Cache non disponible")
+                                    return qsTr("Cache unavailable")
                                 }
                                 font.family: BlueTheme.fontFamily
                                 font.pixelSize: 14
@@ -320,7 +397,7 @@ Item {
                                 spacing: BlueTheme.spacingSmall
 
                                 Text {
-                                    text: qsTr("Taille maximale")
+                                    text: qsTr("Maximum size")
                                     font.family: BlueTheme.fontFamily
                                     font.pixelSize: 14
                                     color: BlueTheme.primaryText
@@ -475,7 +552,7 @@ Item {
                                     Text {
                                         id: clearCacheText
                                         anchors.centerIn: parent
-                                        text: qsTr("Vider le cache")
+                                        text: qsTr("Clear cache")
                                         font.family: BlueTheme.fontFamily
                                         font.pixelSize: 13
                                         font.weight: Font.Medium
@@ -543,7 +620,7 @@ Item {
             }
 
             Text {
-                text: qsTr("Vider tout le cache ?")
+                text: qsTr("Clear all cache?")
                 font.family: BlueTheme.fontFamily
                 font.pixelSize: 18
                 font.weight: Font.DemiBold
@@ -555,7 +632,7 @@ Item {
                 text: {
                     var cm = getCacheManager()
                     if (cm) {
-                        return qsTr("%1 replays seront supprimes.\nEspace libere: %2")
+                        return qsTr("%1 replays will be deleted.\nSpace freed: %2")
                             .arg(cm.vodCount)
                             .arg(cm.formattedTotalSize())
                     }
@@ -589,7 +666,7 @@ Item {
 
                     Text {
                         anchors.centerIn: parent
-                        text: qsTr("Annuler")
+                        text: qsTr("Cancel")
                         font.family: BlueTheme.fontFamily
                         font.pixelSize: 14
                         font.weight: Font.Medium
@@ -619,7 +696,7 @@ Item {
 
                     Text {
                         anchors.centerIn: parent
-                        text: qsTr("Vider")
+                        text: qsTr("Clear")
                         font.family: BlueTheme.fontFamily
                         font.pixelSize: 14
                         font.weight: Font.DemiBold

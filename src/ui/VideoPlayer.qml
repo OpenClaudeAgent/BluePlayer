@@ -14,10 +14,10 @@ Item {
   property var mediaService: ffmpegService
   property bool playing: false
   property string mediaFilePath: ""
-  property string statusText: qsTr("Sélectionnez une vidéo locale pour démarrer.")
+  property string statusText: qsTr("Select a local video to start.")
   property string friendlyFileName: mediaFilePath.length > 0
       ? mediaFilePath.substr(mediaFilePath.lastIndexOf("/") + 1)
-      : qsTr("Aucun fichier sélectionné")
+      : qsTr("No file selected")
   signal statusChanged(string message)
 
   function updateStatus(message) {
@@ -31,7 +31,7 @@ Item {
       return
     }
     if (!mediaService) {
-      updateStatus(qsTr("Service média indisponible."))
+      updateStatus(qsTr("Media service unavailable."))
       return
     }
     mediaService.playFile(mediaFilePath)
@@ -100,7 +100,7 @@ Item {
           Label {
             text: mediaFilePath
                   ? mediaFilePath
-                  : qsTr("Parcourez vos dossiers pour sélectionner une vidéo.")
+                  : qsTr("Browse your folders to select a video.")
             color: BlueTheme.mutedText
             font.pixelSize: 12
             wrapMode: Text.WordWrap
@@ -109,7 +109,7 @@ Item {
         }
 
         Button {
-          text: qsTr("Parcourir")
+          text: qsTr("Browse")
           onClicked: fileDialog.open()
           background: Rectangle {
             radius: 12
@@ -126,7 +126,7 @@ Item {
 
         Button {
           id: playButton
-          text: qsTr("Lecture locale")
+          text: qsTr("Local playback")
           enabled: mediaFilePath.length > 0
           Layout.preferredWidth: 160
           onClicked: requestPlay()
@@ -183,12 +183,12 @@ Item {
 
   FileDialog {
     id: fileDialog
-    title: qsTr("Choisir une vidéo locale")
+    title: qsTr("Choose a local video")
     fileMode: FileDialog.OpenFile
-    nameFilters: [qsTr("Vidéos (*.mp4 *.mkv *.mov *.avi *.m4v)"), qsTr("Tous les fichiers (*)")]
+    nameFilters: [qsTr("Videos (*.mp4 *.mkv *.mov *.avi *.m4v)"), qsTr("All files (*)")]
     onAccepted: {
       mediaFilePath = selectedFile
-      updateStatus(qsTr("Prêt à lancer %1").arg(friendlyFileName))
+      updateStatus(qsTr("Ready to play %1").arg(friendlyFileName))
     }
   }
 
@@ -203,9 +203,9 @@ Item {
     function onPlayingChanged(isPlaying) {
       playing = isPlaying
       if (isPlaying) {
-        updateStatus(qsTr("Lecture en cours…"))
+        updateStatus(qsTr("Playing..."))
       } else {
-        updateStatus(qsTr("Lecture arrêtée."))
+        updateStatus(qsTr("Playback stopped."))
       }
     }
     function onErrorOccurred(message) {

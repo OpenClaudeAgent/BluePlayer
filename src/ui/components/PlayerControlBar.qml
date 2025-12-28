@@ -195,7 +195,7 @@ Rectangle {
             }
 
             ToolTip.visible: liveMouseArea.containsMouse
-            ToolTip.text: seekSlider.atLiveEdge ? qsTr("Resynchroniser le direct") : qsTr("Retour au direct")
+            ToolTip.text: seekSlider.atLiveEdge ? qsTr("Re-sync to live") : qsTr("Go to live")
             ToolTip.delay: 800
         }
 
@@ -236,7 +236,7 @@ Rectangle {
             ControlButton {
                 id: rateDown
                 width: chipHeight; height: chipHeight
-                tooltipText: qsTr("Ralentir")
+                tooltipText: qsTr("Slow down")
                 onClicked: controlBar.playbackRateRequested(Math.max(0.25, playbackRate - 0.1))
 
                 Text { anchors.centerIn: parent; text: "\u2212"; color: "#FFFFFF"; font.pixelSize: 14 }
@@ -261,7 +261,7 @@ Rectangle {
                     onClicked: controlBar.playbackRateRequested(1.0)
                 }
                 ToolTip.visible: rateChipMouse.containsMouse
-                ToolTip.text: qsTr("Reinitialiser la vitesse (R)")
+                ToolTip.text: qsTr("Reset speed (R)")
                 ToolTip.delay: 800
             }
 
@@ -269,7 +269,7 @@ Rectangle {
             ControlButton {
                 id: rateUp
                 width: chipHeight; height: chipHeight
-                tooltipText: qsTr("Accelerer")
+                tooltipText: qsTr("Speed up")
                 onClicked: controlBar.playbackRateRequested(Math.min(3.0, playbackRate + 0.1))
 
                 Text { anchors.centerIn: parent; text: "+"; color: "#FFFFFF"; font.pixelSize: 14 }
@@ -295,7 +295,7 @@ Rectangle {
                     onClicked: controlBar.hardwareToggleClicked()
                 }
                 ToolTip.visible: hwMouse.containsMouse
-                ToolTip.text: hardwareDecoding ? qsTr("Decodage materiel") : qsTr("Decodage logiciel")
+                ToolTip.text: hardwareDecoding ? qsTr("Hardware decoding") : qsTr("Software decoding")
                 ToolTip.delay: 800
             }
 
@@ -319,7 +319,7 @@ Rectangle {
                     onClicked: controlBar.cropToggleClicked()
                 }
                 ToolTip.visible: cropMouse.containsMouse
-                ToolTip.text: cropVideo ? qsTr("Rognage (panscan) (V)") : qsTr("Adapter (V)")
+                ToolTip.text: cropVideo ? qsTr("Crop mode (V)") : qsTr("Fit mode (V)")
                 ToolTip.delay: 800
             }
 
@@ -403,7 +403,7 @@ Rectangle {
             ControlButton {
                 id: fullscreenButton
                 width: chipHeight; height: chipHeight
-                tooltipText: qsTr("Plein ecran (F)")
+                tooltipText: qsTr("Fullscreen (F)")
                 onClicked: controlBar.fullscreenClicked()
 
                 Canvas {

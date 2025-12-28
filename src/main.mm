@@ -1,8 +1,11 @@
 #include <QApplication>
 #include <QByteArray>
+#include <QLocale>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
+#include <QSettings>
 #include <QStringLiteral>
+#include <QTranslator>
 #include <QWindow>
 #include <QtQml>
 #include <functional>
@@ -108,7 +111,36 @@ int main(int argc, char *argv[]) {
   std::setlocale(LC_NUMERIC, "C");
 
   app.setApplicationName("BluePlayer");
+  app.setOrganizationName("BluePlayer");
+  app.setOrganizationDomain("blueplayer.app");
   app.setApplicationDisplayName(QStringLiteral(u"BluePlayer"));
+
+  // Load translations
+  QTranslator translator;
+  QSettings settings;
+  QString preferredLanguage = settings.value("i18n/language", "system").toString();
+  QString locale;
+
+  if (preferredLanguage.isEmpty() || preferredLanguage == "system") {
+    // Use system locale
+    locale = QLocale::system().name(); // e.g., "fr_FR", "en_US"
+  } else {
+    locale = preferredLanguage;
+  }
+
+  // Try to load the translation
+  if (translator.load("blueplayer_" + locale, ":/i18n")) {
+    app.installTranslator(&translator);
+    qDebug() << "[i18n] Loaded translation for:" << locale;
+  } else if (locale.startsWith("fr") &&
+             translator.load("blueplayer_fr", ":/i18n")) {
+    // Fallback for any French locale
+    app.installTranslator(&translator);
+    qDebug() << "[i18n] Loaded French translation (fallback)";
+  } else {
+    qDebug() << "[i18n] Using default English (no translation loaded for:"
+             << locale << ")";
+  }
   // FFmpegMediaService removed
 
   qmlRegisterType<blueplayer::media::MpvQuickItem>("BluePlayer.Media", 1, 0,

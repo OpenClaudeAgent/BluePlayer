@@ -38,7 +38,7 @@ Item {
   property bool loggingEnabled: false
   property bool loggingVerbose: false
   property bool liveMode: true
-  property string statusText: qsTr("Chargement du flux...")
+  property string statusText: qsTr("Loading stream...")
   property string hlsUrl: ""
   property bool adsActive: false
   property int adSegments: 0
@@ -89,11 +89,11 @@ Item {
     
     if (!streamerLogin) {
       console.log("[PlayerView] ERROR: No streamerLogin provided")
-      updateStatus(qsTr("Aucun stream selectionne"))
+      updateStatus(qsTr("No stream selected"))
       return
     }
     
-    updateStatus(qsTr("Recuperation de l'URL du flux..."))
+    updateStatus(qsTr("Fetching stream URL..."))
     console.log("[PlayerView] Calling twitchService.getStreamHlsUrl() with login:", streamerLogin)
     
     // Obtenir l'URL HLS via le service Twitch
@@ -101,7 +101,7 @@ Item {
       twitchService.getStreamHlsUrl(streamerLogin)
     } else {
       console.log("[PlayerView] ERROR: twitchService is null")
-      updateStatus(qsTr("Service Twitch indisponible"))
+      updateStatus(qsTr("Twitch service unavailable"))
     }
   }
   
@@ -114,7 +114,7 @@ Item {
     // Sauvegarder l'enregistrement si en cours
     saveRecordingIfNeeded()
     mpvPlayer.stop()
-    statusText = qsTr("Lecture arrêtée")
+    statusText = qsTr("Playback stopped")
   }
   
   function updateChatCredentials() {
@@ -163,7 +163,7 @@ Item {
         currentRecordingPath,
         streamerLogin,
         streamerName || streamerLogin,
-        streamTitle || qsTr("Stream enregistré"),
+        streamTitle || qsTr("Recorded stream"),
         currentThumbnailPath,
         startMs,
         playerRoot.currentQuality || "Auto"
@@ -182,13 +182,13 @@ Item {
     
     if (!vodFilePath || vodFilePath.length === 0) {
       console.log("[PlayerView] ERROR: No VOD file path provided")
-      updateStatus(qsTr("Aucun fichier selectionne"))
+      updateStatus(qsTr("No file selected"))
       return
     }
     
     isVodMode = true
     liveMode = false
-    updateStatus(qsTr("Chargement de la video..."))
+    updateStatus(qsTr("Loading video..."))
     
     // Appliquer les settings
     mpvPlayer.hardwareDecoding = hardwareDecodingEnabled
@@ -249,7 +249,7 @@ Item {
     if (mpvPlayer) {
       mpvPlayer.playbackRate = clamped
     }
-    toast.show(qsTr("Vitesse %1x").arg(clamped.toFixed(2)))
+    toast.show(qsTr("Speed %1x").arg(clamped.toFixed(2)))
   }
 
   function toggleHardwareDecoding() {
@@ -258,7 +258,7 @@ Item {
     if (mpvPlayer) {
       mpvPlayer.hardwareDecoding = hardwareDecodingEnabled
     }
-    toast.show(hardwareDecodingEnabled ? qsTr("Décodage matériel") : qsTr("Décodage logiciel"))
+    toast.show(hardwareDecodingEnabled ? qsTr("Hardware decoding") : qsTr("Software decoding"))
   }
 
   function toggleCropMode() {
@@ -267,7 +267,7 @@ Item {
     if (mpvPlayer) {
       mpvPlayer.cropVideo = cropMode
     }
-    toast.show(cropMode ? qsTr("Rognage actif") : qsTr("Adaptation proportionnelle"))
+    toast.show(cropMode ? qsTr("Crop mode enabled") : qsTr("Fit mode enabled"))
   }
   
   
@@ -329,7 +329,7 @@ Item {
 
         if (isPlaying) {
           playerRoot.buffering = false
-          playerRoot.updateStatus(qsTr("Lecture en cours"))
+          playerRoot.updateStatus(qsTr("Playing"))
           playerRoot.forceActiveFocus()
           // Démarrer l'enregistrement automatique pour les streams live
           if (!playerRoot.isVodMode && playerRoot.currentRecordingPath.length === 0) {
@@ -337,7 +337,7 @@ Item {
           }
         } else {
           if (playerRoot.hlsUrl.length > 0) {
-            playerRoot.updateStatus(qsTr("Lecture arretee"))
+            playerRoot.updateStatus(qsTr("Stopped"))
           }
         }
       }
@@ -345,10 +345,10 @@ Item {
       onPausedChanged: function(isPaused) {
         playerRoot.paused = isPaused
         if (isPaused) {
-          playerRoot.updateStatus(qsTr("Pause"))
+          playerRoot.updateStatus(qsTr("Paused"))
           playerRoot.controlsVisible = true
         } else if (playerRoot.playing) {
-          playerRoot.updateStatus(qsTr("Lecture en cours"))
+          playerRoot.updateStatus(qsTr("Playing"))
         }
       }
       
@@ -372,7 +372,7 @@ Item {
       onBufferingChanged: function(isBuffering) { playerRoot.buffering = isBuffering }
       onPlaybackRateChanged: function(rate) { playerRoot.playbackRate = rate }
       onErrorOccurred: function(message) {
-        playerRoot.updateStatus(qsTr("Erreur: %1").arg(message))
+        playerRoot.updateStatus(qsTr("Error: %1").arg(message))
         errorToast.show(message)
       }
       onSpeedAutoReset: function(reason) {
@@ -380,7 +380,7 @@ Item {
         playerRoot.playbackRate = 1.0
       }
       onLeftLiveEdge: {
-        toast.show(qsTr("Mode replay (stream en cours)"))
+        toast.show(qsTr("Replay mode (stream in progress)"))
       }
     }
     
@@ -501,7 +501,7 @@ Item {
     // Loading Overlay (extracted component)
     LoadingOverlay {
       anchors.centerIn: parent
-      loading: !playing && (statusText.indexOf("Chargement") >= 0 || statusText.indexOf("Connexion") >= 0)
+      loading: !playing && (statusText.indexOf("Loading") >= 0 || statusText.indexOf("Fetching") >= 0 || statusText.indexOf("Connecting") >= 0)
     }
     
     // Ad Badge (Top Left, under Top Bar)
@@ -530,7 +530,7 @@ Item {
           color: "#FF9500"
         }
         Text {
-          text: qsTr("Pub en cours (%1)").arg(adSegments)
+          text: qsTr("Ad playing (%1)").arg(adSegments)
           font.pixelSize: 11
           font.bold: true
           color: "#FFFFFF"
@@ -640,7 +640,7 @@ Item {
         spacing: 8
 
         BusyIndicator { running: true; Layout.preferredWidth: 20; Layout.preferredHeight: 20 }
-        Text { text: qsTr("Buffering..."); color: "#FFFFFF"; font.pixelSize: 12 }
+        Text { text: qsTr("Buffering..."); color: "#FFFFFF"; font.pixelSize: 12; font.family: BlueTheme.fontFamily }
       }
     }
 
@@ -785,7 +785,7 @@ Item {
         // Toggle quality selector (only if available)
         if (playerRoot.availableQualities.length > 0 && !isVodMode) {
           // Quality popup is handled by PlayerControlBar
-          toast.show(qsTr("Utilisez le bouton qualite"))
+          toast.show(qsTr("Use the quality button"))
         }
         event.accepted = true
         break
@@ -800,7 +800,7 @@ Item {
       if (url && url.length > 0) {
         hlsUrl = url
         console.log("[PlayerView] HLS URL received:", url.substring(0, 100) + "...")
-        updateStatus(adsActive ? qsTr("Pubs detectees - Connexion...") : qsTr("Connexion au flux..."))
+        updateStatus(adsActive ? qsTr("Ads detected - Connecting...") : qsTr("Connecting to stream..."))
         buffering = true
         console.log("[PlayerView] Calling mpvPlayer.play() with URL")
         mpvPlayer.hardwareDecoding = hardwareDecodingEnabled
@@ -813,12 +813,12 @@ Item {
         // #endregion
       } else {
         console.log("[PlayerView] ERROR: Empty or invalid HLS URL")
-        updateStatus(qsTr("Impossible de recuperer l'URL du flux"))
+        updateStatus(qsTr("Failed to fetch stream URL"))
       }
     }
     function onErrorOccurred(message) {
       console.log("[PlayerView] Twitch error:", message)
-      updateStatus(qsTr("Erreur Twitch: %1").arg(message))
+      updateStatus(qsTr("Twitch error: %1").arg(message))
     }
     function onAdsDetected(count) {
       console.log("[PlayerView] Ads detected:", count, "markers")
@@ -858,7 +858,7 @@ Item {
           })
         }
         
-        toast.show(qsTr("Qualite: %1").arg(playerRoot.currentQuality))
+        toast.show(qsTr("Quality: %1").arg(playerRoot.currentQuality))
       }
     }
   }

@@ -75,7 +75,7 @@ Item {
 
             // Header
             Text {
-                text: qsTr("Qualite")
+                text: qsTr("Quality")
                 color: BlueTheme.secondaryText
                 font.pixelSize: 11
                 font.family: BlueTheme.fontFamily

@@ -47,7 +47,7 @@ Item {
     // Header unifié - Utilise PanelHeader (pas de rightMargin hack nécessaire)
     PanelHeader {
       Layout.fillWidth: true
-      title: qsTr("Mes Replays")
+      title: qsTr("My Replays")
       onBackClicked: root.backRequested()
     }
 
@@ -104,7 +104,7 @@ Item {
       spacing: BlueTheme.spacingMedium
 
       Text {
-        text: qsTr("Trier:")
+        text: qsTr("Sort:")
         font.family: BlueTheme.fontFamily
         font.pixelSize: 12
         color: BlueTheme.mutedText
@@ -114,8 +114,8 @@ Item {
       Repeater {
         model: [
           { text: qsTr("Date"), value: "recordedAt" },
-          { text: qsTr("Taille"), value: "fileSize" },
-          { text: qsTr("Duree"), value: "duration" }
+          { text: qsTr("Size"), value: "fileSize" },
+          { text: qsTr("Duration"), value: "duration" }
         ]
 
         Rectangle {
@@ -186,7 +186,7 @@ Item {
         Text {
           id: selModeText
           anchors.centerIn: parent
-          text: viewModel.selectionMode ? qsTr("Annuler") : qsTr("Selectionner")
+          text: viewModel.selectionMode ? qsTr("Cancel") : qsTr("Select")
           font.family: BlueTheme.fontFamily
           font.pixelSize: 12
           color: viewModel.selectionMode ? BlueTheme.windowBackground : BlueTheme.secondaryText
@@ -212,7 +212,7 @@ Item {
         Text {
           id: delSelText
           anchors.centerIn: parent
-          text: qsTr("Supprimer (%1)").arg(viewModel.selectedCount)
+          text: qsTr("Delete (%1)").arg(viewModel.selectedCount)
           font.family: BlueTheme.fontFamily
           font.pixelSize: 12
           color: "#FFFFFF"
@@ -241,7 +241,7 @@ Item {
         visible: viewModel.getStreamerList().length > 1
         Layout.preferredWidth: 140
         model: {
-          var list = [{ text: qsTr("Tous"), value: "" }]
+          var list = [{ text: qsTr("All"), value: "" }]
           var streamers = viewModel.getStreamerList()
           for (var i = 0; i < streamers.length; i++) {
             list.push({ text: streamers[i], value: streamers[i] })
@@ -447,7 +447,7 @@ Item {
                 spacing: 2
 
                 Text {
-                  text: modelData.streamerName || qsTr("Inconnu")
+                  text: modelData.streamerName || qsTr("Unknown")
                   font.family: BlueTheme.fontFamily
                   font.pixelSize: 13
                   font.bold: true
@@ -457,7 +457,7 @@ Item {
                 }
 
                 Text {
-                  text: modelData.streamTitle || qsTr("Sans titre")
+                  text: modelData.streamTitle || qsTr("Untitled")
                   font.family: BlueTheme.fontFamily
                   font.pixelSize: 11
                   color: BlueTheme.secondaryText
@@ -532,7 +532,7 @@ Item {
 
             Text {
               Layout.alignment: Qt.AlignHCenter
-              text: qsTr("Aucun replay")
+              text: qsTr("No replays")
               font.family: BlueTheme.fontFamily
               font.pixelSize: 16
               font.bold: true
@@ -541,7 +541,7 @@ Item {
 
             Text {
               Layout.alignment: Qt.AlignHCenter
-              text: qsTr("Les streams regardes apparaitront ici")
+              text: qsTr("Watched streams will appear here")
               font.family: BlueTheme.fontFamily
               font.pixelSize: 13
               color: BlueTheme.mutedText
@@ -573,7 +573,7 @@ Item {
       spacing: 16
 
       Text {
-        text: qsTr("Supprimer %1 replays ?").arg(viewModel.selectedCount)
+        text: qsTr("Delete %1 replays?").arg(viewModel.selectedCount)
         font.family: BlueTheme.fontFamily
         font.pixelSize: 16
         font.bold: true
@@ -581,7 +581,7 @@ Item {
       }
 
       Text {
-        text: qsTr("Cette action est irreversible.")
+        text: qsTr("This action cannot be undone.")
         font.family: BlueTheme.fontFamily
         font.pixelSize: 13
         color: BlueTheme.secondaryText
@@ -604,7 +604,7 @@ Item {
           Text {
             id: cancelText
             anchors.centerIn: parent
-            text: qsTr("Annuler")
+            text: qsTr("Cancel")
             font.family: BlueTheme.fontFamily
             font.pixelSize: 13
             color: BlueTheme.primaryText
@@ -626,7 +626,7 @@ Item {
           Text {
             id: confirmDelText
             anchors.centerIn: parent
-            text: qsTr("Supprimer")
+            text: qsTr("Delete")
             font.family: BlueTheme.fontFamily
             font.pixelSize: 13
             color: "#FFFFFF"
@@ -666,7 +666,7 @@ Item {
       spacing: 16
 
       Text {
-        text: qsTr("Vider tout le cache ?")
+        text: qsTr("Clear all cache?")
         font.family: BlueTheme.fontFamily
         font.pixelSize: 16
         font.bold: true
@@ -674,7 +674,7 @@ Item {
       }
 
       Text {
-        text: qsTr("%1 replays seront supprimes.\nEspace libere: %2")
+        text: qsTr("%1 replays will be deleted.\nSpace freed: %2")
                 .arg(viewModel.vodCount)
                 .arg(viewModel.totalSizeFormatted)
         font.family: BlueTheme.fontFamily
@@ -699,7 +699,7 @@ Item {
           Text {
             id: cancelAllText
             anchors.centerIn: parent
-            text: qsTr("Annuler")
+            text: qsTr("Cancel")
             font.family: BlueTheme.fontFamily
             font.pixelSize: 13
             color: BlueTheme.primaryText
@@ -721,7 +721,7 @@ Item {
           Text {
             id: confirmClearText
             anchors.centerIn: parent
-            text: qsTr("Vider")
+            text: qsTr("Clear")
             font.family: BlueTheme.fontFamily
             font.pixelSize: 13
             color: "#FFFFFF"
