@@ -50,6 +50,51 @@ private slots:
   // Tests de persistance
   void testPersistenceAcrossInstances();
 
+  // Tests saveWatchProgress (avec durée et calcul completed)
+  void testSaveWatchProgress();
+  void testSaveWatchProgressEmptyVideoId();
+  void testSaveWatchProgressCompletedAt90Percent();
+  void testSaveWatchProgressNotCompletedAt89Percent();
+  void testSaveWatchProgressZeroDuration();
+
+  // Tests getWatchProgress (struct complète)
+  void testGetWatchProgress();
+  void testGetWatchProgressEmptyVideoId();
+  void testGetWatchProgressNonExistent();
+  void testGetWatchProgressAfterSaveProgress();
+
+  // Tests markAsCompleted
+  void testMarkAsCompleted();
+  void testMarkAsCompletedEmptyVideoId();
+  void testMarkAsCompletedVerifyState();
+
+  // Tests hasProgress
+  void testHasProgress();
+  void testHasProgressFalseForNonExistent();
+  void testHasProgressEmptyVideoId();
+  void testHasProgressFalseForZeroPosition();
+
+  // Tests formatLastWatched (fonction statique)
+  void testFormatLastWatchedJustNow();
+  void testFormatLastWatchedMinutes();
+  void testFormatLastWatchedOneMinute();
+  void testFormatLastWatchedHours();
+  void testFormatLastWatchedOneHour();
+  void testFormatLastWatchedYesterday();
+  void testFormatLastWatchedDays();
+  void testFormatLastWatchedWeeks();
+  void testFormatLastWatchedOneWeek();
+  void testFormatLastWatchedMonths();
+  void testFormatLastWatchedOneMonth();
+  void testFormatLastWatchedInvalidDate();
+  void testFormatLastWatchedFutureDate();
+
+  // Tests du signal progressUpdated
+  void testProgressUpdatedSignalOnSavePosition();
+  void testProgressUpdatedSignalOnSaveProgress();
+  void testProgressUpdatedSignalOnMarkAsCompleted();
+  void testNoSignalOnEmptyVideoId();
+
 private:
   WatchHistory* m_watchHistory = nullptr;
   QString m_testSettingsPath;
@@ -259,6 +304,286 @@ void TestWatchHistory::testPersistenceAcrossInstances() {
   qint64 position = m_watchHistory->getWatchPosition("persistent_video");
   
   QCOMPARE(position, qint64(999));
+}
+
+// ===== Tests saveWatchProgress =====
+
+void TestWatchHistory::testSaveWatchProgress() {
+  m_watchHistory->saveWatchProgress("video_progress", 500, 1000);
+  
+  qint64 position = m_watchHistory->getWatchPosition("video_progress");
+  QCOMPARE(position, qint64(500));
+}
+
+void TestWatchHistory::testSaveWatchProgressEmptyVideoId() {
+  // Ne doit pas crasher avec un ID vide
+  m_watchHistory->saveWatchProgress(QString(), 100, 200);
+  
+  // Vérifier que rien n'a été sauvegardé
+  QVariantList videos = m_watchHistory->getVideosInProgress();
+  QVERIFY(videos.isEmpty());
+}
+
+void TestWatchHistory::testSaveWatchProgressCompletedAt90Percent() {
+  // 90% = complété
+  m_watchHistory->saveWatchProgress("video_completed", 900, 1000);
+  
+  WatchProgress progress = m_watchHistory->getWatchProgress("video_completed");
+  QVERIFY(progress.completed);
+}
+
+void TestWatchHistory::testSaveWatchProgressNotCompletedAt89Percent() {
+  // 89% = pas encore complété
+  m_watchHistory->saveWatchProgress("video_almost", 890, 1000);
+  
+  WatchProgress progress = m_watchHistory->getWatchProgress("video_almost");
+  QVERIFY(!progress.completed);
+}
+
+void TestWatchHistory::testSaveWatchProgressZeroDuration() {
+  // Durée 0 = pas de calcul de completion
+  m_watchHistory->saveWatchProgress("video_zero_dur", 500, 0);
+  
+  WatchProgress progress = m_watchHistory->getWatchProgress("video_zero_dur");
+  QVERIFY(!progress.completed);
+  QCOMPARE(progress.lastPosition, qint64(500));
+}
+
+// ===== Tests getWatchProgress =====
+
+void TestWatchHistory::testGetWatchProgress() {
+  m_watchHistory->saveWatchProgress("video_full", 300, 600);
+  
+  WatchProgress progress = m_watchHistory->getWatchProgress("video_full");
+  
+  QCOMPARE(progress.vodId, QStringLiteral("video_full"));
+  QCOMPARE(progress.lastPosition, qint64(300));
+  QCOMPARE(progress.totalDuration, qint64(600));
+  QVERIFY(progress.lastWatchedAt.isValid());
+}
+
+void TestWatchHistory::testGetWatchProgressEmptyVideoId() {
+  WatchProgress progress = m_watchHistory->getWatchProgress(QString());
+  
+  QVERIFY(progress.vodId.isEmpty());
+  QCOMPARE(progress.lastPosition, qint64(0));
+  QCOMPARE(progress.totalDuration, qint64(0));
+  QVERIFY(!progress.completed);
+}
+
+void TestWatchHistory::testGetWatchProgressNonExistent() {
+  WatchProgress progress = m_watchHistory->getWatchProgress("nonexistent_video");
+  
+  QCOMPARE(progress.vodId, QStringLiteral("nonexistent_video"));
+  QCOMPARE(progress.lastPosition, qint64(0));
+  QCOMPARE(progress.totalDuration, qint64(0));
+}
+
+void TestWatchHistory::testGetWatchProgressAfterSaveProgress() {
+  // Sauvegarder avec différentes positions pour vérifier l'écrasement
+  m_watchHistory->saveWatchProgress("video_update", 100, 500);
+  m_watchHistory->saveWatchProgress("video_update", 400, 500);
+  
+  WatchProgress progress = m_watchHistory->getWatchProgress("video_update");
+  
+  QCOMPARE(progress.lastPosition, qint64(400));
+  QCOMPARE(progress.totalDuration, qint64(500));
+}
+
+// ===== Tests markAsCompleted =====
+
+void TestWatchHistory::testMarkAsCompleted() {
+  m_watchHistory->saveWatchPosition("video_to_complete", 100);
+  m_watchHistory->markAsCompleted("video_to_complete");
+  
+  WatchProgress progress = m_watchHistory->getWatchProgress("video_to_complete");
+  QVERIFY(progress.completed);
+}
+
+void TestWatchHistory::testMarkAsCompletedEmptyVideoId() {
+  // Ne doit pas crasher avec un ID vide
+  m_watchHistory->markAsCompleted(QString());
+  
+  // Aucune vidéo ne doit être marquée complétée
+  QVariantList videos = m_watchHistory->getVideosInProgress();
+  QVERIFY(videos.isEmpty());
+}
+
+void TestWatchHistory::testMarkAsCompletedVerifyState() {
+  // Sauvegarder d'abord sans complétion
+  m_watchHistory->saveWatchProgress("video_mark", 200, 1000);
+  
+  WatchProgress before = m_watchHistory->getWatchProgress("video_mark");
+  QVERIFY(!before.completed);
+  
+  // Marquer comme complété
+  m_watchHistory->markAsCompleted("video_mark");
+  
+  WatchProgress after = m_watchHistory->getWatchProgress("video_mark");
+  QVERIFY(after.completed);
+}
+
+// ===== Tests hasProgress =====
+
+void TestWatchHistory::testHasProgress() {
+  m_watchHistory->saveWatchPosition("video_with_progress", 500);
+  
+  QVERIFY(m_watchHistory->hasProgress("video_with_progress"));
+}
+
+void TestWatchHistory::testHasProgressFalseForNonExistent() {
+  QVERIFY(!m_watchHistory->hasProgress("video_nonexistent"));
+}
+
+void TestWatchHistory::testHasProgressEmptyVideoId() {
+  QVERIFY(!m_watchHistory->hasProgress(QString()));
+}
+
+void TestWatchHistory::testHasProgressFalseForZeroPosition() {
+  m_watchHistory->saveWatchPosition("video_zero_pos", 0);
+  
+  // Position 0 = pas de progression
+  QVERIFY(!m_watchHistory->hasProgress("video_zero_pos"));
+}
+
+// ===== Tests formatLastWatched =====
+
+void TestWatchHistory::testFormatLastWatchedJustNow() {
+  QDateTime now = QDateTime::currentDateTime();
+  QString result = WatchHistory::formatLastWatched(now);
+  
+  QVERIFY(result.contains("instant") || result.contains("Vu"));
+}
+
+void TestWatchHistory::testFormatLastWatchedMinutes() {
+  QDateTime fiveMinutesAgo = QDateTime::currentDateTime().addSecs(-5 * 60);
+  QString result = WatchHistory::formatLastWatched(fiveMinutesAgo);
+  
+  QVERIFY(result.contains("5") && result.contains("minute"));
+}
+
+void TestWatchHistory::testFormatLastWatchedOneMinute() {
+  QDateTime oneMinuteAgo = QDateTime::currentDateTime().addSecs(-90); // 1.5 minutes -> 1 minute
+  QString result = WatchHistory::formatLastWatched(oneMinuteAgo);
+  
+  QVERIFY(result.contains("minute"));
+}
+
+void TestWatchHistory::testFormatLastWatchedHours() {
+  QDateTime threeHoursAgo = QDateTime::currentDateTime().addSecs(-3 * 3600);
+  QString result = WatchHistory::formatLastWatched(threeHoursAgo);
+  
+  QVERIFY(result.contains("3") && result.contains("heure"));
+}
+
+void TestWatchHistory::testFormatLastWatchedOneHour() {
+  QDateTime oneHourAgo = QDateTime::currentDateTime().addSecs(-3600);
+  QString result = WatchHistory::formatLastWatched(oneHourAgo);
+  
+  QVERIFY(result.contains("1") && result.contains("heure"));
+}
+
+void TestWatchHistory::testFormatLastWatchedYesterday() {
+  QDateTime yesterday = QDateTime::currentDateTime().addSecs(-86400);
+  QString result = WatchHistory::formatLastWatched(yesterday);
+  
+  QVERIFY(result.contains("hier"));
+}
+
+void TestWatchHistory::testFormatLastWatchedDays() {
+  QDateTime threeDaysAgo = QDateTime::currentDateTime().addSecs(-3 * 86400);
+  QString result = WatchHistory::formatLastWatched(threeDaysAgo);
+  
+  QVERIFY(result.contains("3") && result.contains("jour"));
+}
+
+void TestWatchHistory::testFormatLastWatchedWeeks() {
+  QDateTime twoWeeksAgo = QDateTime::currentDateTime().addSecs(-14 * 86400);
+  QString result = WatchHistory::formatLastWatched(twoWeeksAgo);
+  
+  QVERIFY(result.contains("2") && result.contains("semaine"));
+}
+
+void TestWatchHistory::testFormatLastWatchedOneWeek() {
+  QDateTime oneWeekAgo = QDateTime::currentDateTime().addSecs(-7 * 86400);
+  QString result = WatchHistory::formatLastWatched(oneWeekAgo);
+  
+  QVERIFY(result.contains("1") && result.contains("semaine"));
+}
+
+void TestWatchHistory::testFormatLastWatchedMonths() {
+  QDateTime twoMonthsAgo = QDateTime::currentDateTime().addSecs(-60 * 86400);
+  QString result = WatchHistory::formatLastWatched(twoMonthsAgo);
+  
+  QVERIFY(result.contains("mois"));
+}
+
+void TestWatchHistory::testFormatLastWatchedOneMonth() {
+  QDateTime oneMonthAgo = QDateTime::currentDateTime().addSecs(-30 * 86400);
+  QString result = WatchHistory::formatLastWatched(oneMonthAgo);
+  
+  QVERIFY(result.contains("1") && result.contains("mois"));
+}
+
+void TestWatchHistory::testFormatLastWatchedInvalidDate() {
+  QDateTime invalid;
+  QString result = WatchHistory::formatLastWatched(invalid);
+  
+  QVERIFY(result.isEmpty());
+}
+
+void TestWatchHistory::testFormatLastWatchedFutureDate() {
+  QDateTime future = QDateTime::currentDateTime().addDays(1);
+  QString result = WatchHistory::formatLastWatched(future);
+  
+  // Date future = retourne vide
+  QVERIFY(result.isEmpty());
+}
+
+// ===== Tests du signal progressUpdated =====
+
+void TestWatchHistory::testProgressUpdatedSignalOnSavePosition() {
+  QSignalSpy spy(m_watchHistory, &WatchHistory::progressUpdated);
+  QVERIFY(spy.isValid());
+  
+  m_watchHistory->saveWatchPosition("video_signal_1", 100);
+  
+  QCOMPARE(spy.count(), 1);
+  QCOMPARE(spy.at(0).at(0).toString(), QStringLiteral("video_signal_1"));
+}
+
+void TestWatchHistory::testProgressUpdatedSignalOnSaveProgress() {
+  QSignalSpy spy(m_watchHistory, &WatchHistory::progressUpdated);
+  QVERIFY(spy.isValid());
+  
+  m_watchHistory->saveWatchProgress("video_signal_2", 200, 500);
+  
+  QCOMPARE(spy.count(), 1);
+  QCOMPARE(spy.at(0).at(0).toString(), QStringLiteral("video_signal_2"));
+}
+
+void TestWatchHistory::testProgressUpdatedSignalOnMarkAsCompleted() {
+  QSignalSpy spy(m_watchHistory, &WatchHistory::progressUpdated);
+  QVERIFY(spy.isValid());
+  
+  m_watchHistory->saveWatchPosition("video_signal_3", 50);
+  spy.clear();  // Effacer le signal du saveWatchPosition
+  
+  m_watchHistory->markAsCompleted("video_signal_3");
+  
+  QCOMPARE(spy.count(), 1);
+  QCOMPARE(spy.at(0).at(0).toString(), QStringLiteral("video_signal_3"));
+}
+
+void TestWatchHistory::testNoSignalOnEmptyVideoId() {
+  QSignalSpy spy(m_watchHistory, &WatchHistory::progressUpdated);
+  QVERIFY(spy.isValid());
+  
+  m_watchHistory->saveWatchPosition(QString(), 100);
+  m_watchHistory->saveWatchProgress(QString(), 100, 200);
+  m_watchHistory->markAsCompleted(QString());
+  
+  QCOMPARE(spy.count(), 0);
 }
 
 QTEST_MAIN(TestWatchHistory)
