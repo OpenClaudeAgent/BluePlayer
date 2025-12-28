@@ -42,91 +42,53 @@ ApplicationWindow {
   property bool preferencesActive: currentView === "preferences"
   property bool cacheActive: currentView === "cache"
 
-  // Conteneur des boutons header (en haut à droite)
+  // ==========================================================================
+  // NAVIGATION GLOBALE - Boutons en haut à droite
+  // Option B : Cachés quand un panel est ouvert (pas d'overlap)
+  // ==========================================================================
   Row {
+    id: globalNavigation
     anchors.top: parent.top
     anchors.right: parent.right
     anchors.margins: BlueTheme.spacingSmall
     z: 10
     spacing: 8
+    
+    // Visible UNIQUEMENT sur Home (pas dans les panels)
     visible: {
       var service = root.getTwitchService()
       if (!service || !service.authenticated) {
         return false
       }
-      return currentView === "home" || currentView === "preferences" || currentView === "cache"
+      return currentView === "home"
+    }
+    
+    // Fade animation
+    opacity: visible ? 1.0 : 0.0
+    Behavior on opacity {
+      NumberAnimation { duration: BlueTheme.animHoverDuration; easing.type: Easing.OutCubic }
     }
 
-    // Bouton Replays
-    Rectangle {
-      id: replaysIcon
-      width: 38
-      height: 38
-      radius: width / 2
-      color: cacheActive ? BlueTheme.overlayTint : (replaysMouseArea.containsMouse ? BlueTheme.surfaceSoft : BlueTheme.surface)
-      border.color: cacheActive ? BlueTheme.accent : BlueTheme.buttonBorder
-      border.width: BlueTheme.borderWidth
-
-      Text {
-        anchors.centerIn: parent
-        text: "\u21BA"
-        font.pixelSize: 20
-        font.bold: true
-        color: BlueTheme.primaryText
-      }
-
-      MouseArea {
-        id: replaysMouseArea
-        anchors.fill: parent
-        hoverEnabled: true
-        cursorShape: Qt.PointingHandCursor
-        onClicked: currentView = cacheActive ? "home" : "cache"
-      }
-
-      ToolTip {
-        visible: replaysMouseArea.containsMouse
-        text: {
-          if (typeof cacheManager !== "undefined" && cacheManager) {
-            return qsTr("Mes Replays (%1)").arg(cacheManager.vodCount)
-          }
-          return qsTr("Mes Replays")
+    // Bouton Replays - Utilise CircleButton
+    CircleButton {
+      iconText: "\u21BA"
+      active: cacheActive
+      tooltipText: {
+        if (typeof cacheManager !== "undefined" && cacheManager) {
+          return qsTr("Mes Replays (%1)").arg(cacheManager.vodCount)
         }
-        delay: 500
+        return qsTr("Mes Replays")
       }
+      onClicked: currentView = "cache"
     }
 
-    // Bouton Préférences
-    Rectangle {
-      id: preferencesIcon
-      width: 38
-      height: 38
-      radius: width / 2
-      color: preferencesActive ? BlueTheme.overlayTint : (prefsMouseArea.containsMouse ? BlueTheme.surfaceSoft : BlueTheme.surface)
-      border.color: preferencesActive ? BlueTheme.accent : BlueTheme.buttonBorder
-      border.width: BlueTheme.borderWidth
-
-      Label {
-        anchors.centerIn: parent
-        text: "\u2699"
-        font.pixelSize: 18
-        color: BlueTheme.primaryText
-        horizontalAlignment: Text.AlignHCenter
-        verticalAlignment: Text.AlignVCenter
-      }
-
-      MouseArea {
-        id: prefsMouseArea
-        anchors.fill: parent
-        hoverEnabled: true
-        cursorShape: Qt.PointingHandCursor
-        onClicked: currentView = preferencesActive ? "home" : "preferences"
-      }
-
-      ToolTip {
-        visible: prefsMouseArea.containsMouse
-        text: qsTr("Préférences")
-        delay: 500
-      }
+    // Bouton Préférences - Utilise CircleButton
+    CircleButton {
+      iconText: "\u2699"
+      iconSize: 18
+      active: preferencesActive
+      tooltipText: qsTr("Préférences")
+      onClicked: currentView = "preferences"
     }
   }
 

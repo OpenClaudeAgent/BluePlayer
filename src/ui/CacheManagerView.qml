@@ -41,48 +41,24 @@ Item {
 
   ColumnLayout {
     anchors.fill: parent
-    anchors.margins: BlueTheme.spacingLarge
-    spacing: BlueTheme.spacingMedium
+    anchors.margins: 0
+    spacing: 0
 
-    // Header compact
+    // Header unifié - Utilise PanelHeader (pas de rightMargin hack nécessaire)
+    PanelHeader {
+      Layout.fillWidth: true
+      title: qsTr("Mes Replays")
+      onBackClicked: root.backRequested()
+    }
+
+    // Stats compactes sous le header
     RowLayout {
       Layout.fillWidth: true
-      Layout.rightMargin: 100  // Espace pour les icônes globales (↺ et ⚙️)
+      Layout.leftMargin: BlueTheme.spacingLarge
+      Layout.rightMargin: BlueTheme.spacingLarge
+      Layout.topMargin: BlueTheme.spacingMedium
       spacing: BlueTheme.spacingMedium
 
-      // Bouton retour
-      Rectangle {
-        Layout.preferredWidth: 36
-        Layout.preferredHeight: 36
-        radius: 18
-        color: backButtonArea.containsMouse ? BlueTheme.surfaceSoft : "transparent"
-
-        Text {
-          anchors.centerIn: parent
-          text: "\u2190"
-          font.pixelSize: 18
-          color: BlueTheme.primaryText
-        }
-
-        MouseArea {
-          id: backButtonArea
-          anchors.fill: parent
-          hoverEnabled: true
-          cursorShape: Qt.PointingHandCursor
-          onClicked: root.backRequested()
-        }
-      }
-
-      // Titre
-      Text {
-        text: qsTr("Mes Replays")
-        font.family: BlueTheme.fontFamily
-        font.pixelSize: 22
-        font.bold: true
-        color: BlueTheme.primaryText
-      }
-
-      // Stats compactes
       Text {
         text: qsTr("%1 videos  ·  %2 / %3")
                 .arg(viewModel.vodCount)
@@ -100,6 +76,9 @@ Item {
     Rectangle {
       Layout.fillWidth: true
       Layout.preferredHeight: 6
+      Layout.leftMargin: BlueTheme.spacingLarge
+      Layout.rightMargin: BlueTheme.spacingLarge
+      Layout.topMargin: BlueTheme.spacingSmall
       radius: 3
       color: BlueTheme.divider
 
@@ -119,6 +98,9 @@ Item {
     // Barre de tri/filtre/sélection
     RowLayout {
       Layout.fillWidth: true
+      Layout.leftMargin: BlueTheme.spacingLarge
+      Layout.rightMargin: BlueTheme.spacingLarge
+      Layout.topMargin: BlueTheme.spacingMedium
       spacing: BlueTheme.spacingMedium
 
       Text {
@@ -293,6 +275,9 @@ Item {
     ScrollView {
       Layout.fillWidth: true
       Layout.fillHeight: true
+      Layout.leftMargin: BlueTheme.spacingLarge
+      Layout.rightMargin: BlueTheme.spacingLarge
+      Layout.topMargin: BlueTheme.spacingMedium
       clip: true
       ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 

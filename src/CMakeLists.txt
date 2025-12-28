@@ -157,6 +157,8 @@ qt_add_qml_module(BluePlayer
     ui/components/VolumeControl.qml
     ui/components/QualitySelector.qml
     ui/components/QualityControl.qml
+    ui/components/CircleButton.qml
+    ui/components/PanelHeader.qml
 )
 
 target_link_libraries(BluePlayer

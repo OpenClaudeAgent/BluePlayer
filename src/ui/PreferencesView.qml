@@ -43,65 +43,11 @@ Item {
         anchors.margins: 0
         spacing: 0
 
-        // Header
-        Rectangle {
+        // Header - Utilise le composant PanelHeader unifié
+        PanelHeader {
             Layout.fillWidth: true
-            Layout.preferredHeight: 64
-            color: Qt.rgba(BlueTheme.surface.r, BlueTheme.surface.g, BlueTheme.surface.b, 0.6)
-
-            RowLayout {
-                anchors.fill: parent
-                anchors.leftMargin: BlueTheme.spacingLarge
-                anchors.rightMargin: BlueTheme.spacingLarge
-                spacing: BlueTheme.spacingMedium
-
-                // Back button
-                Rectangle {
-                    Layout.preferredWidth: 36
-                    Layout.preferredHeight: 36
-                    radius: 18
-                    color: backButtonArea.containsMouse ? "#1AFFFFFF" : "transparent"
-
-                    Behavior on color {
-                        ColorAnimation { duration: BlueTheme.animHoverDuration; easing.type: Easing.OutCubic }
-                    }
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: "\u2190"
-                        font.pixelSize: 20
-                        color: BlueTheme.primaryText
-                    }
-
-                    MouseArea {
-                        id: backButtonArea
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: preferencesRoot.closeRequested()
-                    }
-                }
-
-                // Title
-                Text {
-                    text: qsTr("Preferences")
-                    font.family: BlueTheme.fontFamily
-                    font.pixelSize: 20
-                    font.weight: Font.DemiBold
-                    color: BlueTheme.primaryText
-                }
-
-                Item { Layout.fillWidth: true }
-            }
-
-            // Bottom border
-            Rectangle {
-                anchors.bottom: parent.bottom
-                anchors.left: parent.left
-                anchors.right: parent.right
-                height: 1
-                color: BlueTheme.divider
-            }
+            title: qsTr("Preferences")
+            onBackClicked: preferencesRoot.closeRequested()
         }
 
         // Scrollable content
