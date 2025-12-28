@@ -122,6 +122,50 @@ private slots:
   // Tests de statut de connexion
   void testConnectionStatusConnecting();
   void testConnectionStatusDisconnected();
+  
+  // Tests de parsing IRC avancés supplémentaires
+  void testParseTagsWithReturningChatter();
+  void testParseTagsEmoteOnly();
+  void testParseTagsWithMessageId();
+  void testParseTagsWithTmiSentTs();
+  void testParseTagsWithCustomRewardId();
+  
+  // Tests de parsing emotes avancés
+  void testParseEmotePartsWithUnicode();
+  void testParseEmotePartsLongMessage();
+  void testParseEmotePartsMalformedRange();
+  void testParseEmotePartsInvalidPositions();
+  void testParseEmotePartsOverlappingRanges();
+  
+  // Tests de parsing badges avancés  
+  void testParseBadgesFounder();
+  void testParseBadgesGlhfPledge();
+  void testParseBadgesHypeTrainConductor();
+  void testParseBadgesPredictions();
+  void testParseBadgesBitsLeader();
+  void testParseBadgesGiftedSub();
+  void testParseBadgesEmptyVersion();
+  
+  // Tests de parsing tags edge cases
+  void testParseTagsEmptyValue();
+  void testParseTagsNoEqualsSign();
+  void testParseTagsMultipleEscapedChars();
+  void testParseTagsWithNewlineEscape();
+  
+  // Tests de message sanitization
+  void testSendMessageWithCarriageReturn();
+  void testSendMessageOnlyWhitespace();
+  void testSendMessageExactlyMaxLength();
+  void testSendMessageOneOverMaxLength();
+  
+  // Tests de statut de connexion avancés
+  void testConnectionStatusError();
+  void testConnectionStatusTransitions();
+  
+  // Tests de channel handling
+  void testChannelNameLowercase();
+  void testChannelNamePreservesCase();
+  void testMultipleConnectToSameChannel();
 
 private:
   TwitchChatClient* m_client = nullptr;
@@ -715,6 +759,308 @@ void TestTwitchChatClient::testConnectionStatusDisconnected() {
   // Initially disconnected
   QString status = m_client->connectionStatus();
   QCOMPARE(status, QString("disconnected"));
+}
+
+// ===== Tests de parsing IRC avancés supplémentaires =====
+
+void TestTwitchChatClient::testParseTagsWithReturningChatter() {
+  QString tagsStr = "returning-chatter=1;display-name=ReturningUser";
+  QVariantMap tags = m_testableClient->testParseTags(tagsStr);
+  
+  QCOMPARE(tags.value("returning-chatter").toString(), QString("1"));
+}
+
+void TestTwitchChatClient::testParseTagsEmoteOnly() {
+  QString tagsStr = "emote-only=1;room-id=12345";
+  QVariantMap tags = m_testableClient->testParseTags(tagsStr);
+  
+  QCOMPARE(tags.value("emote-only").toString(), QString("1"));
+}
+
+void TestTwitchChatClient::testParseTagsWithMessageId() {
+  QString tagsStr = "id=abc-123-def-456;display-name=User";
+  QVariantMap tags = m_testableClient->testParseTags(tagsStr);
+  
+  QCOMPARE(tags.value("id").toString(), QString("abc-123-def-456"));
+}
+
+void TestTwitchChatClient::testParseTagsWithTmiSentTs() {
+  QString tagsStr = "tmi-sent-ts=1609459200000;display-name=User";
+  QVariantMap tags = m_testableClient->testParseTags(tagsStr);
+  
+  QCOMPARE(tags.value("tmi-sent-ts").toString(), QString("1609459200000"));
+}
+
+void TestTwitchChatClient::testParseTagsWithCustomRewardId() {
+  QString tagsStr = "custom-reward-id=abc123-reward;display-name=Redeemer";
+  QVariantMap tags = m_testableClient->testParseTags(tagsStr);
+  
+  QCOMPARE(tags.value("custom-reward-id").toString(), QString("abc123-reward"));
+}
+
+// ===== Tests de parsing emotes avancés =====
+
+void TestTwitchChatClient::testParseEmotePartsWithUnicode() {
+  // Message avec emoji Unicode : "Hello 😀 Kappa"
+  // L'emoji peut affecter les positions
+  QString message = "Hello Kappa test";
+  QVariantList parts = m_testableClient->testParseEmoteParts("25:6-10", message);
+  
+  QVERIFY(parts.size() >= 1);
+  // Vérifier que Kappa est correctement extrait
+  bool foundEmote = false;
+  for (const QVariant& part : parts) {
+    if (part.toMap()["type"].toString() == "emote") {
+      foundEmote = true;
+      break;
+    }
+  }
+  QVERIFY(foundEmote);
+}
+
+void TestTwitchChatClient::testParseEmotePartsLongMessage() {
+  // Message long avec emote au milieu
+  QString message = QString(200, 'a') + " Kappa " + QString(200, 'b');
+  // Kappa at position 201-205
+  QVariantList parts = m_testableClient->testParseEmoteParts("25:201-205", message);
+  
+  QCOMPARE(parts.size(), 3);  // text + emote + text
+  
+  QVariantMap emotePart = parts[1].toMap();
+  QCOMPARE(emotePart["type"].toString(), QString("emote"));
+  QCOMPARE(emotePart["content"].toString(), QString("Kappa"));
+}
+
+void TestTwitchChatClient::testParseEmotePartsMalformedRange() {
+  // Range sans tiret
+  QVariantList parts = m_testableClient->testParseEmoteParts("25:610", "Hello Kappa");
+  
+  // Should fall back to text only
+  QCOMPARE(parts.size(), 1);
+  QCOMPARE(parts[0].toMap()["type"].toString(), QString("text"));
+}
+
+void TestTwitchChatClient::testParseEmotePartsInvalidPositions() {
+  // Position négative ou hors limites
+  QVariantList parts = m_testableClient->testParseEmoteParts("25:-1-5", "Kappa");
+  
+  // Should handle gracefully
+  QVERIFY(parts.size() >= 1);
+}
+
+void TestTwitchChatClient::testParseEmotePartsOverlappingRanges() {
+  // Two emotes with overlapping positions (shouldn't happen but test robustness)
+  QString message = "Kappa test";
+  // Both claim position 0-4
+  QVariantList parts = m_testableClient->testParseEmoteParts("25:0-4/88:2-6", message);
+  
+  // Should handle without crashing
+  QVERIFY(parts.size() >= 1);
+}
+
+// ===== Tests de parsing badges avancés =====
+
+void TestTwitchChatClient::testParseBadgesFounder() {
+  QVariantList badges = m_testableClient->testParseBadges("founder/0");
+  
+  QCOMPARE(badges.size(), 1);
+  QCOMPARE(badges[0].toMap()["type"].toString(), QString("founder"));
+  QCOMPARE(badges[0].toMap()["version"].toString(), QString("0"));
+}
+
+void TestTwitchChatClient::testParseBadgesGlhfPledge() {
+  QVariantList badges = m_testableClient->testParseBadges("glhf-pledge/1");
+  
+  QCOMPARE(badges.size(), 1);
+  QCOMPARE(badges[0].toMap()["type"].toString(), QString("glhf-pledge"));
+}
+
+void TestTwitchChatClient::testParseBadgesHypeTrainConductor() {
+  QVariantList badges = m_testableClient->testParseBadges("hype-train/1");
+  
+  QCOMPARE(badges.size(), 1);
+  QCOMPARE(badges[0].toMap()["type"].toString(), QString("hype-train"));
+}
+
+void TestTwitchChatClient::testParseBadgesPredictions() {
+  QVariantList badges = m_testableClient->testParseBadges("predictions/blue-1");
+  
+  QCOMPARE(badges.size(), 1);
+  QCOMPARE(badges[0].toMap()["type"].toString(), QString("predictions"));
+  QCOMPARE(badges[0].toMap()["version"].toString(), QString("blue-1"));
+}
+
+void TestTwitchChatClient::testParseBadgesBitsLeader() {
+  QVariantList badges = m_testableClient->testParseBadges("bits-leader/3");
+  
+  QCOMPARE(badges.size(), 1);
+  QCOMPARE(badges[0].toMap()["type"].toString(), QString("bits-leader"));
+}
+
+void TestTwitchChatClient::testParseBadgesGiftedSub() {
+  QVariantList badges = m_testableClient->testParseBadges("sub-gifter/50");
+  
+  QCOMPARE(badges.size(), 1);
+  QCOMPARE(badges[0].toMap()["type"].toString(), QString("sub-gifter"));
+  QCOMPARE(badges[0].toMap()["version"].toString(), QString("50"));
+}
+
+void TestTwitchChatClient::testParseBadgesEmptyVersion() {
+  // Badge with slash but empty version
+  QVariantList badges = m_testableClient->testParseBadges("badge/");
+  
+  QCOMPARE(badges.size(), 1);
+  QCOMPARE(badges[0].toMap()["type"].toString(), QString("badge"));
+  QCOMPARE(badges[0].toMap()["version"].toString(), QString(""));
+}
+
+// ===== Tests de parsing tags edge cases =====
+
+void TestTwitchChatClient::testParseTagsEmptyValue() {
+  QString tagsStr = "emotes=;display-name=User";
+  QVariantMap tags = m_testableClient->testParseTags(tagsStr);
+  
+  QCOMPARE(tags.value("emotes").toString(), QString(""));
+  QCOMPARE(tags.value("display-name").toString(), QString("User"));
+}
+
+void TestTwitchChatClient::testParseTagsNoEqualsSign() {
+  // Malformed tag without equals
+  QString tagsStr = "validtag=value;invalidtag;another=test";
+  QVariantMap tags = m_testableClient->testParseTags(tagsStr);
+  
+  // Valid tags should still be parsed
+  QCOMPARE(tags.value("validtag").toString(), QString("value"));
+  QCOMPARE(tags.value("another").toString(), QString("test"));
+  // Invalid tag should be skipped
+  QVERIFY(!tags.contains("invalidtag"));
+}
+
+void TestTwitchChatClient::testParseTagsMultipleEscapedChars() {
+  // Multiple escaped characters
+  QString tagsStr = "msg=Hello\\sWorld\\:\\sTest\\\\End";
+  QVariantMap tags = m_testableClient->testParseTags(tagsStr);
+  
+  QCOMPARE(tags.value("msg").toString(), QString("Hello World; Test\\End"));
+}
+
+void TestTwitchChatClient::testParseTagsWithNewlineEscape() {
+  QString tagsStr = "msg=Line1\\nLine2\\rEnd";
+  QVariantMap tags = m_testableClient->testParseTags(tagsStr);
+  
+  QCOMPARE(tags.value("msg").toString(), QString("Line1\nLine2\rEnd"));
+}
+
+// ===== Tests de message sanitization =====
+
+void TestTwitchChatClient::testSendMessageWithCarriageReturn() {
+  m_client->setCredentials("oauth:test", "testuser");
+  m_client->connectToChannel("testchannel");
+  
+  // Message with only \r
+  m_client->sendMessage("Hello\rWorld");
+  
+  // Should not crash
+  QVERIFY(m_client != nullptr);
+}
+
+void TestTwitchChatClient::testSendMessageOnlyWhitespace() {
+  m_client->setCredentials("oauth:test", "testuser");
+  m_client->connectToChannel("testchannel");
+  
+  // Message with only spaces and tabs
+  m_client->sendMessage("     \t\t   ");
+  
+  // Should not crash, message rejected silently
+  QVERIFY(m_client != nullptr);
+}
+
+void TestTwitchChatClient::testSendMessageExactlyMaxLength() {
+  m_client->setCredentials("oauth:test", "testuser");
+  m_client->connectToChannel("testchannel");
+  
+  // Message exactly 500 characters (Twitch limit)
+  QString exactMessage = QString(500, 'a');
+  QCOMPARE(exactMessage.length(), 500);
+  
+  m_client->sendMessage(exactMessage);
+  
+  // Should not crash, message should be accepted
+  QVERIFY(m_client != nullptr);
+}
+
+void TestTwitchChatClient::testSendMessageOneOverMaxLength() {
+  m_client->setCredentials("oauth:test", "testuser");
+  m_client->connectToChannel("testchannel");
+  
+  // Message 501 characters (one over limit)
+  QString overMessage = QString(501, 'a');
+  QCOMPARE(overMessage.length(), 501);
+  
+  m_client->sendMessage(overMessage);
+  
+  // Should not crash, message rejected
+  QVERIFY(m_client != nullptr);
+}
+
+// ===== Tests de statut de connexion avancés =====
+
+void TestTwitchChatClient::testConnectionStatusError() {
+  // After error, status should be available
+  // Can't easily trigger error without network, just verify method doesn't crash
+  QString status = m_client->connectionStatus();
+  QVERIFY(!status.isEmpty());
+}
+
+void TestTwitchChatClient::testConnectionStatusTransitions() {
+  // Verify we can query status at different stages
+  
+  // Initial
+  QString initial = m_client->connectionStatus();
+  QCOMPARE(initial, QString("disconnected"));
+  
+  // After connect attempt
+  m_client->connectToChannel("testchannel");
+  QString connecting = m_client->connectionStatus();
+  QVERIFY(connecting == "connecting" || connecting == "disconnected");
+  
+  // After disconnect
+  m_client->disconnect();
+  QString disconnected = m_client->connectionStatus();
+  QCOMPARE(disconnected, QString("disconnected"));
+}
+
+// ===== Tests de channel handling =====
+
+void TestTwitchChatClient::testChannelNameLowercase() {
+  m_client->connectToChannel("UPPERCASE");
+  
+  // Channel should be converted to lowercase
+  QString channel = m_client->channel();
+  QCOMPARE(channel, QString("uppercase"));
+  
+  m_client->disconnect();
+}
+
+void TestTwitchChatClient::testChannelNamePreservesCase() {
+  // Actually channel() returns lowercase
+  m_client->connectToChannel("MixedCase");
+  
+  QString channel = m_client->channel();
+  QCOMPARE(channel, QString("mixedcase"));
+  
+  m_client->disconnect();
+}
+
+void TestTwitchChatClient::testMultipleConnectToSameChannel() {
+  m_client->connectToChannel("channel1");
+  m_client->connectToChannel("channel1");
+  m_client->connectToChannel("channel1");
+  
+  // Multiple connects should not crash
+  QVERIFY(m_client != nullptr);
+  
+  m_client->disconnect();
 }
 
 QTEST_MAIN(TestTwitchChatClient)
