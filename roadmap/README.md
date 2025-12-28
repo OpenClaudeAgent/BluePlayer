@@ -136,7 +136,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 15 | Historique VOD cachés | [plan-15](./plan-15-watch-history.md) | `feature/watch-history` | v0.23.0 | 🟢 Terminé |
 | 16 | Mode Audio uniquement | [plan-16](./plan-16-audio-only.md) | `feature/audio-only` | v0.24.0 | 🟢 Terminé |
 | 17 | Picture-in-Picture | [plan-17](./plan-17-picture-in-picture.md) | `feature/pip` | v0.25.0 | 🟢 Terminé |
-| 18 | Thème Clair/Sombre | [plan-18](./plan-18-theme-switcher.md) | `feature/theme` | - | 🔴 En attente |
+| 18 | Thème Clair/Sombre | [plan-18](./plan-18-theme-switcher.md) | `feature/theme` | v0.26.0 | 🟢 Terminé |
 | 19 | Twitch Tracker Stats | [plan-19](./plan-19-twitch-tracker.md) | `feature/twitch-tracker` | - | 🔴 En attente |
 | 20 | Filtres Catégorie/Jeu | [plan-20](./plan-20-category-filters.md) | `feature/category-filters` | - | 🔴 En attente |
 | **21** | **Dette Technique** | [plan-21](./plan-21-technical-debt.md) | `refactor/tech-debt` | - | 🔴 En attente |
@@ -207,6 +207,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 2025-12-28 | Tâche 15 terminée - Historique VOD (reprise auto, sauvegarde 30s, tri "Dernier vu") |
 | 2025-12-28 | Tâche 16 terminée - Mode Audio (placeholder visuel, labels normalisés, toast redesigné) |
 | 2025-12-28 | Tâche 17 terminée - Picture-in-Picture (fenêtre flottante, contrôles hover, ratio 16:9) |
+| 2025-12-28 | Tâche 18 terminée - Thème Clair/Sombre (détection système, sélecteur, migration composants) |
 
 ---
 

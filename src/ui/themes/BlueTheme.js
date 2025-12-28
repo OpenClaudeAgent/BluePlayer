@@ -1,23 +1,149 @@
 .pragma library
 
-var windowBackground = "#03050b"
-var gradientStart = "#040b15"
-var gradientEnd = "#0b1727"
-var overlayTint = "#0c111b"
-var surface = "#141c2a"
-var surfaceSoft = "#1d2533"
-var accent = "#5bc0ff"
-var accentSubtle = "#3da2ff"
-var primaryText = "#f6f7fa"
-var secondaryText = "#aeb9c9"
-var mutedText = "#7d89a4"
-var divider = "#222b37"
-var statusPositive = "#4ef57a"
-var statusWarning = "#f7c114"
-var statusNegative = "#f46969"
+// ============================================================================
+// THEME SYSTEM - Light & Dark Mode Support
+// ============================================================================
+
+// Current theme mode - will be bound to ThemeManager from C++
+// Values: "dark", "light"
+var currentTheme = "dark"
+
+// ============================================================================
+// THEME DEFINITIONS
+// ============================================================================
+
+var themes = {
+    dark: {
+        // Window & Background
+        windowBackground: "#03050b",
+        gradientStart: "#040b15",
+        gradientEnd: "#0b1727",
+        overlayTint: "#0c111b",
+        
+        // Surfaces
+        surface: "#141c2a",
+        surfaceSoft: "#1d2533",
+        cardHighlight: "#171f2f",
+        buttonSurface: "#1c2232",
+        buttonBorder: "#2b3450",
+        
+        // Text
+        primaryText: "#f6f7fa",
+        secondaryText: "#aeb9c9",
+        mutedText: "#7d89a4",
+        
+        // Accent (same for both themes - brand color)
+        accent: "#5bc0ff",
+        accentSubtle: "#3da2ff",
+        
+        // Borders & Dividers
+        divider: "#222b37",
+        
+        // Status colors
+        statusPositive: "#4ef57a",
+        statusWarning: "#f7c114",
+        statusNegative: "#f46969"
+    },
+    
+    light: {
+        // Window & Background
+        windowBackground: "#F2F2F7",
+        gradientStart: "#FFFFFF",
+        gradientEnd: "#F2F2F7",
+        overlayTint: "#E5E5EA",
+        
+        // Surfaces
+        surface: "#FFFFFF",
+        surfaceSoft: "#F9F9FB",
+        cardHighlight: "#F5F5F7",
+        buttonSurface: "#EBEBF0",
+        buttonBorder: "#D1D1D6",
+        
+        // Text
+        primaryText: "#1C1C1E",
+        secondaryText: "#6C6C70",
+        mutedText: "#8E8E93",
+        
+        // Accent (same for both themes - brand color)
+        accent: "#007AFF",
+        accentSubtle: "#0A84FF",
+        
+        // Borders & Dividers
+        divider: "#E5E5EA",
+        
+        // Status colors
+        statusPositive: "#34C759",
+        statusWarning: "#FF9500",
+        statusNegative: "#FF3B30"
+    }
+}
+
+// ============================================================================
+// DYNAMIC THEME ACCESSORS
+// ============================================================================
+
+// These functions return the current theme value
+// QML components should call these or use the direct properties below
+
+function getThemeValue(key) {
+    return themes[currentTheme][key]
+}
+
+function setTheme(themeName) {
+    if (themeName === "dark" || themeName === "light") {
+        currentTheme = themeName
+        return true
+    }
+    return false
+}
+
+function isDarkTheme() {
+    return currentTheme === "dark"
+}
+
+// ============================================================================
+// EXPORTED THEME PROPERTIES (for backward compatibility)
+// These are updated when setTheme() is called
+// ============================================================================
+
+// Window & Background
+var windowBackground = themes.dark.windowBackground
+var gradientStart = themes.dark.gradientStart
+var gradientEnd = themes.dark.gradientEnd
+var overlayTint = themes.dark.overlayTint
+
+// Surfaces
+var surface = themes.dark.surface
+var surfaceSoft = themes.dark.surfaceSoft
+var cardHighlight = themes.dark.cardHighlight
+var buttonSurface = themes.dark.buttonSurface
+var buttonBorder = themes.dark.buttonBorder
+
+// Text
+var primaryText = themes.dark.primaryText
+var secondaryText = themes.dark.secondaryText
+var mutedText = themes.dark.mutedText
+
+// Accent
+var accent = themes.dark.accent
+var accentSubtle = themes.dark.accentSubtle
+
+// Borders & Dividers
+var divider = themes.dark.divider
+
+// Status colors
+var statusPositive = themes.dark.statusPositive
+var statusWarning = themes.dark.statusWarning
+var statusNegative = themes.dark.statusNegative
+
+// ============================================================================
+// STATIC PROPERTIES (same for all themes)
+// ============================================================================
+
 var cornerRadius = 22
 var borderWidth = 1
 var elevation = 28
+
 function selectFontFamily() {
   var preferredFonts = [
     "SF Pro Display",
@@ -42,9 +168,6 @@ var spacingLarge = 24
 var responsiveBreakpoint = 1024
 var cardElevation = 10
 var heroHeight = 260
-var cardHighlight = "#171f2f"
-var buttonSurface = "#1c2232"
-var buttonBorder = "#2b3450"
 var heroCornerRadius = 30
 var headlineFont = fontFamily
 
@@ -152,4 +275,39 @@ function formatQuality(quality) {
     
     // Return original if no transformation needed
     return quality
+}
+
+// ============================================================================
+// THEME UPDATE FUNCTION
+// Called from QML when theme changes
+// ============================================================================
+
+function applyTheme(themeName) {
+    if (!setTheme(themeName)) {
+        return false
+    }
+    
+    var t = themes[themeName]
+    
+    // Update all exported properties
+    windowBackground = t.windowBackground
+    gradientStart = t.gradientStart
+    gradientEnd = t.gradientEnd
+    overlayTint = t.overlayTint
+    surface = t.surface
+    surfaceSoft = t.surfaceSoft
+    cardHighlight = t.cardHighlight
+    buttonSurface = t.buttonSurface
+    buttonBorder = t.buttonBorder
+    primaryText = t.primaryText
+    secondaryText = t.secondaryText
+    mutedText = t.mutedText
+    accent = t.accent
+    accentSubtle = t.accentSubtle
+    divider = t.divider
+    statusPositive = t.statusPositive
+    statusWarning = t.statusWarning
+    statusNegative = t.statusNegative
+    
+    return true
 }

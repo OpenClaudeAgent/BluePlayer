@@ -19,6 +19,9 @@ import "../themes/BlueTheme.js" as BlueTheme
 Item {
     id: root
 
+    // Theme access
+    readonly property var tm: typeof themeManager !== "undefined" ? themeManager : null
+
     // ─────────────────────────────────────────────────────────────────────────
     // Public Properties
     // ─────────────────────────────────────────────────────────────────────────
@@ -36,7 +39,7 @@ Item {
     property int iconSize: 20
     
     /** Couleur de l'icône (par défaut: primaryText) */
-    property color iconColor: BlueTheme.primaryText
+    property color iconColor: tm ? tm.primaryText : BlueTheme.primaryText
 
     // ─────────────────────────────────────────────────────────────────────────
     // Signals
@@ -63,15 +66,17 @@ Item {
         // Couleur selon l'état
         color: {
             if (root.active) {
-                return BlueTheme.overlayTint
+                return tm ? tm.overlayTint : BlueTheme.overlayTint
             } else if (mouseArea.containsMouse) {
-                return BlueTheme.surfaceSoft
+                return tm ? tm.surfaceSoft : BlueTheme.surfaceSoft
             } else {
-                return BlueTheme.surface
+                return tm ? tm.surface : BlueTheme.surface
             }
         }
         
-        border.color: root.active ? BlueTheme.accent : BlueTheme.buttonBorder
+        border.color: root.active 
+                      ? (tm ? tm.accent : BlueTheme.accent)
+                      : (tm ? tm.buttonBorder : BlueTheme.buttonBorder)
         border.width: BlueTheme.borderWidth
 
         // Animation de couleur fluide
@@ -146,8 +151,8 @@ Item {
         delay: 500
         
         background: Rectangle {
-            color: BlueTheme.surface
-            border.color: BlueTheme.divider
+            color: tm ? tm.surface : BlueTheme.surface
+            border.color: tm ? tm.divider : BlueTheme.divider
             border.width: 1
             radius: 6
         }
@@ -156,7 +161,7 @@ Item {
             text: tooltip.text
             font.pixelSize: 12
             font.family: BlueTheme.fontFamily
-            color: BlueTheme.primaryText
+            color: tm ? tm.primaryText : BlueTheme.primaryText
         }
     }
 }

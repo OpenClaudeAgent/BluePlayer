@@ -1,11 +1,12 @@
 import QtQuick 2.15
 import "../themes/BlueTheme.js" as BlueTheme
+import "."  // Pour CircleButton
 
 /**
  * PanelHeader.qml
  * 
  * Header standard pour tous les panels (Preferences, CacheManager, etc.).
- * Fournit un bouton retour et un titre avec un style uniforme.
+ * Titre aligné à gauche, bouton close (X) en haut à droite.
  * 
  * Usage:
  *   PanelHeader {
@@ -13,7 +14,7 @@ import "../themes/BlueTheme.js" as BlueTheme
  *       onBackClicked: preferencesVisible = false
  *   }
  *   
- *   // Ou sans bouton retour :
+ *   // Sans bouton close :
  *   PanelHeader {
  *       title: qsTr("Settings")
  *       showBackButton: false
@@ -22,6 +23,9 @@ import "../themes/BlueTheme.js" as BlueTheme
 Item {
     id: root
 
+    // Theme access
+    readonly property var tm: typeof themeManager !== "undefined" ? themeManager : null
+
     // ─────────────────────────────────────────────────────────────────────────
     // Public Properties
     // ─────────────────────────────────────────────────────────────────────────
@@ -29,16 +33,14 @@ Item {
     /** Titre affiché dans le header */
     property string title: ""
     
-    /** Afficher le bouton retour */
+    /** Afficher le bouton close */
     property bool showBackButton: true
     
     /** Couleur de fond (avec transparence par défaut) */
-    property color backgroundColor: Qt.rgba(
-        BlueTheme.surface.r,
-        BlueTheme.surface.g,
-        BlueTheme.surface.b,
-        0.6
-    )
+    property color backgroundColor: {
+        var surfaceColor = tm ? tm.surface : BlueTheme.surface
+        return Qt.rgba(surfaceColor.r, surfaceColor.g, surfaceColor.b, 0.6)
+    }
 
     // ─────────────────────────────────────────────────────────────────────────
     // Signals
@@ -64,83 +66,15 @@ Item {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Back Button
-    // ─────────────────────────────────────────────────────────────────────────
-    
-    Rectangle {
-        id: backButton
-        visible: root.showBackButton
-        
-        anchors {
-            left: parent.left
-            leftMargin: BlueTheme.spacingMedium
-            verticalCenter: parent.verticalCenter
-        }
-        
-        width: 36
-        height: 36
-        radius: 18
-        
-        color: backButtonArea.containsMouse ? "#1AFFFFFF" : "transparent"
-        
-        Behavior on color {
-            ColorAnimation {
-                duration: BlueTheme.animHoverDuration
-                easing.type: Easing.OutCubic
-            }
-        }
-        
-        // Icône flèche retour
-        Text {
-            id: backIcon
-            anchors.centerIn: parent
-            text: "\u2190"  // ←
-            font.pixelSize: 20
-            font.family: BlueTheme.fontFamily
-            color: BlueTheme.primaryText
-            
-            // Légère translation au hover
-            x: backButtonArea.containsMouse ? -2 : 0
-            
-            Behavior on x {
-                NumberAnimation {
-                    duration: BlueTheme.animHoverDuration
-                    easing.type: Easing.OutCubic
-                }
-            }
-        }
-        
-        MouseArea {
-            id: backButtonArea
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            
-            onClicked: root.backClicked()
-            
-            // Effet de pression
-            onPressed: backButton.scale = BlueTheme.scalePress
-            onReleased: backButton.scale = 1.0
-        }
-        
-        Behavior on scale {
-            NumberAnimation {
-                duration: BlueTheme.animPressDuration
-                easing.type: Easing.OutQuart
-            }
-        }
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // Title
+    // Title (aligned left)
     // ─────────────────────────────────────────────────────────────────────────
     
     Text {
         id: titleText
         
         anchors {
-            left: root.showBackButton ? backButton.right : parent.left
-            leftMargin: root.showBackButton ? BlueTheme.spacingMedium : BlueTheme.spacingLarge
+            left: parent.left
+            leftMargin: BlueTheme.spacingLarge
             verticalCenter: parent.verticalCenter
         }
         
@@ -148,7 +82,28 @@ Item {
         font.pixelSize: 20
         font.weight: Font.DemiBold
         font.family: BlueTheme.fontFamily
-        color: BlueTheme.primaryText
+        color: tm ? tm.primaryText : BlueTheme.primaryText
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Close Button (X) - Top Right - Uses CircleButton for consistent style
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    CircleButton {
+        id: closeButton
+        visible: root.showBackButton
+        
+        anchors {
+            right: parent.right
+            rightMargin: BlueTheme.spacingMedium
+            verticalCenter: parent.verticalCenter
+        }
+        
+        iconText: "\u2715"  // ✕
+        iconSize: 16
+        tooltipText: ""
+        
+        onClicked: root.backClicked()
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -163,6 +118,6 @@ Item {
             bottom: parent.bottom
         }
         height: 1
-        color: BlueTheme.divider
+        color: tm ? tm.divider : BlueTheme.divider
     }
 }

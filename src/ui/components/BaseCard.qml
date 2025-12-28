@@ -4,6 +4,9 @@ import "../themes/BlueTheme.js" as BlueTheme
 Item {
   id: baseCard
 
+  // Theme manager access (from C++ context)
+  readonly property var theme: typeof themeManager !== "undefined" ? themeManager : null
+
   // Props communes
   property bool isPlaceholder: false
   property int cardWidth: 180
@@ -27,8 +30,10 @@ Item {
     id: cardBackground
     anchors.fill: parent
     radius: baseCard.cardRadius
-    color: baseCard.isPlaceholder ? BlueTheme.surfaceSoft : BlueTheme.surface
-    border.color: BlueTheme.divider
+    color: baseCard.isPlaceholder 
+           ? (theme ? theme.surfaceSoft : BlueTheme.surfaceSoft)
+           : (theme ? theme.surface : BlueTheme.surface)
+    border.color: theme ? theme.divider : BlueTheme.divider
     border.width: 1
 
     // Hover effect
@@ -38,7 +43,7 @@ Item {
         when: mouseArea.containsMouse
         PropertyChanges {
           target: cardBackground
-          color: baseCard.isPlaceholder ? "#252d3d" : "#1a2330"
+          color: theme ? theme.cardHighlight : BlueTheme.cardHighlight
           scale: 1.02
         }
         PropertyChanges {
@@ -67,7 +72,7 @@ Item {
       anchors.margins: -2
       radius: parent.radius + 2
       color: "transparent"
-      border.color: "#00000020"
+      border.color: theme && !theme.isDark ? "#00000010" : "#00000020"
       border.width: 1
       opacity: 0
     }

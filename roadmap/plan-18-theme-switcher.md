@@ -153,35 +153,45 @@ Connections {
 ## Checklist de validation
 
 ### Configuration
-- [ ] Préférence "theme" stockée dans Config (auto/light/dark)
-- [ ] Valeur par défaut = "auto"
-- [ ] Préférence persistée après redémarrage
+- [x] Préférence "theme" stockée dans Config (auto/light/dark)
+- [x] Valeur par défaut = "auto"
+- [x] Préférence persistée après redémarrage
 
 ### Détection système
-- [ ] Thème système détecté au démarrage
-- [ ] Changement de thème système détecté en temps réel
-- [ ] Fonctionne sur macOS 10.14+
+- [x] Thème système détecté au démarrage
+- [x] Changement de thème système détecté en temps réel
+- [x] Fonctionne sur macOS 10.14+
 
 ### UI Préférences
-- [ ] Sélecteur de thème visible (3 options)
-- [ ] Option actuelle mise en évidence
-- [ ] Changement appliqué immédiatement (ou après confirmation)
+- [x] Sélecteur de thème visible (3 options)
+- [x] Option actuelle mise en évidence
+- [x] Changement appliqué immédiatement (ou après confirmation)
 
 ### Thèmes
-- [ ] Thème sombre complet et cohérent
-- [ ] Thème clair complet et cohérent
-- [ ] Toutes les vues supportent les deux thèmes
-- [ ] Pas de texte illisible (contraste suffisant)
-- [ ] Couleur accent identique dans les deux thèmes
+- [x] Thème sombre complet et cohérent
+- [x] Thème clair complet et cohérent
+- [x] Toutes les vues supportent les deux thèmes
+- [x] Pas de texte illisible (contraste suffisant)
+- [x] Couleur accent identique dans les deux thèmes
 
 ### Transition
-- [ ] Animation fluide lors du changement (optionnel)
-- [ ] Pas de flash blanc/noir brutal
-- [ ] État de l'app préservé lors du changement
+- [x] Animation fluide lors du changement (optionnel)
+- [x] Pas de flash blanc/noir brutal
+- [x] État de l'app préservé lors du changement
 
 ### Tests
-- [ ] Testé en mode sombre
-- [ ] Testé en mode clair
-- [ ] Testé en mode auto avec changement système
-- [ ] L'app compile sans erreur
-- [ ] Pas de régression fonctionnelle
+- [x] Testé en mode sombre
+- [x] Testé en mode clair
+- [x] Testé en mode auto avec changement système
+- [x] L'app compile sans erreur
+- [x] Pas de régression fonctionnelle
+
+## Bonus (ajouté lors de l'implémentation)
+
+- **ThemeManager C++** : Manager avec Q_PROPERTY pour chaque couleur et signal colorsChanged()
+- **Migration composants** : CacheManagerView, SearchResults, PreferencesView, BlueDropdown, HomeView
+- **SearchBar réactive** : Bordures qui s'adaptent au thème (divider/accent)
+- **BlueDropdown refactorisé** : Rectangle+MouseArea pour contrôle total des couleurs
+- **Correction scale hover** : Wrapper avec marges pour éviter le crop des bordures
+- **Valeurs du thème** : Remplacement des magic numbers et couleurs hardcodées par BlueTheme.*
+- **PanelHeader unifié** : Bouton close utilise CircleButton pour cohérence avec les autres boutons ronds

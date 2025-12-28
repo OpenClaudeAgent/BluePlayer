@@ -10,6 +10,9 @@ import "components"
 Item {
   id: root
 
+  // Theme access
+  readonly property var tm: typeof themeManager !== "undefined" ? themeManager : null
+
   signal backRequested()
   signal playVodRequested(string vodId, string filePath, var metadata)
 
@@ -34,8 +37,8 @@ Item {
   Rectangle {
     anchors.fill: parent
     gradient: Gradient {
-      GradientStop { position: 0; color: BlueTheme.gradientStart }
-      GradientStop { position: 1; color: BlueTheme.gradientEnd }
+      GradientStop { position: 0; color: tm ? tm.gradientStart : BlueTheme.gradientStart }
+      GradientStop { position: 1; color: tm ? tm.gradientEnd : BlueTheme.gradientEnd }
     }
   }
 
@@ -66,7 +69,7 @@ Item {
                 .arg(viewModel.maxSizeFormatted)
         font.family: BlueTheme.fontFamily
         font.pixelSize: 13
-        color: BlueTheme.mutedText
+        color: tm ? tm.mutedText : BlueTheme.mutedText
       }
 
       Item { Layout.fillWidth: true }
@@ -80,14 +83,14 @@ Item {
       Layout.rightMargin: BlueTheme.spacingLarge
       Layout.topMargin: BlueTheme.spacingSmall
       radius: 3
-      color: BlueTheme.divider
+      color: tm ? tm.divider : BlueTheme.divider
 
       Rectangle {
         width: parent.width * Math.min(1, viewModel.usagePercent / 100)
         height: parent.height
         radius: 3
-        color: viewModel.usagePercent > 90 ? BlueTheme.statusNegative :
-               viewModel.usagePercent > 70 ? BlueTheme.statusWarning : BlueTheme.accent
+        color: viewModel.usagePercent > 90 ? (tm ? tm.statusNegative : BlueTheme.statusNegative) :
+               viewModel.usagePercent > 70 ? (tm ? tm.statusWarning : BlueTheme.statusWarning) : (tm ? tm.accent : BlueTheme.accent)
 
         Behavior on width {
           NumberAnimation { duration: BlueTheme.animPanelDuration; easing.type: Easing.OutCubic }
@@ -107,7 +110,7 @@ Item {
         text: qsTr("Sort:")
         font.family: BlueTheme.fontFamily
         font.pixelSize: 12
-        color: BlueTheme.mutedText
+        color: tm ? tm.mutedText : BlueTheme.mutedText
       }
 
       // Boutons de tri style pill
@@ -123,8 +126,8 @@ Item {
           width: sortBtnText.width + 16
           height: 28
           radius: 14
-          color: viewModel.sortField === modelData.value ? BlueTheme.surfaceSoft : "transparent"
-          border.color: viewModel.sortField === modelData.value ? BlueTheme.divider : "transparent"
+          color: viewModel.sortField === modelData.value ? (tm ? tm.surfaceSoft : BlueTheme.surfaceSoft) : "transparent"
+          border.color: viewModel.sortField === modelData.value ? (tm ? tm.divider : BlueTheme.divider) : "transparent"
           border.width: 1
 
           Text {
@@ -133,7 +136,7 @@ Item {
             text: modelData.text
             font.family: BlueTheme.fontFamily
             font.pixelSize: 12
-            color: viewModel.sortField === modelData.value ? BlueTheme.primaryText : BlueTheme.secondaryText
+            color: viewModel.sortField === modelData.value ? (tm ? tm.primaryText : BlueTheme.primaryText) : (tm ? tm.secondaryText : BlueTheme.secondaryText)
           }
 
           MouseArea {
@@ -149,13 +152,13 @@ Item {
         width: 28
         height: 28
         radius: 14
-        color: sortOrderArea.containsMouse ? BlueTheme.surfaceSoft : "transparent"
+        color: sortOrderArea.containsMouse ? (tm ? tm.surfaceSoft : BlueTheme.surfaceSoft) : "transparent"
 
         Text {
           anchors.centerIn: parent
           text: viewModel.sortAscending ? "\u2191" : "\u2193"
           font.pixelSize: 14
-          color: BlueTheme.secondaryText
+          color: tm ? tm.secondaryText : BlueTheme.secondaryText
         }
 
         MouseArea {
@@ -171,7 +174,7 @@ Item {
       Rectangle {
         width: 1
         height: 20
-        color: BlueTheme.mutedText
+        color: tm ? tm.mutedText : BlueTheme.mutedText
         opacity: 0.4
       }
 
@@ -180,8 +183,8 @@ Item {
         width: selModeText.width + 16
         height: 28
         radius: 14
-        color: viewModel.selectionMode ? BlueTheme.accent : (selModeArea.containsMouse ? BlueTheme.surfaceSoft : "transparent")
-        border.color: viewModel.selectionMode ? BlueTheme.accent : "transparent"
+        color: viewModel.selectionMode ? (tm ? tm.accent : BlueTheme.accent) : (selModeArea.containsMouse ? (tm ? tm.surfaceSoft : BlueTheme.surfaceSoft) : "transparent")
+        border.color: viewModel.selectionMode ? (tm ? tm.accent : BlueTheme.accent) : "transparent"
         border.width: 1
 
         Text {
@@ -190,7 +193,7 @@ Item {
           text: viewModel.selectionMode ? qsTr("Cancel") : qsTr("Select")
           font.family: BlueTheme.fontFamily
           font.pixelSize: 12
-          color: viewModel.selectionMode ? BlueTheme.windowBackground : BlueTheme.secondaryText
+          color: viewModel.selectionMode ? (tm ? tm.windowBackground : BlueTheme.windowBackground) : (tm ? tm.secondaryText : BlueTheme.secondaryText)
         }
 
         MouseArea {
@@ -208,7 +211,7 @@ Item {
         width: delSelText.width + 16
         height: 28
         radius: 14
-        color: BlueTheme.statusNegative
+        color: tm ? tm.statusNegative : BlueTheme.statusNegative
 
         Text {
           id: delSelText
@@ -234,7 +237,7 @@ Item {
         text: qsTr("Streamer:")
         font.family: BlueTheme.fontFamily
         font.pixelSize: 12
-        color: BlueTheme.mutedText
+        color: tm ? tm.mutedText : BlueTheme.mutedText
       }
 
       ComboBox {
@@ -256,8 +259,8 @@ Item {
 
         background: Rectangle {
           radius: 14
-          color: BlueTheme.surface
-          border.color: BlueTheme.divider
+          color: tm ? tm.surface : BlueTheme.surface
+          border.color: tm ? tm.divider : BlueTheme.divider
           border.width: 1
         }
 
@@ -266,7 +269,7 @@ Item {
           text: streamerFilter.displayText
           font.family: BlueTheme.fontFamily
           font.pixelSize: 12
-          color: BlueTheme.primaryText
+          color: tm ? tm.primaryText : BlueTheme.primaryText
           verticalAlignment: Text.AlignVCenter
         }
       }
@@ -282,17 +285,25 @@ Item {
       Layout.topMargin: BlueTheme.spacingMedium
       clip: true
       contentWidth: width
-      contentHeight: vodFlowLayout.implicitHeight
+      contentHeight: vodFlowWrapper.height
       boundsBehavior: Flickable.StopAtBounds
       
       ScrollBar.vertical: ScrollBar {
         policy: ScrollBar.AsNeeded
       }
 
-      Flow {
-        id: vodFlowLayout
+      // Wrapper pour permettre l'effet scale sans crop
+      Item {
+        id: vodFlowWrapper
         width: parent.width
-        spacing: BlueTheme.spacingMedium
+        height: vodFlowLayout.implicitHeight + BlueTheme.spacingSmall * 2
+
+        Flow {
+          id: vodFlowLayout
+          x: BlueTheme.spacingSmall
+          y: BlueTheme.spacingSmall
+          width: parent.width - BlueTheme.spacingSmall * 2
+          spacing: BlueTheme.spacingMedium
 
         Repeater {
           model: viewModel.vodList
@@ -304,9 +315,17 @@ Item {
             radius: 12
             
             property bool isCardSelected: viewModel.selectedCount >= 0 && viewModel.isSelected(modelData.id)
-            color: delegateMouseArea.containsMouse ? BlueTheme.surfaceSoft : BlueTheme.surface
-            border.color: isCardSelected ? BlueTheme.accent : "transparent"
-            border.width: isCardSelected ? 2 : 0
+            color: delegateMouseArea.containsMouse ? (tm ? tm.cardHighlight : BlueTheme.cardHighlight) : (tm ? tm.surface : BlueTheme.surface)
+            border.color: isCardSelected ? (tm ? tm.accent : BlueTheme.accent) : (tm ? tm.divider : BlueTheme.divider)
+            border.width: isCardSelected ? 2 : 1
+            scale: delegateMouseArea.containsMouse ? BlueTheme.scaleHover : 1.0
+
+            Behavior on color {
+              ColorAnimation { duration: BlueTheme.animCardDuration; easing.type: Easing.OutCubic }
+            }
+            Behavior on scale {
+              NumberAnimation { duration: BlueTheme.animCardDuration; easing.type: Easing.OutCubic }
+            }
 
             ColumnLayout {
               id: cardContent
@@ -323,7 +342,7 @@ Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: (cardRect.width - BlueTheme.spacingMedium * 2) * 9 / 16
                 radius: 8
-                color: BlueTheme.divider
+                color: tm ? tm.divider : BlueTheme.divider
                 clip: true
 
                 Image {
@@ -340,7 +359,7 @@ Item {
                   anchors.centerIn: parent
                   text: "\uD83C\uDFA5"
                   font.pixelSize: 28
-                  color: BlueTheme.mutedText
+                  color: tm ? tm.mutedText : BlueTheme.mutedText
                   visible: !modelData.thumbnailPath || modelData.thumbnailPath.length === 0
                 }
 
@@ -397,8 +416,8 @@ Item {
                   height: 22
                   radius: 11
                   property bool isChecked: viewModel.selectedCount >= 0 && viewModel.isSelected(modelData.id)
-                  color: isChecked ? BlueTheme.accent : BlueTheme.surface
-                  border.color: isChecked ? BlueTheme.accent : BlueTheme.divider
+                  color: isChecked ? (tm ? tm.accent : BlueTheme.accent) : (tm ? tm.surface : BlueTheme.surface)
+                  border.color: isChecked ? (tm ? tm.accent : BlueTheme.accent) : (tm ? tm.divider : BlueTheme.divider)
                   border.width: 2
 
                   Text {
@@ -442,10 +461,10 @@ Item {
                   height: 3
                   color: "#80000000"
 
-                  Rectangle {
+                    Rectangle {
                     width: parent.width * Math.min(1, modelData.watchPosition / Math.max(1, modelData.duration))
                     height: parent.height
-                    color: BlueTheme.accent
+                    color: tm ? tm.accent : BlueTheme.accent
                   }
                 }
               }
@@ -460,7 +479,7 @@ Item {
                   font.family: BlueTheme.fontFamily
                   font.pixelSize: 13
                   font.bold: true
-                  color: BlueTheme.primaryText
+                  color: tm ? tm.primaryText : BlueTheme.primaryText
                   elide: Text.ElideRight
                   Layout.fillWidth: true
                 }
@@ -469,7 +488,7 @@ Item {
                   text: modelData.streamTitle || qsTr("Untitled")
                   font.family: BlueTheme.fontFamily
                   font.pixelSize: 11
-                  color: BlueTheme.secondaryText
+                  color: tm ? tm.secondaryText : BlueTheme.secondaryText
                   elide: Text.ElideRight
                   Layout.fillWidth: true
                 }
@@ -482,20 +501,20 @@ Item {
                     text: modelData.recordedAtFormatted || ""
                     font.family: BlueTheme.fontFamily
                     font.pixelSize: 10
-                    color: BlueTheme.mutedText
+                    color: tm ? tm.mutedText : BlueTheme.mutedText
                   }
 
                   Text {
                     text: "·"
                     font.pixelSize: 10
-                    color: BlueTheme.mutedText
+                    color: tm ? tm.mutedText : BlueTheme.mutedText
                   }
 
                   Text {
                     text: modelData.fileSizeFormatted || ""
                     font.family: BlueTheme.fontFamily
                     font.pixelSize: 10
-                    color: BlueTheme.mutedText
+                    color: tm ? tm.mutedText : BlueTheme.mutedText
                   }
                 }
                 
@@ -506,7 +525,7 @@ Item {
                   font.family: BlueTheme.fontFamily
                   font.pixelSize: 10
                   font.italic: true
-                  color: modelData.isCompleted ? BlueTheme.accent : BlueTheme.secondaryText
+                  color: modelData.isCompleted ? (tm ? tm.accent : BlueTheme.accent) : (tm ? tm.secondaryText : BlueTheme.secondaryText)
                   Layout.fillWidth: true
                 }
               }
@@ -556,7 +575,7 @@ Item {
             font.family: BlueTheme.fontFamily
             font.pixelSize: 16
             font.bold: true
-            color: BlueTheme.secondaryText
+            color: tm ? tm.secondaryText : BlueTheme.secondaryText
           }
 
           Text {
@@ -564,12 +583,13 @@ Item {
           text: qsTr("Watched streams will appear here")
           font.family: BlueTheme.fontFamily
           font.pixelSize: 13
-          color: BlueTheme.mutedText
+          color: tm ? tm.mutedText : BlueTheme.mutedText
           horizontalAlignment: Text.AlignHCenter
         }
       }
     }
   }  // Flow
+  }  // Item wrapper
 }  // Flickable
 
   // Dialog suppression sélection
@@ -582,8 +602,8 @@ Item {
 
     background: Rectangle {
       radius: 16
-      color: BlueTheme.surface
-      border.color: BlueTheme.divider
+      color: tm ? tm.surface : BlueTheme.surface
+      border.color: tm ? tm.divider : BlueTheme.divider
       border.width: 1
     }
 
@@ -596,14 +616,14 @@ Item {
         font.family: BlueTheme.fontFamily
         font.pixelSize: 16
         font.bold: true
-        color: BlueTheme.primaryText
+        color: tm ? tm.primaryText : BlueTheme.primaryText
       }
 
       Text {
         text: qsTr("This action cannot be undone.")
         font.family: BlueTheme.fontFamily
         font.pixelSize: 13
-        color: BlueTheme.secondaryText
+        color: tm ? tm.secondaryText : BlueTheme.secondaryText
       }
 
       RowLayout {
@@ -617,7 +637,7 @@ Item {
           height: 36
           radius: 18
           color: "transparent"
-          border.color: BlueTheme.divider
+          border.color: tm ? tm.divider : BlueTheme.divider
           border.width: 1
 
           Text {
@@ -626,7 +646,7 @@ Item {
             text: qsTr("Cancel")
             font.family: BlueTheme.fontFamily
             font.pixelSize: 13
-            color: BlueTheme.primaryText
+            color: tm ? tm.primaryText : BlueTheme.primaryText
           }
 
           MouseArea {
@@ -640,7 +660,7 @@ Item {
           width: confirmDelText.width + 24
           height: 36
           radius: 18
-          color: BlueTheme.statusNegative
+          color: tm ? tm.statusNegative : BlueTheme.statusNegative
 
           Text {
             id: confirmDelText
@@ -675,8 +695,8 @@ Item {
 
     background: Rectangle {
       radius: 16
-      color: BlueTheme.surface
-      border.color: BlueTheme.divider
+      color: tm ? tm.surface : BlueTheme.surface
+      border.color: tm ? tm.divider : BlueTheme.divider
       border.width: 1
     }
 
@@ -689,7 +709,7 @@ Item {
         font.family: BlueTheme.fontFamily
         font.pixelSize: 16
         font.bold: true
-        color: BlueTheme.primaryText
+        color: tm ? tm.primaryText : BlueTheme.primaryText
       }
 
       Text {
@@ -698,7 +718,7 @@ Item {
                 .arg(viewModel.totalSizeFormatted)
         font.family: BlueTheme.fontFamily
         font.pixelSize: 13
-        color: BlueTheme.secondaryText
+        color: tm ? tm.secondaryText : BlueTheme.secondaryText
       }
 
       RowLayout {
@@ -712,7 +732,7 @@ Item {
           height: 36
           radius: 18
           color: "transparent"
-          border.color: BlueTheme.divider
+          border.color: tm ? tm.divider : BlueTheme.divider
           border.width: 1
 
           Text {
@@ -721,7 +741,7 @@ Item {
             text: qsTr("Cancel")
             font.family: BlueTheme.fontFamily
             font.pixelSize: 13
-            color: BlueTheme.primaryText
+            color: tm ? tm.primaryText : BlueTheme.primaryText
           }
 
           MouseArea {
@@ -735,7 +755,7 @@ Item {
           width: confirmClearText.width + 24
           height: 36
           radius: 18
-          color: BlueTheme.statusNegative
+          color: tm ? tm.statusNegative : BlueTheme.statusNegative
 
           Text {
             id: confirmClearText

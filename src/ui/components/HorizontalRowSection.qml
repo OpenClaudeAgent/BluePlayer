@@ -4,6 +4,10 @@ import "../themes/BlueTheme.js" as BlueTheme
 
 Item {
   id: root
+  
+  // Theme access
+  readonly property var tm: typeof themeManager !== "undefined" ? themeManager : null
+  
   property string sectionTitle
   property string sectionSubtitle: ""
   property var cardsModel: []
@@ -60,7 +64,7 @@ Item {
         font.family: BlueTheme.fontFamily
         font.pixelSize: 20
         font.bold: true
-        color: BlueTheme.primaryText
+        color: tm ? tm.primaryText : BlueTheme.primaryText
       }
 
       Text {
@@ -68,19 +72,28 @@ Item {
         text: root.sectionSubtitle
         font.family: BlueTheme.fontFamily
         font.pixelSize: 14
-        color: BlueTheme.secondaryText
+        color: tm ? tm.secondaryText : BlueTheme.secondaryText
       }
     }
 
     // Zone scrollable horizontale avec virtualisation pour optimiser les performances
-    ListView {
-      id: flickableSection
+    // Wrapper pour permettre l'effet scale sans crop
+    Item {
       Layout.fillWidth: true
-      Layout.preferredHeight: root.actualRowHeight
-      orientation: ListView.Horizontal
-      spacing: root.cardSpacing
+      Layout.preferredHeight: root.actualRowHeight + BlueTheme.spacingSmall * 2
       clip: true
-      interactive: true
+
+      ListView {
+        id: flickableSection
+        anchors.fill: parent
+        anchors.topMargin: BlueTheme.spacingSmall
+        anchors.bottomMargin: BlueTheme.spacingSmall
+        anchors.leftMargin: BlueTheme.spacingSmall
+        anchors.rightMargin: BlueTheme.spacingSmall
+        orientation: ListView.Horizontal
+        spacing: root.cardSpacing
+        clip: false
+        interactive: true
       
       // Optimisation: cacheBuffer pour précharger les éléments hors écran
       // Cache 2 écrans supplémentaires de chaque côté pour une navigation fluide
@@ -206,6 +219,6 @@ Item {
         }
       }
     }
+    }  // Item wrapper
   }
 }
-

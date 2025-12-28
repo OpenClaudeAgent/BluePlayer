@@ -26,6 +26,7 @@
 #include "core/CacheManager.hpp"
 #include "core/FileLogger.hpp"
 #include "core/LanguageManager.hpp"
+#include "core/ThemeManager.hpp"
 #include "media/MpvQuickItem.hpp"
 #include "ui/CacheManagerViewModel.hpp"
 #include "ui/HomeViewModel.hpp"
@@ -120,6 +121,9 @@ int main(int argc, char *argv[]) {
   blueplayer::core::LanguageManager languageManager;
   // Load initial translation based on saved preference
   languageManager.setLanguage(languageManager.currentLanguage());
+
+  // Initialize theme manager (handles light/dark mode)
+  blueplayer::core::ThemeManager themeManager;
   // FFmpegMediaService removed
 
   qmlRegisterType<blueplayer::media::MpvQuickItem>("BluePlayer.Media", 1, 0,
@@ -147,6 +151,8 @@ int main(int argc, char *argv[]) {
                                            coreApp.cacheManager());
   engine.rootContext()->setContextProperty("languageManager",
                                            &languageManager);
+  engine.rootContext()->setContextProperty("themeManager",
+                                           &themeManager);
   const QUrl url(QStringLiteral("qrc:/qt/qml/BluePlayer/ui/main.qml"));
   QObject::connect(
       &engine, &QQmlApplicationEngine::objectCreationFailed, &app,

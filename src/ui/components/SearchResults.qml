@@ -5,6 +5,9 @@ import "../themes/BlueTheme.js" as BlueTheme
 Rectangle {
   id: searchResultsRoot
   
+  // Theme access
+  readonly property var tm: typeof themeManager !== "undefined" ? themeManager : null
+  
   property var channelResults: []      // Chaînes LIVE uniquement
   property var cacheResults: []        // VODs en cache
   property bool isVisible: false
@@ -18,8 +21,8 @@ Rectangle {
   
   // Visible si: recherche effectuée ET (résultats OU pas de résultats à montrer)
   visible: isVisible && hasSearchQuery
-  color: BlueTheme.surface
-  border.color: BlueTheme.divider
+  color: tm ? tm.surface : BlueTheme.surface
+  border.color: tm ? tm.divider : BlueTheme.divider
   border.width: 1
   radius: 16
   clip: true
@@ -54,14 +57,14 @@ Rectangle {
   
   Flickable {
     anchors.fill: parent
-    anchors.margins: 8
+    anchors.margins: BlueTheme.spacingSmall
     contentHeight: contentColumn.height
     clip: true
     
     Column {
       id: contentColumn
       width: parent.width
-      spacing: 2
+      spacing: BlueTheme.spacingSmall
       
       // Constantes d'espacement
       readonly property int sectionLabelHeight: 24
@@ -84,7 +87,7 @@ Rectangle {
           font.pixelSize: 11
           font.bold: true
           font.letterSpacing: 0.3
-          color: BlueTheme.mutedText
+          color: tm ? tm.mutedText : BlueTheme.mutedText
         }
       }
       
@@ -100,7 +103,7 @@ Rectangle {
             if (info && info.is_live && info.game_name) return 56
             return 52
           }
-          radius: 8
+          radius: BlueTheme.spacingSmall
           
           property var channelInfo: modelData
           property int itemIndex: index
@@ -109,11 +112,12 @@ Rectangle {
           property bool hasTitle: channelInfo && channelInfo.title ? true : false
           property bool hasGame: channelInfo && channelInfo.game_name ? true : false
           
-          color: channelMouse.containsMouse ? "#1a2230" : "transparent"
-          border.color: isSelected ? BlueTheme.accent : "transparent"
+          color: channelMouse.containsMouse ? (tm ? tm.cardHighlight : BlueTheme.cardHighlight) : "transparent"
+          border.color: isSelected ? (tm ? tm.accent : BlueTheme.accent) : "transparent"
           border.width: isSelected ? 1 : 0
           
-          Behavior on border.color { ColorAnimation { duration: 100 } }
+          Behavior on color { ColorAnimation { duration: BlueTheme.animHoverDuration } }
+          Behavior on border.color { ColorAnimation { duration: BlueTheme.animHoverDuration } }
           
           // Avatar
           Rectangle {
@@ -123,7 +127,7 @@ Rectangle {
             width: 36
             height: 36
             radius: 18
-            color: BlueTheme.surfaceSoft
+            color: tm ? tm.surfaceSoft : BlueTheme.surfaceSoft
             clip: true
             
             Image {
@@ -148,7 +152,7 @@ Rectangle {
             font.family: BlueTheme.fontFamily
             font.pixelSize: 14
             font.weight: Font.DemiBold
-            color: BlueTheme.primaryText
+            color: tm ? tm.primaryText : BlueTheme.primaryText
             elide: Text.ElideRight
           }
           
@@ -162,7 +166,7 @@ Rectangle {
             text: channelDelegate.channelInfo ? (channelDelegate.channelInfo.game_name || "") : ""
             font.family: BlueTheme.fontFamily
             font.pixelSize: 12
-            color: BlueTheme.accent
+            color: tm ? tm.accent : BlueTheme.accent
             elide: Text.ElideRight
           }
           
@@ -175,7 +179,7 @@ Rectangle {
             text: channelDelegate.channelInfo ? (channelDelegate.channelInfo.title || "") : ""
             font.family: BlueTheme.fontFamily
             font.pixelSize: 11
-            color: BlueTheme.mutedText
+            color: tm ? tm.mutedText : BlueTheme.mutedText
             elide: Text.ElideRight
             maximumLineCount: 1
           }
@@ -189,7 +193,7 @@ Rectangle {
             width: 42
             height: 18
             radius: 9
-            color: BlueTheme.statusNegative
+            color: tm ? tm.statusNegative : BlueTheme.statusNegative
             
             Text {
               anchors.centerIn: parent
@@ -229,7 +233,7 @@ Rectangle {
           anchors.centerIn: parent
           width: parent.width - 16
           height: 1
-          color: BlueTheme.divider
+          color: tm ? tm.divider : BlueTheme.divider
         }
       }
       
@@ -249,7 +253,7 @@ Rectangle {
           font.pixelSize: 11
           font.bold: true
           font.letterSpacing: 0.3
-          color: BlueTheme.mutedText
+          color: tm ? tm.mutedText : BlueTheme.mutedText
         }
       }
       
@@ -260,18 +264,19 @@ Rectangle {
           id: cacheDelegate
           width: contentColumn.width
           height: 64
-          radius: 8
+          radius: BlueTheme.spacingSmall
           
           property var vodInfo: modelData
           property int itemIndex: index
           property int globalIndex: (channelResults ? channelResults.length : 0) + itemIndex
           property bool isSelected: searchResultsRoot.selectedIndex === globalIndex
           
-          color: cacheMouse.containsMouse ? "#1a2230" : "transparent"
-          border.color: isSelected ? BlueTheme.accent : "transparent"
+          color: cacheMouse.containsMouse ? (tm ? tm.cardHighlight : BlueTheme.cardHighlight) : "transparent"
+          border.color: isSelected ? (tm ? tm.accent : BlueTheme.accent) : "transparent"
           border.width: isSelected ? 1 : 0
           
-          Behavior on border.color { ColorAnimation { duration: 100 } }
+          Behavior on color { ColorAnimation { duration: BlueTheme.animHoverDuration } }
+          Behavior on border.color { ColorAnimation { duration: BlueTheme.animHoverDuration } }
           
           // Thumbnail
           Rectangle {
@@ -281,7 +286,7 @@ Rectangle {
             width: 48
             height: 48
             radius: 8
-            color: BlueTheme.surfaceSoft
+            color: tm ? tm.surfaceSoft : BlueTheme.surfaceSoft
             clip: true
             
             Image {
@@ -310,7 +315,7 @@ Rectangle {
             font.family: BlueTheme.fontFamily
             font.pixelSize: 14
             font.weight: Font.DemiBold
-            color: BlueTheme.primaryText
+            color: tm ? tm.primaryText : BlueTheme.primaryText
             elide: Text.ElideRight
           }
           
@@ -322,7 +327,7 @@ Rectangle {
             text: cacheDelegate.vodInfo ? (cacheDelegate.vodInfo.streamTitle || "") : ""
             font.family: BlueTheme.fontFamily
             font.pixelSize: 11
-            color: BlueTheme.secondaryText
+            color: tm ? tm.secondaryText : BlueTheme.secondaryText
             elide: Text.ElideRight
           }
           
@@ -342,7 +347,7 @@ Rectangle {
             }
             font.family: BlueTheme.fontFamily
             font.pixelSize: 10
-            color: BlueTheme.mutedText
+            color: tm ? tm.mutedText : BlueTheme.mutedText
           }
           
           // Cache badge
@@ -352,7 +357,7 @@ Rectangle {
             width: 50
             height: 18
             radius: 9
-            color: BlueTheme.accent
+            color: tm ? tm.accent : BlueTheme.accent
             opacity: 0.8
             
             Text {
@@ -388,7 +393,7 @@ Rectangle {
         text: qsTr("No results")
         font.family: BlueTheme.fontFamily
         font.pixelSize: 13
-        color: BlueTheme.mutedText
+        color: tm ? tm.mutedText : BlueTheme.mutedText
         width: contentColumn.width
         horizontalAlignment: Text.AlignHCenter
         topPadding: 16
