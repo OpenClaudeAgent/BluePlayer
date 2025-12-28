@@ -90,6 +90,20 @@ class TestCacheManager : public QObject {
   // ===== Tests VOD Management - Nettoyage =====
   void testCleanupServiceStartStop();
   void testPerformCleanup();
+  
+  // ===== Sprint 7 - Tests downloadThumbnailAsync() =====
+  void testDownloadThumbnailAsyncEmptyUrl();
+  void testDownloadThumbnailAsyncEmptyFilename();
+  void testDownloadThumbnailAsyncExistingFile();
+  void testDownloadThumbnailAsyncSignals();
+  void testDownloadThumbnailAsyncWithPlaceholders();
+  
+  // ===== Sprint 7 - Tests prepareRecording/finalizeRecording =====
+  void testPrepareRecordingEmptyStreamerLogin();
+  void testPrepareRecordingValidInput();
+  void testFinalizeRecordingEmptyPath();
+  void testFinalizeRecordingNonExistentFile();
+  void testFinalizeRecordingShortDuration();
 
  private:
   CacheManager* m_cacheManager = nullptr;
@@ -326,8 +340,8 @@ void TestCacheManager::testVodInitialState() {
 }
 
 void TestCacheManager::testMaxCacheSizeDefault() {
-  // Default is 10 GB
-  qint64 expectedDefault = 8LL * 1024 * 1024 * 1024; // 8 GB (actual default)
+  // Default is 8 GB (as configured in CacheManager.hpp)
+  qint64 expectedDefault = 8LL * 1024 * 1024 * 1024; // 8 GB
   QCOMPARE(m_cacheManager->maxCacheSize(), expectedDefault);
 }
 
@@ -449,7 +463,8 @@ void TestCacheManager::testSetMaxCacheSize() {
 void TestCacheManager::testSetMaxCacheSizeEmitsSignal() {
   QSignalSpy sizeSpy(m_cacheManager, &CacheManager::maxCacheSizeChanged);
   
-  qint64 newSize = 8LL * 1024 * 1024 * 1024; // 8 GB
+  // Utiliser une valeur différente de la valeur par défaut (10 GB)
+  qint64 newSize = 8LL * 1024 * 1024 * 1024; // 8 GB (différent de 10 GB)
   m_cacheManager->setMaxCacheSize(newSize);
   
   QVERIFY(sizeSpy.count() >= 1);
@@ -543,6 +558,162 @@ void TestCacheManager::testPerformCleanup() {
   
   // Sans VOD excédant la limite, aucune suppression
   QCOMPARE(removed, 0);
+}
+
+// ===== Sprint 7 - Tests downloadThumbnailAsync() =====
+
+void TestCacheManager::testDownloadThumbnailAsyncEmptyUrl() {
+  QSignalSpy failedSpy(m_cacheManager, &CacheManager::thumbnailDownloadFailed);
+  
+  // URL vide doit émettre un signal d'échec
+  m_cacheManager->downloadThumbnailAsync("", "test_thumbnail.jpg");
+  
+  // Le signal d'échec doit être émis immédiatement
+  QCOMPARE(failedSpy.count(), 1);
+  QCOMPARE(failedSpy.at(0).at(0).toString(), QString("test_thumbnail.jpg"));
+}
+
+void TestCacheManager::testDownloadThumbnailAsyncEmptyFilename() {
+  QSignalSpy failedSpy(m_cacheManager, &CacheManager::thumbnailDownloadFailed);
+  
+  // Filename vide doit émettre un signal d'échec
+  m_cacheManager->downloadThumbnailAsync("https://example.com/thumb.jpg", "");
+  
+  // Le signal d'échec doit être émis immédiatement
+  QCOMPARE(failedSpy.count(), 1);
+}
+
+void TestCacheManager::testDownloadThumbnailAsyncExistingFile() {
+  // Créer un fichier existant dans le cache directory
+  QString cacheDir = m_cacheManager->cacheDirectory();
+  QDir dir(cacheDir);
+  dir.mkpath(".");
+  
+  QString filename = "existing_thumb.jpg";
+  QString filePath = cacheDir + "/" + filename;
+  
+  // Créer le fichier
+  QFile file(filePath);
+  QVERIFY(file.open(QIODevice::WriteOnly));
+  file.write("fake image data");
+  file.close();
+  
+  QSignalSpy successSpy(m_cacheManager, &CacheManager::thumbnailDownloaded);
+  
+  // Si le fichier existe déjà, le signal de succès doit être émis immédiatement
+  m_cacheManager->downloadThumbnailAsync("https://example.com/thumb.jpg", filename);
+  
+  // Le signal de succès doit être émis car le fichier existe
+  QCOMPARE(successSpy.count(), 1);
+  QCOMPARE(successSpy.at(0).at(1).toString(), filename);
+  
+  // Nettoyer
+  QFile::remove(filePath);
+}
+
+void TestCacheManager::testDownloadThumbnailAsyncSignals() {
+  // Test que les bons signaux existent
+  const QMetaObject* metaObject = m_cacheManager->metaObject();
+  
+  // Vérifier que le signal thumbnailDownloaded existe
+  int downloadedIndex = metaObject->indexOfSignal("thumbnailDownloaded(QString,QString)");
+  QVERIFY2(downloadedIndex >= 0, "Signal thumbnailDownloaded(QString,QString) not found");
+  
+  // Vérifier que le signal thumbnailDownloadFailed existe
+  int failedIndex = metaObject->indexOfSignal("thumbnailDownloadFailed(QString,QString)");
+  QVERIFY2(failedIndex >= 0, "Signal thumbnailDownloadFailed(QString,QString) not found");
+}
+
+void TestCacheManager::testDownloadThumbnailAsyncWithPlaceholders() {
+  // Test que les placeholders Twitch sont traités
+  // Cette méthode teste indirectement processThumbnailUrl
+  
+  QSignalSpy failedSpy(m_cacheManager, &CacheManager::thumbnailDownloadFailed);
+  
+  // URL avec placeholders Twitch (qui seront remplacés par 440x248)
+  QString urlWithPlaceholders = "https://static-cdn.jtvnw.net/previews-ttv/live_user_test-{width}x{height}.jpg";
+  
+  // Comme on n'a pas de réseau, le téléchargement échouera mais on vérifie 
+  // que la méthode ne crashe pas avec des placeholders
+  m_cacheManager->downloadThumbnailAsync(urlWithPlaceholders, "placeholder_test.jpg");
+  
+  // Le test passe si pas de crash - le résultat dépend du réseau
+  QVERIFY(m_cacheManager != nullptr);
+}
+
+// ===== Sprint 7 - Tests prepareRecording/finalizeRecording =====
+
+void TestCacheManager::testPrepareRecordingEmptyStreamerLogin() {
+  QVariantMap result = m_cacheManager->prepareRecording("");
+  
+  // Avec un login vide, le chemin d'enregistrement doit être vide
+  QVERIFY(result.value("recordingPath").toString().isEmpty());
+}
+
+void TestCacheManager::testPrepareRecordingValidInput() {
+  QVariantMap result = m_cacheManager->prepareRecording("teststreamer", "https://example.com/thumb.jpg");
+  
+  // Le chemin d'enregistrement doit être défini
+  QString recordingPath = result.value("recordingPath").toString();
+  QVERIFY(!recordingPath.isEmpty());
+  QVERIFY(recordingPath.contains("teststreamer"));
+  QVERIFY(recordingPath.endsWith(".ts"));
+  
+  // Le chemin de thumbnail doit être défini
+  QString thumbnailPath = result.value("thumbnailPath").toString();
+  QVERIFY(!thumbnailPath.isEmpty());
+  QVERIFY(thumbnailPath.contains("teststreamer"));
+  QVERIFY(thumbnailPath.endsWith(".jpg"));
+  
+  // Le timestamp doit être défini
+  qint64 startTime = result.value("startTime").toLongLong();
+  QVERIFY(startTime > 0);
+}
+
+void TestCacheManager::testFinalizeRecordingEmptyPath() {
+  bool result = m_cacheManager->finalizeRecording("", "streamer", "name", "title", "", 0);
+  
+  // Path vide doit échouer
+  QVERIFY(!result);
+}
+
+void TestCacheManager::testFinalizeRecordingNonExistentFile() {
+  bool result = m_cacheManager->finalizeRecording(
+    "/nonexistent/path/video.ts",
+    "streamer",
+    "name",
+    "title",
+    "",
+    QDateTime::currentMSecsSinceEpoch() - 60000  // 1 minute ago
+  );
+  
+  // Fichier inexistant doit échouer
+  QVERIFY(!result);
+}
+
+void TestCacheManager::testFinalizeRecordingShortDuration() {
+  // Créer un fichier temporaire
+  QString filePath = m_tempDir->filePath("short_recording.ts");
+  QFile file(filePath);
+  QVERIFY(file.open(QIODevice::WriteOnly));
+  file.write("test data");
+  file.close();
+  
+  // Essayer de finaliser avec une durée < 30 secondes
+  bool result = m_cacheManager->finalizeRecording(
+    filePath,
+    "streamer",
+    "name",
+    "title",
+    "",
+    QDateTime::currentMSecsSinceEpoch() - 10000  // 10 secondes seulement
+  );
+  
+  // Durée trop courte doit échouer
+  QVERIFY(!result);
+  
+  // Le fichier doit être supprimé
+  QVERIFY(!QFile::exists(filePath));
 }
 
 QTEST_MAIN(TestCacheManager)

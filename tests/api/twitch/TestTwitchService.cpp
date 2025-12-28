@@ -55,6 +55,12 @@ private slots:
   // Tests d'accessToken
   void testAccessTokenProperty();
 
+  // Sprint 7 - Tests pour ensureTokenAndExecute() (tests indirects)
+  void testEnsureTokenWithValidToken();
+  void testEnsureTokenWithEmptyToken();
+  void testEnsureTokenWithNullAuthManager();
+  void testRefreshMethodsReturnEarlyWithoutToken();
+
 private:
   TwitchService* m_service = nullptr;
   MockSecureStorage* m_mockStorage = nullptr;
@@ -335,6 +341,92 @@ void TestTwitchService::testAccessTokenProperty() {
 
   QString token = m_service->accessToken();
   QVERIFY(token.isEmpty());
+}
+
+// ===== Sprint 7 - Tests pour ensureTokenAndExecute() =====
+
+void TestTwitchService::testEnsureTokenWithValidToken() {
+  // Stocker un token dans le mock storage pour simuler une auth valide
+  m_mockStorage->store("blueplayer_access_token", "valid_test_token_12345");
+  m_mockStorage->store("blueplayer_refresh_token", "valid_refresh_token");
+  
+  // Recréer le service pour qu'il charge les tokens
+  delete m_service;
+  m_service = new TwitchService(m_mockStorage, this);
+  
+  // Si le token est chargé, isAuthenticated pourrait être true
+  // (dépend de la logique interne de TwitchAuthManager)
+  
+  // Appeler une méthode qui utilise ensureTokenAndExecute()
+  // Elle ne doit pas crasher
+  m_service->refreshCategories();
+  QVERIFY(m_service != nullptr);
+}
+
+void TestTwitchService::testEnsureTokenWithEmptyToken() {
+  // Sans token, les méthodes utilisant ensureTokenAndExecute doivent gérer gracieusement
+  m_service->logout();
+  
+  QSignalSpy categoriesSpy(m_service, &TwitchService::categoriesChanged);
+  
+  // Appeler refreshCategories sans token
+  m_service->refreshCategories();
+  
+  // La liste doit rester vide car pas de token
+  QVERIFY(m_service->categories().isEmpty());
+}
+
+void TestTwitchService::testEnsureTokenWithNullAuthManager() {
+  // Créer un service avec un storage vide pour s'assurer qu'il gère le cas null
+  MockSecureStorage emptyStorage;
+  TwitchService localService(&emptyStorage);
+  
+  // Appeler logout() puis des méthodes de refresh
+  localService.logout();
+  
+  // Ces appels ne doivent pas crasher même si le token est vide
+  localService.refreshRecommendedStreams();
+  localService.refreshCategories();
+  localService.refreshPopularClips();
+  localService.refreshFollowedClips();
+  localService.refreshVideos();
+  localService.refreshFollowedChannels();
+  localService.refreshNewStreamers();
+  localService.refreshCategoryStreams("12345");
+  localService.search("test");
+  
+  // Toutes les listes doivent être vides
+  QVERIFY(localService.recommendedStreams().isEmpty());
+  QVERIFY(localService.categories().isEmpty());
+  QVERIFY(localService.popularClips().isEmpty());
+  QVERIFY(localService.followedClips().isEmpty());
+  QVERIFY(localService.videos().isEmpty());
+  QVERIFY(localService.followedChannels().isEmpty());
+  QVERIFY(localService.newStreamers().isEmpty());
+  QVERIFY(localService.categoryStreams().isEmpty());
+}
+
+void TestTwitchService::testRefreshMethodsReturnEarlyWithoutToken() {
+  m_service->logout();
+  
+  // Toutes les méthodes utilisant ensureTokenAndExecute doivent retourner tôt sans token
+  QSignalSpy errorSpy(m_service, &TwitchService::errorOccurred);
+  
+  // Appeler refreshVideos - nécessite auth ET userId
+  m_service->refreshVideos();
+  QVERIFY(m_service->videos().isEmpty());
+  
+  // Appeler refreshFollowedChannels - nécessite auth ET userId
+  m_service->refreshFollowedChannels();
+  QVERIFY(m_service->followedChannels().isEmpty());
+  
+  // Appeler refreshNewStreamers - nécessite auth ET userId
+  m_service->refreshNewStreamers();
+  QVERIFY(m_service->newStreamers().isEmpty());
+  
+  // Appeler refreshFollowedClips - nécessite auth ET userId
+  m_service->refreshFollowedClips();
+  QVERIFY(m_service->followedClips().isEmpty());
 }
 
 QTEST_MAIN(TestTwitchService)

@@ -126,7 +126,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | **21** | **Dette Technique** | [plan-21](./plan-21-technical-debt.md) | `refactor/tech-debt` | - | 🔴 En attente |
 | 22 | Page succès OAuth | [plan-22](./plan-22-oauth-success-page.md) | `fix/oauth-success-page` | - | 🔴 En attente |
 | 23 | Auto-refresh Home | [plan-23](./plan-23-auto-refresh.md) | `feature/auto-refresh` | - | 🔴 En attente |
-| **24** | **Refactoring Profond** | [plan-24](./plan-24-deep-refactoring.md) | `refactor/deep-analysis` | v0.16.0 (Sprint 6) | 🟡 En cours |
+| **24** | **Refactoring Profond** | [plan-24](./plan-24-deep-refactoring.md) | `refactor/deep-analysis` | v0.17.0 (Sprint 7) | 🟢 Terminé |
 | **25** | **Audit UI/UX Design** | [plan-25](./plan-25-ui-design-audit.md) | `design/ui-audit` | - | 🔴 En attente |
 | 26 | Icône Application BluePlayer | [plan-26](./plan-26-app-icon.md) | `feature/app-icon` | - | 🔴 En attente |
 | 27 | Suppression MpvFboItem (Legacy) | [plan-27](./plan-27-remove-mpvfboitem.md) | `refactor/remove-mpvfboitem` | - | 🔴 En attente |
@@ -171,6 +171,8 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 2025-12-28 | Plan 24 Sprint 4 terminé - BaseCard créé, 5 cards refactorées (-239 lignes, -26%) |
 | 2025-12-28 | Plan 24 Sprint 5 terminé - TwitchService helper ensureTokenAndExecute() (-29 lignes, 9 duplications) |
 | 2025-12-28 | Plan 24 Sprint 6 terminé - downloadThumbnail() asynchrone (thread UI non bloqué) |
+| 2025-12-28 | Plan 24 Sprint 7 terminé - +32 tests (unitaires + intégration), CI/CD reporté |
+| 2025-12-28 | **Plan 24 TERMINÉ** - Refactoring Profond complet (7 sprints, v0.11.0 → v0.17.0) |
 
 ---
 
