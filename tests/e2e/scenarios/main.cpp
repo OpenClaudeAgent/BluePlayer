@@ -2,7 +2,8 @@
  * @file main.cpp
  * @brief Entry point for E2E test scenarios
  *
- * Sets up the mock servers and runs QML-based E2E test scenarios.
+ * Sets up the mock servers and runs E2E test scenarios that validate
+ * the full integration between TwitchApiClient and mock servers.
  */
 
 #include <QtTest/QtTest>
@@ -12,9 +13,14 @@
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QSignalSpy>
 
 #include "../servers/MockTwitchServer.hpp"
 #include "../servers/MockHlsServer.hpp"
+
+// Application includes for real integration test
+#include "core/Config.hpp"
+#include "api/twitch/TwitchApiClient.hpp"
 
 using namespace blueplayer::test::e2e;
 
@@ -148,6 +154,61 @@ private Q_SLOTS:
 
     // This test passes if infrastructure is ready
     QVERIFY(true);
+  }
+
+  /**
+   * @test Real E2E test: TwitchApiClient talks to MockTwitchServer
+   *
+   * This test validates the full integration:
+   * 1. Config reads mock URL from environment
+   * 2. TwitchApiClient uses the mock URL
+   * 3. MockTwitchServer returns fixture data
+   * 4. TwitchApiClient parses and emits the data
+   */
+  void test_twitchApiClientIntegration()
+  {
+    // Reload config to pick up environment variables
+    blueplayer::core::Config::instance().load();
+    
+    // Verify Config is in test mode and using mock URL
+    QVERIFY(blueplayer::core::Config::instance().isTestMode());
+    QVERIFY(blueplayer::core::Config::instance().twitchApiBaseUrl().contains("localhost"));
+    
+    // Create TwitchApiClient with test client ID
+    blueplayer::api::twitch::TwitchApiClient apiClient("test_client_id");
+    apiClient.setAccessToken("e2e_test_token_12345");
+    
+    // Setup signal spy to capture streamsReady signal
+    QSignalSpy streamsSpy(&apiClient, &blueplayer::api::twitch::TwitchApiClient::streamsReady);
+    QVERIFY(streamsSpy.isValid());
+    
+    // Request streams from mock server
+    m_twitchServer->clearRequests();
+    apiClient.listStreams(10);
+    
+    // Wait for response (max 5 seconds)
+    QVERIFY(streamsSpy.wait(5000));
+    
+    // Verify mock server received the request
+    QVERIFY(m_twitchServer->requestCount() > 0);
+    qDebug() << "Mock server received" << m_twitchServer->requestCount() << "request(s)";
+    
+    // Verify we got streams back
+    QCOMPARE(streamsSpy.count(), 1);
+    QVariantList streams = streamsSpy.first().first().toList();
+    
+    // We loaded 3 streams in fixtures
+    QCOMPARE(streams.size(), 3);
+    qDebug() << "Received" << streams.size() << "streams from mock API";
+    
+    // Verify first stream data matches fixture
+    // Note: parseStreamsArray maps: id, user_id, user_name, user_login, title, viewer_count, etc.
+    QVariantMap firstStream = streams.first().toMap();
+    QCOMPARE(firstStream["user_login"].toString(), QString("teststreamer"));
+    QCOMPARE(firstStream["title"].toString(), QString("Test Stream for E2E Testing"));
+    QCOMPARE(firstStream["viewer_count"].toInt(), 1234);
+    
+    qDebug() << "E2E Integration test PASSED: TwitchApiClient -> MockTwitchServer";
   }
 
 private:
