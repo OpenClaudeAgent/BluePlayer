@@ -1,12 +1,18 @@
 # Plan 14 - Bouton Follow/Unfollow
 
+> **⚠️ ABANDONNÉ** : L'API Twitch Helix ne fournit pas d'endpoints pour follow/unfollow programmatiquement.
+> Seuls les endpoints de lecture existent (`GET /helix/channels/followed`).
+> Voir : https://dev.twitch.tv/docs/api/reference/#get-followed-channels
+
 ## Contexte
 
 Actuellement, pour follow ou unfollow un streamer, l'utilisateur doit aller sur le site Twitch. Ajouter un bouton directement dans le player permettrait une expérience plus intégrée et fluide.
 
 ## Objectif
 
-Ajouter un bouton Follow/Unfollow dans le PlayerView pour permettre à l'utilisateur de gérer ses follows sans quitter l'application.
+~~Ajouter un bouton Follow/Unfollow dans le PlayerView pour permettre à l'utilisateur de gérer ses follows sans quitter l'application.~~
+
+**Non réalisable** : Twitch n'expose pas d'API pour cette fonctionnalité.
 
 ## Spécifications
 
