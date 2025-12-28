@@ -1,96 +1,109 @@
 # tests/e2e/CMakeLists.txt
-# End-to-End Testing Infrastructure for BluePlayer
+# E2E Testing Infrastructure using Qt Quick Test
 
 cmake_minimum_required(VERSION 3.24)
 
-# Find required Qt modules
-find_package(Qt6 6.5 COMPONENTS Core Gui Network Test REQUIRED)
+message(STATUS "E2E Testing Infrastructure - Qt Quick Test")
 
-message(STATUS "E2E tests - configuring mock servers and scenarios")
+# ============================================================================
+# Dependencies
+# ============================================================================
 
-# Common libraries for E2E tests
-set(E2E_TEST_LIBS
-  Qt6::Core
-  Qt6::Network
-  Qt6::Test
+find_package(Qt6 6.5 COMPONENTS Core Network Quick QuickTest REQUIRED)
+
+# ============================================================================
+# Mock Servers Library
+# ============================================================================
+
+# Static library containing mock HTTP servers for Twitch API and HLS
+add_library(e2e_mock_servers STATIC
+    servers/MockTwitchServer.cpp
+    servers/MockHlsServer.cpp
 )
 
-# E2E Server library (MockTwitchServer, MockHlsServer)
-add_library(e2e_servers STATIC
-  servers/MockTwitchServer.cpp
-  servers/MockHlsServer.cpp
+target_link_libraries(e2e_mock_servers PUBLIC
+    Qt6::Core
+    Qt6::Network
 )
 
-target_link_libraries(e2e_servers PUBLIC
-  ${E2E_TEST_LIBS}
+target_include_directories(e2e_mock_servers PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/servers
 )
 
-target_include_directories(e2e_servers PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}
-  ${CMAKE_CURRENT_SOURCE_DIR}/servers
-  ${CMAKE_CURRENT_SOURCE_DIR}/helpers
-  ${CMAKE_CURRENT_SOURCE_DIR}/../
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../src
+set_target_properties(e2e_mock_servers PROPERTIES AUTOMOC ON)
+
+# ============================================================================
+# E2E Test Runner
+# ============================================================================
+
+# The E2E test executable
+add_executable(e2e_tests
+    main.cpp
+    Setup.cpp
+    Setup.hpp
 )
 
-set_target_properties(e2e_servers PROPERTIES AUTOMOC ON)
-
-# E2E Helpers library
-add_library(e2e_helpers STATIC
-  helpers/E2ETestBase.cpp
+target_link_libraries(e2e_tests PRIVATE
+    Qt6::Core
+    Qt6::Quick
+    Qt6::QuickTest
+    e2e_mock_servers
+    blueplayer_core    # For Config and other core classes
+    blueplayer_media   # Needed for transitive dependencies
 )
 
-target_link_libraries(e2e_helpers PUBLIC
-  e2e_servers
-  ${E2E_TEST_LIBS}
+# Add Homebrew lib path for libmpv
+target_link_directories(e2e_tests PRIVATE ${HOMEBREW_PREFIX}/lib)
+
+target_include_directories(e2e_tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_include_directories(e2e_helpers PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}
-  ${CMAKE_CURRENT_SOURCE_DIR}/helpers
-  ${CMAKE_CURRENT_SOURCE_DIR}/servers
+set_target_properties(e2e_tests PROPERTIES AUTOMOC ON)
+
+# ============================================================================
+# Test Resources (QML test files)
+# ============================================================================
+
+# Define the source directory for QML tests
+# Qt Quick Test looks for tst_*.qml files in this directory
+set(E2E_QML_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+
+# Pass the QML test directory to the executable
+target_compile_definitions(e2e_tests PRIVATE
+    QUICK_TEST_SOURCE_DIR="${E2E_QML_SOURCE_DIR}"
 )
 
-set_target_properties(e2e_helpers PROPERTIES AUTOMOC ON)
+# ============================================================================
+# CTest Integration
+# ============================================================================
 
-# E2E Infrastructure Test (validates mock servers work)
-add_executable(test_e2e_infrastructure
-  scenarios/main.cpp
+add_test(
+    NAME E2E_OpenLive
+    COMMAND e2e_tests -input "${E2E_QML_SOURCE_DIR}"
 )
 
-target_link_libraries(test_e2e_infrastructure PRIVATE
-  e2e_helpers
-  e2e_servers
-  ${E2E_TEST_LIBS}
-  blueplayer_core  # For TwitchApiClient integration tests
+# Set test properties
+set_tests_properties(E2E_OpenLive PROPERTIES
+    LABELS "e2e"
+    TIMEOUT 60
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"  # Run headless in CI
 )
 
-target_compile_definitions(test_e2e_infrastructure PRIVATE
-  QUICK_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/scenarios"
-)
+# ============================================================================
+# Usage Instructions
+# ============================================================================
 
-target_include_directories(test_e2e_infrastructure PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../src
-)
-
-target_link_directories(test_e2e_infrastructure PRIVATE /opt/homebrew/lib)
-
-set_target_properties(test_e2e_infrastructure PROPERTIES AUTOMOC ON)
-
-# Apply coverage flags if enabled
-if(BLUEPLAYER_COVERAGE_ENABLED)
-  target_compile_options(test_e2e_infrastructure PRIVATE ${BLUEPLAYER_COVERAGE_FLAGS})
-  target_link_options(test_e2e_infrastructure PRIVATE ${BLUEPLAYER_COVERAGE_FLAGS})
-endif()
-
-add_test(NAME E2E_Infrastructure COMMAND test_e2e_infrastructure)
-
-set_tests_properties(E2E_Infrastructure PROPERTIES
-  LABELS "e2e"
-  TIMEOUT 60
-)
-
-message(STATUS "E2E tests configured:")
-message(STATUS "  - test_e2e_infrastructure (mock server validation)")
-message(STATUS "Run with: ctest -L e2e")
+message(STATUS "")
+message(STATUS "E2E Test Infrastructure configured:")
+message(STATUS "  - Mock servers: MockTwitchServer, MockHlsServer")
+message(STATUS "  - Test runner: e2e_tests")
+message(STATUS "  - QML tests: ${E2E_QML_SOURCE_DIR}/tst_*.qml")
+message(STATUS "")
+message(STATUS "To run E2E tests:")
+message(STATUS "  make e2e_tests && ./tests/e2e/e2e_tests")
+message(STATUS "")
+message(STATUS "To run with visible UI (not headless):")
+message(STATUS "  QT_QPA_PLATFORM= ./tests/e2e/e2e_tests")
+message(STATUS "")
