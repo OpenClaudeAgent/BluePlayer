@@ -132,6 +132,7 @@ qt_add_qml_module(BluePlayer
     ui/CacheManagerView.qml
     ui/VideoPlayer.qml
     ui/themes/BlueTheme.js
+    ui/components/BaseCard.qml
     ui/components/BlueCard.qml
     ui/components/BlueButton.qml
     ui/components/CategoriesScroller.qml

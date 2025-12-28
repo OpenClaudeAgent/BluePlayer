@@ -2,185 +2,116 @@ import QtQuick 2.15
 import QtQuick.Layouts 1.15
 import "../themes/BlueTheme.js" as BlueTheme
 
-Item {
+BaseCard {
   id: cardRoot
+
   property string clipTitle: ""
   property string broadcasterName: ""
   property string viewCount: ""
   property string duration: ""
   property string thumbnailUrl: ""
-  property bool isPlaceholder: false
 
-  implicitWidth: 180
-  implicitHeight: 220
+  onCardClicked: {
+    console.log("Clicked on clip:", clipTitle)
+    // TODO: Play clip
+  }
 
-  Rectangle {
-    id: cardBackground
+  ColumnLayout {
     anchors.fill: parent
-    radius: 12
-    color: cardRoot.isPlaceholder ? BlueTheme.surfaceSoft : BlueTheme.surface
-    border.color: BlueTheme.divider
-    border.width: 1
-
-    states: [
-      State {
-        name: "hovered"
-        when: mouseArea.containsMouse
-        PropertyChanges {
-          target: cardBackground
-          color: cardRoot.isPlaceholder ? "#252d3d" : "#1a2330"
-          scale: 1.02
-        }
-        PropertyChanges {
-          target: cardShadow
-          opacity: 0.3
-        }
-      }
-    ]
-
-    transitions: Transition {
-      NumberAnimation {
-        properties: "scale, opacity"
-        duration: BlueTheme.animCardDuration
-        easing.type: Easing.OutCubic
-      }
-      ColorAnimation {
-        duration: BlueTheme.animCardDuration
-        easing.type: Easing.OutCubic
-      }
-    }
+    spacing: 12
 
     Rectangle {
-      id: cardShadow
-      anchors.fill: parent
-      anchors.margins: -2
-      radius: parent.radius + 2
-      color: "transparent"
-      border.color: "#00000020"
+      Layout.fillWidth: true
+      Layout.preferredHeight: 120
+      radius: 8
+      color: cardRoot.isPlaceholder ? "#1a2230" : BlueTheme.surfaceSoft
+      border.color: BlueTheme.divider
       border.width: 1
-      opacity: 0
+      clip: true
+
+      Image {
+        id: thumbnailImage
+        anchors.fill: parent
+        source: cardRoot.isPlaceholder ? "" : cardRoot.thumbnailUrl
+        fillMode: Image.PreserveAspectCrop
+        asynchronous: true
+        cache: true
+        visible: status === Image.Ready && !cardRoot.isPlaceholder
+
+        opacity: status === Image.Ready ? 1 : 0
+        Behavior on opacity {
+          NumberAnimation { duration: BlueTheme.animContentFadeDuration; easing.type: Easing.OutCubic }
+        }
+      }
+
+      Rectangle {
+        anchors.fill: parent
+        color: cardRoot.isPlaceholder ? "#1a2230" : BlueTheme.surfaceSoft
+        visible: thumbnailImage.status !== Image.Ready || cardRoot.isPlaceholder
+
+        Text {
+          anchors.centerIn: parent
+          text: cardRoot.isPlaceholder ? "⋯" : (thumbnailImage.status === Image.Loading ? "⏳" : "🎬")
+          font.pixelSize: 32
+          color: BlueTheme.mutedText
+          opacity: 0.5
+        }
+      }
+
+      // Duration badge
+      Rectangle {
+        anchors.bottom: parent.bottom
+        anchors.right: parent.right
+        anchors.margins: 6
+        width: durationText.implicitWidth + 8
+        height: 20
+        radius: 10
+        color: "#00000080"
+        visible: !cardRoot.isPlaceholder && cardRoot.duration !== "" && thumbnailImage.status === Image.Ready
+
+        Text {
+          id: durationText
+          anchors.centerIn: parent
+          text: cardRoot.duration
+          font.pixelSize: 10
+          font.bold: true
+          color: "#fff"
+        }
+      }
     }
 
     ColumnLayout {
-      anchors.fill: parent
-      anchors.margins: 12
-      spacing: 12
+      Layout.fillWidth: true
+      spacing: 4
 
-      Rectangle {
+      Text {
+        text: cardRoot.clipTitle
+        font.family: BlueTheme.fontFamily
+        font.pixelSize: 12
+        font.bold: true
+        color: BlueTheme.primaryText
+        elide: Text.ElideRight
+        wrapMode: Text.WordWrap
+        maximumLineCount: 2
         Layout.fillWidth: true
-        Layout.preferredHeight: 120
-        radius: 8
-        color: cardRoot.isPlaceholder ? "#1a2230" : BlueTheme.surfaceSoft
-        border.color: BlueTheme.divider
-        border.width: 1
-        clip: true
-
-        Image {
-          id: thumbnailImage
-          anchors.fill: parent
-          source: cardRoot.isPlaceholder ? "" : cardRoot.thumbnailUrl
-          fillMode: Image.PreserveAspectCrop
-          asynchronous: true
-          cache: true
-          visible: status === Image.Ready && !cardRoot.isPlaceholder
-          
-          opacity: status === Image.Ready ? 1 : 0
-          Behavior on opacity {
-            NumberAnimation { duration: BlueTheme.animContentFadeDuration; easing.type: Easing.OutCubic }
-          }
-        }
-
-        Rectangle {
-          anchors.fill: parent
-          color: cardRoot.isPlaceholder ? "#1a2230" : BlueTheme.surfaceSoft
-          visible: thumbnailImage.status !== Image.Ready || cardRoot.isPlaceholder
-          
-          Text {
-            anchors.centerIn: parent
-            text: cardRoot.isPlaceholder ? "⋯" : (thumbnailImage.status === Image.Loading ? "⏳" : "🎬")
-            font.pixelSize: 32
-            color: BlueTheme.mutedText
-            opacity: 0.5
-          }
-        }
-
-        Rectangle {
-          anchors.bottom: parent.bottom
-          anchors.right: parent.right
-          anchors.margins: 6
-          width: durationText.implicitWidth + 8
-          height: 20
-          radius: 10
-          color: "#00000080"
-          visible: !cardRoot.isPlaceholder && cardRoot.duration !== "" && thumbnailImage.status === Image.Ready
-
-          Text {
-            id: durationText
-            anchors.centerIn: parent
-            text: cardRoot.duration
-            font.pixelSize: 10
-            font.bold: true
-            color: "#fff"
-          }
-        }
       }
 
-      ColumnLayout {
+      Text {
+        text: cardRoot.broadcasterName
+        font.family: BlueTheme.fontFamily
+        font.pixelSize: 11
+        color: BlueTheme.secondaryText
+        elide: Text.ElideRight
         Layout.fillWidth: true
-        spacing: 4
-
-        Text {
-          text: cardRoot.clipTitle
-          font.family: BlueTheme.fontFamily
-          font.pixelSize: 12
-          font.bold: true
-          color: BlueTheme.primaryText
-          elide: Text.ElideRight
-          wrapMode: Text.WordWrap
-          maximumLineCount: 2
-          Layout.fillWidth: true
-        }
-
-        Text {
-          text: cardRoot.broadcasterName
-          font.family: BlueTheme.fontFamily
-          font.pixelSize: 11
-          color: BlueTheme.secondaryText
-          elide: Text.ElideRight
-          Layout.fillWidth: true
-        }
-
-        Text {
-          text: cardRoot.viewCount !== "" ? cardRoot.viewCount + " vues" : ""
-          font.family: BlueTheme.fontFamily
-          font.pixelSize: 10
-          color: BlueTheme.accent
-          Layout.fillWidth: true
-        }
       }
-    }
-  }
 
-  MouseArea {
-    id: mouseArea
-    anchors.fill: parent
-    hoverEnabled: true
-    cursorShape: Qt.PointingHandCursor
-    onClicked: {
-      if (!cardRoot.isPlaceholder) {
-        console.log("Clicked on clip:", cardRoot.clipTitle)
-        // TODO: Play clip
+      Text {
+        text: cardRoot.viewCount !== "" ? cardRoot.viewCount + " vues" : ""
+        font.family: BlueTheme.fontFamily
+        font.pixelSize: 10
+        color: BlueTheme.accent
+        Layout.fillWidth: true
       }
     }
   }
 }
-
-
-
-
-
-
-
-
-
-

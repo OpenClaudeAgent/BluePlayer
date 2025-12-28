@@ -383,10 +383,10 @@ void TwitchService::refreshStreams() {
 - [x] 24.4 - Validation chat implémentée
 - [x] 24.5 - Bools atomiques
 
-### Refactoring QML (Sprints 2-4)
+### Refactoring QML (Sprints 2-4) - Terminé v0.14.0
 - [x] 24.6-24.9 - PlayerView refactoré
 - [x] 24.10-24.13 - PlayerControlBar refactoré
-- [ ] 24.14-24.15 - BaseCard créé et utilisé
+- [x] 24.14-24.15 - BaseCard créé et utilisé
 
 ## Bonus (ajouté lors de l'implémentation)
 
