@@ -5,6 +5,9 @@
 #include <QVariantList>
 #include <functional>
 
+// Forward declaration for test class (friend access)
+class TestTwitchService;
+
 namespace blueplayer::core {
 class ISecureStorage;
 }
@@ -345,6 +348,9 @@ private slots:
   void onAdFilterMaxRetries(const QString& url);
 
 private:
+  // Allow test class to access private members for comprehensive testing
+  friend class ::TestTwitchService;
+  
   TwitchAuthManager* m_authManager = nullptr;
   TwitchApiClient* m_apiClient = nullptr;
   blueplayer::media::HlsAdFilter* m_adFilter = nullptr;

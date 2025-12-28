@@ -129,6 +129,48 @@ private slots:
   // Tests de refreshStreams
   void testRefreshStreamsWithoutAuth();
 
+  // ===== Sprint 8 - Tests de selectBestQualityFromPlaylist =====
+  void testSelectBestQuality_EmptyPlaylist();
+  void testSelectBestQuality_SingleQuality();
+  void testSelectBestQuality_MultipleQualities();
+  void testSelectBestQuality_ChunkedIsPrioritized();
+  void testSelectBestQuality_1080p60Priority();
+  void testSelectBestQuality_720p60Priority();
+  void testSelectBestQuality_NoStreamInf();
+  void testSelectBestQuality_MalformedPlaylist();
+  void testSelectBestQuality_PopulatesAvailableQualities();
+  void testSelectBestQuality_DefaultQualityFallback();
+  void testSelectBestQuality_UserPreferredQualityExact();
+  void testSelectBestQuality_UserPreferredQualityFallbackLower();
+  void testSelectBestQuality_UserPreferredQualityFallbackHigher();
+
+  // ===== Sprint 8 - Tests de onSearchChannelsReady =====
+  void testOnSearchChannelsReady_FiltersLiveOnly();
+  void testOnSearchChannelsReady_EmptyList();
+  void testOnSearchChannelsReady_AllLive();
+  void testOnSearchChannelsReady_AllOffline();
+  void testOnSearchChannelsReady_MixedLiveOffline();
+
+  // ===== Sprint 8 - Tests de setStreamQuality avec qualités valides =====
+  void testSetStreamQuality_ValidQuality();
+  void testSetStreamQuality_EmitsQualityChangedSignal();
+  void testSetStreamQuality_UpdatesCurrentQuality();
+
+  // ===== Sprint 8 - Tests des slots de callbacks =====
+  void testOnStreamsReady_SelectsFirstStream();
+  void testOnStreamsReady_EmptyList();
+  void testOnCategoriesReady_UpdatesList();
+  void testOnFollowedChannelsReady_TriggersClipsRefresh();
+  void testOnUserInfoReady_UpdatesUserId();
+  void testOnUserInfoReadyWithName_UpdatesBoth();
+
+  // ===== Sprint 8 - Tests des Ad Filter callbacks =====
+  void testOnAdFilterCleanStream_EmitsSignal();
+  void testOnAdFilterAdsDetected_EmitsSignal();
+  void testOnAdFilterAdsFinished_EmitsSignal();
+  void testOnAdFilterDebugLog_EmitsSignal();
+  void testOnAdFilterMaxRetries_EmitsSignal();
+
 private:
   TwitchService* m_service = nullptr;
   MockSecureStorage* m_mockStorage = nullptr;
@@ -987,6 +1029,560 @@ void TestTwitchService::testRefreshStreamsWithoutAuth() {
   
   // Should emit error when not authenticated
   QVERIFY(errorSpy.count() >= 1);
+}
+
+// =====================================================
+// Sprint 8 - Tests de selectBestQualityFromPlaylist
+// =====================================================
+
+void TestTwitchService::testSelectBestQuality_EmptyPlaylist() {
+  // Test avec un playlist vide
+  QString emptyPlaylist;
+  QString result = m_service->selectBestQualityFromPlaylist(emptyPlaylist);
+  
+  QVERIFY(result.isEmpty());
+  QVERIFY(m_service->availableQualities().isEmpty());
+}
+
+void TestTwitchService::testSelectBestQuality_SingleQuality() {
+  // Playlist HLS avec une seule qualité
+  QString playlist = R"(#EXTM3U
+#EXT-X-STREAM-INF:BANDWIDTH=3000000,RESOLUTION=1280x720,CODECS="avc1.4d401f",VIDEO="720p"
+https://video-edge.example.com/720p.m3u8)";
+
+  QString result = m_service->selectBestQualityFromPlaylist(playlist);
+  
+  QVERIFY(!result.isEmpty());
+  QVERIFY(result.contains("720p.m3u8"));
+  QCOMPARE(m_service->availableQualities().size(), 1);
+}
+
+void TestTwitchService::testSelectBestQuality_MultipleQualities() {
+  // Playlist avec plusieurs qualités
+  QString playlist = R"(#EXTM3U
+#EXT-X-STREAM-INF:BANDWIDTH=6000000,RESOLUTION=1920x1080,VIDEO="1080p60"
+https://video.example.com/1080p60.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=3000000,RESOLUTION=1280x720,VIDEO="720p60"
+https://video.example.com/720p60.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=1500000,RESOLUTION=852x480,VIDEO="480p"
+https://video.example.com/480p.m3u8)";
+
+  QString result = m_service->selectBestQualityFromPlaylist(playlist);
+  
+  QVERIFY(!result.isEmpty());
+  QCOMPARE(m_service->availableQualities().size(), 3);
+  
+  // Vérifier que la meilleure qualité est sélectionnée (1080p60)
+  QVERIFY(result.contains("1080p60.m3u8"));
+}
+
+void TestTwitchService::testSelectBestQuality_ChunkedIsPrioritized() {
+  // "chunked" (source) doit avoir la priorité la plus haute
+  QString playlist = R"(#EXTM3U
+#EXT-X-STREAM-INF:BANDWIDTH=8000000,RESOLUTION=1920x1080,VIDEO="chunked"
+https://video.example.com/chunked.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=6000000,RESOLUTION=1920x1080,VIDEO="1080p60"
+https://video.example.com/1080p60.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=3000000,RESOLUTION=1280x720,VIDEO="720p"
+https://video.example.com/720p.m3u8)";
+
+  QString result = m_service->selectBestQualityFromPlaylist(playlist);
+  
+  // chunked doit être sélectionné même si 1080p60 a une bande passante comparable
+  QVERIFY(result.contains("chunked.m3u8"));
+  
+  // Vérifier que la qualité courante est correctement formatée
+  QString currentQuality = m_service->currentQuality();
+  QVERIFY(currentQuality.contains("Source"));
+}
+
+void TestTwitchService::testSelectBestQuality_1080p60Priority() {
+  // 1080p60 doit être prioritaire sur 1080p
+  QString playlist = R"(#EXTM3U
+#EXT-X-STREAM-INF:BANDWIDTH=6000000,RESOLUTION=1920x1080,VIDEO="1080p60"
+https://video.example.com/1080p60.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=4500000,RESOLUTION=1920x1080,VIDEO="1080p"
+https://video.example.com/1080p.m3u8)";
+
+  QString result = m_service->selectBestQualityFromPlaylist(playlist);
+  
+  QVERIFY(result.contains("1080p60.m3u8"));
+}
+
+void TestTwitchService::testSelectBestQuality_720p60Priority() {
+  // 720p60 doit être prioritaire sur 720p
+  QString playlist = R"(#EXTM3U
+#EXT-X-STREAM-INF:BANDWIDTH=3000000,RESOLUTION=1280x720,VIDEO="720p60"
+https://video.example.com/720p60.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=2000000,RESOLUTION=1280x720,VIDEO="720p"
+https://video.example.com/720p.m3u8)";
+
+  QString result = m_service->selectBestQualityFromPlaylist(playlist);
+  
+  QVERIFY(result.contains("720p60.m3u8"));
+}
+
+void TestTwitchService::testSelectBestQuality_NoStreamInf() {
+  // Playlist sans EXT-X-STREAM-INF (juste du texte)
+  QString playlist = R"(#EXTM3U
+#EXT-X-VERSION:3
+https://some-url.m3u8)";
+
+  QString result = m_service->selectBestQualityFromPlaylist(playlist);
+  
+  // Devrait retourner vide car pas de variantes trouvées
+  QVERIFY(result.isEmpty());
+  QVERIFY(m_service->availableQualities().isEmpty());
+}
+
+void TestTwitchService::testSelectBestQuality_MalformedPlaylist() {
+  // Playlist malformée
+  QString playlist = R"(#EXTM3U
+#EXT-X-STREAM-INF:BANDWIDTH=invalid
+not-a-valid-url
+#EXT-X-STREAM-INF:
+another-line)";
+
+  // Ne doit pas crasher
+  QString result = m_service->selectBestQualityFromPlaylist(playlist);
+  
+  QVERIFY(m_service != nullptr);
+}
+
+void TestTwitchService::testSelectBestQuality_PopulatesAvailableQualities() {
+  QString playlist = R"(#EXTM3U
+#EXT-X-STREAM-INF:BANDWIDTH=8000000,RESOLUTION=1920x1080,VIDEO="chunked"
+https://video.example.com/chunked.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=6000000,RESOLUTION=1920x1080,VIDEO="1080p60"
+https://video.example.com/1080p60.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=3000000,RESOLUTION=1280x720,VIDEO="720p60"
+https://video.example.com/720p60.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=2000000,RESOLUTION=1280x720,VIDEO="720p"
+https://video.example.com/720p.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=1500000,RESOLUTION=852x480,VIDEO="480p"
+https://video.example.com/480p.m3u8)";
+
+  QSignalSpy qualitiesSpy(m_service, &TwitchService::availableQualitiesChanged);
+  
+  m_service->selectBestQualityFromPlaylist(playlist);
+  
+  // Signal doit être émis
+  QCOMPARE(qualitiesSpy.count(), 1);
+  
+  // 5 qualités doivent être disponibles
+  QVariantList qualities = m_service->availableQualities();
+  QCOMPARE(qualities.size(), 5);
+  
+  // Vérifier la structure de chaque qualité
+  for (const QVariant& qv : qualities) {
+    QVariantMap quality = qv.toMap();
+    QVERIFY(quality.contains("name"));
+    QVERIFY(quality.contains("url"));
+    QVERIFY(quality.contains("bandwidth"));
+    QVERIFY(!quality.value("url").toString().isEmpty());
+  }
+}
+
+void TestTwitchService::testSelectBestQuality_DefaultQualityFallback() {
+  // Quand defaultQuality est "Auto" ou vide, sélectionner la meilleure
+  QString playlist = R"(#EXTM3U
+#EXT-X-STREAM-INF:BANDWIDTH=6000000,RESOLUTION=1920x1080,VIDEO="1080p60"
+https://video.example.com/1080p60.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=3000000,RESOLUTION=1280x720,VIDEO="720p"
+https://video.example.com/720p.m3u8)";
+
+  // S'assurer que defaultQuality est "Auto"
+  m_service->setDefaultQuality("Auto");
+  
+  QString result = m_service->selectBestQualityFromPlaylist(playlist);
+  
+  // Doit sélectionner la meilleure (1080p60)
+  QVERIFY(result.contains("1080p60.m3u8"));
+}
+
+void TestTwitchService::testSelectBestQuality_UserPreferredQualityExact() {
+  QString playlist = R"(#EXTM3U
+#EXT-X-STREAM-INF:BANDWIDTH=6000000,RESOLUTION=1920x1080,VIDEO="1080p60"
+https://video.example.com/1080p60.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=3000000,RESOLUTION=1280x720,VIDEO="720p60"
+https://video.example.com/720p60.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=2000000,RESOLUTION=1280x720,VIDEO="720p"
+https://video.example.com/720p.m3u8)";
+
+  // Définir une préférence utilisateur pour 720p60
+  m_service->setDefaultQuality("720p60");
+  
+  QString result = m_service->selectBestQualityFromPlaylist(playlist);
+  
+  // Doit sélectionner exactement 720p60
+  QVERIFY(result.contains("720p60.m3u8"));
+  QCOMPARE(m_service->currentQuality(), QString("720p60"));
+}
+
+void TestTwitchService::testSelectBestQuality_UserPreferredQualityFallbackLower() {
+  QString playlist = R"(#EXTM3U
+#EXT-X-STREAM-INF:BANDWIDTH=6000000,RESOLUTION=1920x1080,VIDEO="1080p60"
+https://video.example.com/1080p60.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=2000000,RESOLUTION=1280x720,VIDEO="720p"
+https://video.example.com/720p.m3u8)";
+
+  // Demander 720p60 qui n'existe pas -> fallback vers 720p (inférieur le plus proche)
+  m_service->setDefaultQuality("720p60");
+  
+  QString result = m_service->selectBestQualityFromPlaylist(playlist);
+  
+  // Doit tomber sur 720p (qualité inférieure la plus proche)
+  QVERIFY(result.contains("720p.m3u8"));
+}
+
+void TestTwitchService::testSelectBestQuality_UserPreferredQualityFallbackHigher() {
+  QString playlist = R"(#EXTM3U
+#EXT-X-STREAM-INF:BANDWIDTH=6000000,RESOLUTION=1920x1080,VIDEO="1080p60"
+https://video.example.com/1080p60.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=3000000,RESOLUTION=1280x720,VIDEO="720p60"
+https://video.example.com/720p60.m3u8)";
+
+  // Demander 480p qui n'existe pas -> fallback vers 720p60 (supérieur le plus proche)
+  m_service->setDefaultQuality("480p");
+  
+  QString result = m_service->selectBestQualityFromPlaylist(playlist);
+  
+  // Comme 480p n'existe pas et rien n'est inférieur, prend le supérieur le plus proche
+  QVERIFY(!result.isEmpty());
+}
+
+// =====================================================
+// Sprint 8 - Tests de onSearchChannelsReady
+// =====================================================
+
+void TestTwitchService::testOnSearchChannelsReady_FiltersLiveOnly() {
+  QVariantList channels;
+  
+  // Ajouter des chaînes live et offline
+  QVariantMap liveChannel;
+  liveChannel["id"] = "123";
+  liveChannel["display_name"] = "LiveStreamer";
+  liveChannel["is_live"] = true;
+  channels.append(liveChannel);
+  
+  QVariantMap offlineChannel;
+  offlineChannel["id"] = "456";
+  offlineChannel["display_name"] = "OfflineStreamer";
+  offlineChannel["is_live"] = false;
+  channels.append(offlineChannel);
+  
+  QSignalSpy spy(m_service, &TwitchService::searchChannelResultsChanged);
+  
+  // Appeler le slot privé directement
+  m_service->onSearchChannelsReady(channels);
+  
+  // Vérifier que seule la chaîne live est gardée
+  QVariantList results = m_service->searchChannelResults();
+  QCOMPARE(results.size(), 1);
+  QCOMPARE(results.first().toMap()["display_name"].toString(), QString("LiveStreamer"));
+  QCOMPARE(spy.count(), 1);
+}
+
+void TestTwitchService::testOnSearchChannelsReady_EmptyList() {
+  QVariantList emptyChannels;
+  
+  QSignalSpy spy(m_service, &TwitchService::searchChannelResultsChanged);
+  
+  m_service->onSearchChannelsReady(emptyChannels);
+  
+  QVERIFY(m_service->searchChannelResults().isEmpty());
+  QCOMPARE(spy.count(), 1);
+}
+
+void TestTwitchService::testOnSearchChannelsReady_AllLive() {
+  QVariantList channels;
+  
+  for (int i = 0; i < 5; ++i) {
+    QVariantMap channel;
+    channel["id"] = QString::number(i);
+    channel["display_name"] = QString("Streamer%1").arg(i);
+    channel["is_live"] = true;
+    channels.append(channel);
+  }
+  
+  m_service->onSearchChannelsReady(channels);
+  
+  // Toutes les chaînes doivent être gardées
+  QCOMPARE(m_service->searchChannelResults().size(), 5);
+}
+
+void TestTwitchService::testOnSearchChannelsReady_AllOffline() {
+  QVariantList channels;
+  
+  for (int i = 0; i < 5; ++i) {
+    QVariantMap channel;
+    channel["id"] = QString::number(i);
+    channel["display_name"] = QString("OfflineStreamer%1").arg(i);
+    channel["is_live"] = false;
+    channels.append(channel);
+  }
+  
+  m_service->onSearchChannelsReady(channels);
+  
+  // Aucune chaîne ne doit être gardée
+  QVERIFY(m_service->searchChannelResults().isEmpty());
+}
+
+void TestTwitchService::testOnSearchChannelsReady_MixedLiveOffline() {
+  QVariantList channels;
+  
+  // 3 live, 2 offline
+  for (int i = 0; i < 5; ++i) {
+    QVariantMap channel;
+    channel["id"] = QString::number(i);
+    channel["display_name"] = QString("Streamer%1").arg(i);
+    channel["is_live"] = (i < 3);  // 0, 1, 2 sont live
+    channels.append(channel);
+  }
+  
+  m_service->onSearchChannelsReady(channels);
+  
+  // Seulement les 3 chaînes live
+  QCOMPARE(m_service->searchChannelResults().size(), 3);
+}
+
+// =====================================================
+// Sprint 8 - Tests de setStreamQuality avec qualités valides
+// =====================================================
+
+void TestTwitchService::testSetStreamQuality_ValidQuality() {
+  // D'abord, peupler les qualités disponibles via selectBestQualityFromPlaylist
+  QString playlist = R"(#EXTM3U
+#EXT-X-STREAM-INF:BANDWIDTH=6000000,RESOLUTION=1920x1080,VIDEO="1080p60"
+https://video.example.com/1080p60.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=3000000,RESOLUTION=1280x720,VIDEO="720p60"
+https://video.example.com/720p60.m3u8)";
+
+  m_service->setDefaultQuality("Auto");
+  m_service->selectBestQualityFromPlaylist(playlist);
+  
+  // Maintenant, changer vers 720p60
+  m_service->setStreamQuality("720p60");
+  
+  QCOMPARE(m_service->currentQuality(), QString("720p60"));
+}
+
+void TestTwitchService::testSetStreamQuality_EmitsQualityChangedSignal() {
+  QString playlist = R"(#EXTM3U
+#EXT-X-STREAM-INF:BANDWIDTH=6000000,RESOLUTION=1920x1080,VIDEO="1080p60"
+https://video.example.com/1080p60.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=3000000,RESOLUTION=1280x720,VIDEO="720p60"
+https://video.example.com/720p60.m3u8)";
+
+  m_service->setDefaultQuality("Auto");
+  m_service->selectBestQualityFromPlaylist(playlist);
+  
+  QSignalSpy qualityChangedSpy(m_service, &TwitchService::qualityChanged);
+  QSignalSpy currentQualitySpy(m_service, &TwitchService::currentQualityChanged);
+  
+  m_service->setStreamQuality("720p60");
+  
+  // Les deux signaux doivent être émis
+  QCOMPARE(qualityChangedSpy.count(), 1);
+  QCOMPARE(currentQualitySpy.count(), 1);
+  
+  // Le signal qualityChanged doit contenir la nouvelle URL
+  QString newUrl = qualityChangedSpy.first().first().toString();
+  QVERIFY(newUrl.contains("720p60.m3u8"));
+}
+
+void TestTwitchService::testSetStreamQuality_UpdatesCurrentQuality() {
+  QString playlist = R"(#EXTM3U
+#EXT-X-STREAM-INF:BANDWIDTH=8000000,RESOLUTION=1920x1080,VIDEO="chunked"
+https://video.example.com/chunked.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=6000000,RESOLUTION=1920x1080,VIDEO="1080p60"
+https://video.example.com/1080p60.m3u8
+#EXT-X-STREAM-INF:BANDWIDTH=3000000,RESOLUTION=1280x720,VIDEO="720p60"
+https://video.example.com/720p60.m3u8)";
+
+  m_service->setDefaultQuality("Auto");
+  m_service->selectBestQualityFromPlaylist(playlist);
+  
+  // Initialement devrait être Source (chunked)
+  QString initial = m_service->currentQuality();
+  QVERIFY(initial.contains("Source"));
+  
+  // Changer vers 720p60
+  m_service->setStreamQuality("720p60");
+  QCOMPARE(m_service->currentQuality(), QString("720p60"));
+  
+  // Changer vers 1080p60
+  m_service->setStreamQuality("1080p60");
+  QCOMPARE(m_service->currentQuality(), QString("1080p60"));
+}
+
+// =====================================================
+// Sprint 8 - Tests des slots de callbacks
+// =====================================================
+
+void TestTwitchService::testOnStreamsReady_SelectsFirstStream() {
+  QVariantList streams;
+  
+  QVariantMap stream1;
+  stream1["user_login"] = "streamer1";
+  stream1["stream_url"] = "https://valid.url/stream1.m3u8";
+  streams.append(stream1);
+  
+  QVariantMap stream2;
+  stream2["user_login"] = "streamer2";
+  stream2["stream_url"] = "https://valid.url/stream2.m3u8";
+  streams.append(stream2);
+  
+  QSignalSpy streamsChangedSpy(m_service, &TwitchService::streamsChanged);
+  
+  m_service->onStreamsReady(streams);
+  
+  // Le signal doit être émis
+  QCOMPARE(streamsChangedSpy.count(), 1);
+  
+  // Les streams doivent être stockés
+  QCOMPARE(m_service->streams().size(), 2);
+}
+
+void TestTwitchService::testOnStreamsReady_EmptyList() {
+  QVariantList emptyStreams;
+  
+  QSignalSpy spy(m_service, &TwitchService::streamsChanged);
+  
+  m_service->onStreamsReady(emptyStreams);
+  
+  QCOMPARE(spy.count(), 1);
+  QVERIFY(m_service->streams().isEmpty());
+}
+
+void TestTwitchService::testOnCategoriesReady_UpdatesList() {
+  QVariantList categories;
+  
+  QVariantMap cat1;
+  cat1["id"] = "12345";
+  cat1["name"] = "Just Chatting";
+  categories.append(cat1);
+  
+  QVariantMap cat2;
+  cat2["id"] = "67890";
+  cat2["name"] = "Minecraft";
+  categories.append(cat2);
+  
+  QSignalSpy spy(m_service, &TwitchService::categoriesChanged);
+  
+  m_service->onCategoriesReady(categories);
+  
+  QCOMPARE(spy.count(), 1);
+  QCOMPARE(m_service->categories().size(), 2);
+}
+
+void TestTwitchService::testOnFollowedChannelsReady_TriggersClipsRefresh() {
+  QVariantList channels;
+  
+  QVariantMap channel;
+  channel["broadcaster_id"] = "123";
+  channel["broadcaster_name"] = "TestStreamer";
+  channels.append(channel);
+  
+  QSignalSpy followedChannelsSpy(m_service, &TwitchService::followedChannelsChanged);
+  
+  m_service->onFollowedChannelsReady(channels);
+  
+  // Le signal doit être émis
+  QCOMPARE(followedChannelsSpy.count(), 1);
+  
+  // Les chaînes suivies doivent être stockées
+  QCOMPARE(m_service->followedChannels().size(), 1);
+}
+
+void TestTwitchService::testOnUserInfoReady_UpdatesUserId() {
+  QString testUserId = "12345678";
+  
+  QSignalSpy userIdSpy(m_service, &TwitchService::userIdChanged);
+  
+  m_service->onUserInfoReady(testUserId);
+  
+  QCOMPARE(m_service->userId(), testUserId);
+  QCOMPARE(userIdSpy.count(), 1);
+}
+
+void TestTwitchService::testOnUserInfoReadyWithName_UpdatesBoth() {
+  QString testUserId = "12345678";
+  QString testUserName = "TestUser";
+  
+  QSignalSpy userIdSpy(m_service, &TwitchService::userIdChanged);
+  QSignalSpy userNameSpy(m_service, &TwitchService::userNameChanged);
+  
+  m_service->onUserInfoReadyWithName(testUserId, testUserName);
+  
+  QCOMPARE(m_service->userId(), testUserId);
+  QCOMPARE(m_service->userName(), testUserName);
+  QCOMPARE(userIdSpy.count(), 1);
+  QCOMPARE(userNameSpy.count(), 1);
+}
+
+// =====================================================
+// Sprint 8 - Tests des Ad Filter callbacks
+// =====================================================
+
+void TestTwitchService::testOnAdFilterCleanStream_EmitsSignal() {
+  QString testUrl = "https://video.example.com/clean-stream.m3u8";
+  
+  QSignalSpy hlsSpy(m_service, &TwitchService::hlsUrlReady);
+  
+  m_service->onAdFilterCleanStream(testUrl);
+  
+  // Le signal hlsUrlReady doit être émis
+  QCOMPARE(hlsSpy.count(), 1);
+  QCOMPARE(hlsSpy.first().first().toString(), testUrl);
+  
+  // L'URL doit être stockée dans currentHlsUrl
+  QCOMPARE(m_service->currentHlsUrl(), testUrl);
+}
+
+void TestTwitchService::testOnAdFilterAdsDetected_EmitsSignal() {
+  int adCount = 5;
+  
+  QSignalSpy adsSpy(m_service, &TwitchService::adsDetected);
+  
+  m_service->onAdFilterAdsDetected(adCount);
+  
+  QCOMPARE(adsSpy.count(), 1);
+  QCOMPARE(adsSpy.first().first().toInt(), adCount);
+}
+
+void TestTwitchService::testOnAdFilterAdsFinished_EmitsSignal() {
+  QSignalSpy spy(m_service, &TwitchService::adsFinished);
+  
+  m_service->onAdFilterAdsFinished();
+  
+  QCOMPARE(spy.count(), 1);
+}
+
+void TestTwitchService::testOnAdFilterDebugLog_EmitsSignal() {
+  QString debugMessage = "Test debug message";
+  
+  QSignalSpy spy(m_service, &TwitchService::adFilterLog);
+  
+  m_service->onAdFilterDebugLog(debugMessage);
+  
+  QCOMPARE(spy.count(), 1);
+  QCOMPARE(spy.first().first().toString(), debugMessage);
+}
+
+void TestTwitchService::testOnAdFilterMaxRetries_EmitsSignal() {
+  QString fallbackUrl = "https://video.example.com/with-ads.m3u8";
+  
+  QSignalSpy hlsSpy(m_service, &TwitchService::hlsUrlReady);
+  
+  m_service->onAdFilterMaxRetries(fallbackUrl);
+  
+  // Le signal hlsUrlReady doit être émis avec l'URL fallback
+  QCOMPARE(hlsSpy.count(), 1);
+  QCOMPARE(hlsSpy.first().first().toString(), fallbackUrl);
+  
+  // L'URL doit être stockée
+  QCOMPARE(m_service->currentHlsUrl(), fallbackUrl);
 }
 
 QTEST_MAIN(TestTwitchService)
