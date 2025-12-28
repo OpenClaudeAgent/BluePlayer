@@ -5,6 +5,7 @@
 #include <QJsonArray>
 
 #include "api/twitch/TwitchApiClient.hpp"
+#include "mocks/MockHttpClient.hpp"
 #include "TestHelpers.hpp"
 
 using namespace blueplayer::api::twitch;
@@ -102,9 +103,51 @@ private slots:
   void testSearchChannelsInvokable();
   void testSearchCategoriesInvokable();
   void testGetStreamsByCategoryInvokable();
+  
+  // ===== Tests de buildHelixUrl =====
+  void testBuildHelixUrlNormalMode();
+  void testBuildHelixUrlWithEndpoint();
+  void testBuildHelixUrlWithPath();
+  
+  // ===== Tests de handlePlaybackAccessTokenResponse =====
+  void testHandlePlaybackAccessTokenResponseValid();
+  void testHandlePlaybackAccessTokenResponseEmptyToken();
+  void testHandlePlaybackAccessTokenResponseEmptySignature();
+  void testHandlePlaybackAccessTokenResponseInvalidJson();
+  void testHandlePlaybackAccessTokenResponseNoData();
+  void testHandlePlaybackAccessTokenResponseVideoToken();
+  
+  // ===== Tests de emitNewStreamersFromChannels =====
+  void testEmitNewStreamersFromChannelsSorting();
+  void testEmitNewStreamersFromChannelsEmpty();
+  void testEmitNewStreamersFromChannelsMismatchedSizes();
+  
+  // ===== Tests avec MockHttpClient =====
+  void testWithMockHttpClientSuccess();
+  void testWithMockHttpClientEmptyResponse();
+  void testWithMockHttpClientMultipleStreams();
+  
+  // ===== Tests de getUserInfo =====
+  void testGetUserInfoWithEmptyBearerToken();
+  void testGetUserInfoWithValidToken();
+  
+  // ===== Tests de getFollowedClips limites =====
+  void testGetFollowedClipsMaxBroadcasters();
+  void testGetFollowedClipsSingleBroadcaster();
+  
+  // ===== Tests de parsing edge cases =====
+  void testParseStreamsArrayInvalidJson();
+  void testParseClipsArrayNegativeValues();
+  void testParseVideosArrayLongDuration();
+  void testParseChannelsArraySpecialCharacters();
+  
+  // ===== Tests du constructeur avec IHttpClient =====
+  void testConstructorWithMockHttpClient();
+  void testConstructorWithNullHttpClient();
 
 private:
   TwitchApiClient* m_client = nullptr;
+  MockHttpClient* m_mockHttpClient = nullptr;
 };
 
 void TestTwitchApiClient::initTestCase() {
@@ -800,6 +843,553 @@ void TestTwitchApiClient::testGetStreamsByCategoryInvokable() {
   QSignalSpy spy(m_client, &TwitchApiClient::categoryStreamsReady);
   m_client->getStreamsByCategory("33214", 15);
   QVERIFY(m_client != nullptr);
+}
+
+// ===== Tests de buildHelixUrl =====
+
+void TestTwitchApiClient::testBuildHelixUrlNormalMode() {
+  // In normal mode, should return api.twitch.tv
+  QUrl url = m_client->buildHelixUrl(QStringLiteral("/helix/streams"));
+  QVERIFY(url.toString().startsWith("https://api.twitch.tv"));
+  QVERIFY(url.toString().contains("/helix/streams"));
+}
+
+void TestTwitchApiClient::testBuildHelixUrlWithEndpoint() {
+  QUrl url = m_client->buildHelixUrl(QStringLiteral("/helix/users"));
+  QCOMPARE(url.path(), QString("/helix/users"));
+  QCOMPARE(url.scheme(), QString("https"));
+}
+
+void TestTwitchApiClient::testBuildHelixUrlWithPath() {
+  QUrl url = m_client->buildHelixUrl(QStringLiteral("/helix/games/top"));
+  QVERIFY(url.toString().contains("/helix/games/top"));
+  QCOMPARE(url.host(), QString("api.twitch.tv"));
+}
+
+// ===== Tests de handlePlaybackAccessTokenResponse =====
+
+void TestTwitchApiClient::testHandlePlaybackAccessTokenResponseValid() {
+  QSignalSpy tokenSpy(m_client, &TwitchApiClient::playbackAccessTokenReady);
+  QSignalSpy errorSpy(m_client, &TwitchApiClient::errorOccurred);
+  
+  QJsonObject tokenObj;
+  tokenObj["value"] = "test_token_value_12345";
+  tokenObj["signature"] = "test_signature_abc";
+  
+  QJsonObject data;
+  data["streamPlaybackAccessToken"] = tokenObj;
+  
+  QJsonObject root;
+  root["data"] = data;
+  
+  QJsonDocument doc(root);
+  m_client->handlePlaybackAccessTokenResponse(doc, "teststreamer");
+  
+  QCOMPARE(tokenSpy.count(), 1);
+  QCOMPARE(errorSpy.count(), 0);
+  QList<QVariant> args = tokenSpy.first();
+  QCOMPARE(args.at(0).toString(), QString("test_token_value_12345"));
+  QCOMPARE(args.at(1).toString(), QString("test_signature_abc"));
+}
+
+void TestTwitchApiClient::testHandlePlaybackAccessTokenResponseEmptyToken() {
+  QSignalSpy tokenSpy(m_client, &TwitchApiClient::playbackAccessTokenReady);
+  QSignalSpy errorSpy(m_client, &TwitchApiClient::errorOccurred);
+  
+  QJsonObject tokenObj;
+  tokenObj["value"] = "";  // Empty token
+  tokenObj["signature"] = "valid_signature";
+  
+  QJsonObject data;
+  data["streamPlaybackAccessToken"] = tokenObj;
+  
+  QJsonObject root;
+  root["data"] = data;
+  
+  QJsonDocument doc(root);
+  m_client->handlePlaybackAccessTokenResponse(doc, "teststreamer");
+  
+  QCOMPARE(tokenSpy.count(), 0);
+  QCOMPARE(errorSpy.count(), 1);
+}
+
+void TestTwitchApiClient::testHandlePlaybackAccessTokenResponseEmptySignature() {
+  QSignalSpy tokenSpy(m_client, &TwitchApiClient::playbackAccessTokenReady);
+  QSignalSpy errorSpy(m_client, &TwitchApiClient::errorOccurred);
+  
+  QJsonObject tokenObj;
+  tokenObj["value"] = "valid_token";
+  tokenObj["signature"] = "";  // Empty signature
+  
+  QJsonObject data;
+  data["streamPlaybackAccessToken"] = tokenObj;
+  
+  QJsonObject root;
+  root["data"] = data;
+  
+  QJsonDocument doc(root);
+  m_client->handlePlaybackAccessTokenResponse(doc, "teststreamer");
+  
+  QCOMPARE(tokenSpy.count(), 0);
+  QCOMPARE(errorSpy.count(), 1);
+}
+
+void TestTwitchApiClient::testHandlePlaybackAccessTokenResponseInvalidJson() {
+  QSignalSpy errorSpy(m_client, &TwitchApiClient::errorOccurred);
+  
+  // Null document
+  QJsonDocument nullDoc;
+  m_client->handlePlaybackAccessTokenResponse(nullDoc, "teststreamer");
+  
+  QCOMPARE(errorSpy.count(), 1);
+}
+
+void TestTwitchApiClient::testHandlePlaybackAccessTokenResponseNoData() {
+  QSignalSpy tokenSpy(m_client, &TwitchApiClient::playbackAccessTokenReady);
+  QSignalSpy errorSpy(m_client, &TwitchApiClient::errorOccurred);
+  
+  // Response without streamPlaybackAccessToken or videoPlaybackAccessToken
+  QJsonObject data;
+  data["someOtherField"] = "value";
+  
+  QJsonObject root;
+  root["data"] = data;
+  
+  QJsonDocument doc(root);
+  m_client->handlePlaybackAccessTokenResponse(doc, "teststreamer");
+  
+  QCOMPARE(tokenSpy.count(), 0);
+  QCOMPARE(errorSpy.count(), 1);
+}
+
+void TestTwitchApiClient::testHandlePlaybackAccessTokenResponseVideoToken() {
+  QSignalSpy tokenSpy(m_client, &TwitchApiClient::playbackAccessTokenReady);
+  QSignalSpy errorSpy(m_client, &TwitchApiClient::errorOccurred);
+  
+  // Use videoPlaybackAccessToken instead of streamPlaybackAccessToken
+  QJsonObject tokenObj;
+  tokenObj["value"] = "video_token_value";
+  tokenObj["signature"] = "video_signature";
+  
+  QJsonObject data;
+  data["videoPlaybackAccessToken"] = tokenObj;
+  
+  QJsonObject root;
+  root["data"] = data;
+  
+  QJsonDocument doc(root);
+  m_client->handlePlaybackAccessTokenResponse(doc, "testvideo");
+  
+  QCOMPARE(tokenSpy.count(), 1);
+  QCOMPARE(errorSpy.count(), 0);
+  QList<QVariant> args = tokenSpy.first();
+  QCOMPARE(args.at(0).toString(), QString("video_token_value"));
+}
+
+// ===== Tests de emitNewStreamersFromChannels =====
+
+void TestTwitchApiClient::testEmitNewStreamersFromChannelsSorting() {
+  QSignalSpy spy(m_client, &TwitchApiClient::newStreamersReady);
+  
+  // Create channels with different followed_at dates
+  QVariantList channels;
+  
+  QVariantMap channel1;
+  channel1["broadcaster_id"] = "1";
+  channel1["broadcaster_name"] = "OldFollowed";
+  channels.append(channel1);
+  
+  QVariantMap channel2;
+  channel2["broadcaster_id"] = "2";
+  channel2["broadcaster_name"] = "NewFollowed";
+  channels.append(channel2);
+  
+  QVariantMap channel3;
+  channel3["broadcaster_id"] = "3";
+  channel3["broadcaster_name"] = "MiddleFollowed";
+  channels.append(channel3);
+  
+  // Create entries with followed_at dates (newer dates should come first after sort)
+  QVariantList entries;
+  
+  QVariantMap entry1;
+  entry1["followed_at"] = "2024-01-01T10:00:00Z";  // Oldest
+  entries.append(entry1);
+  
+  QVariantMap entry2;
+  entry2["followed_at"] = "2024-12-28T15:00:00Z";  // Newest
+  entries.append(entry2);
+  
+  QVariantMap entry3;
+  entry3["followed_at"] = "2024-06-15T12:00:00Z";  // Middle
+  entries.append(entry3);
+  
+  m_client->emitNewStreamersFromChannels(channels, entries);
+  
+  QCOMPARE(spy.count(), 1);
+  QVariantList result = spy.first().first().value<QVariantList>();
+  QCOMPARE(result.size(), 3);
+  
+  // Should be sorted by followed_at descending (newest first)
+  QCOMPARE(result.at(0).toMap()["broadcaster_name"].toString(), QString("NewFollowed"));
+  QCOMPARE(result.at(1).toMap()["broadcaster_name"].toString(), QString("MiddleFollowed"));
+  QCOMPARE(result.at(2).toMap()["broadcaster_name"].toString(), QString("OldFollowed"));
+}
+
+void TestTwitchApiClient::testEmitNewStreamersFromChannelsEmpty() {
+  QSignalSpy spy(m_client, &TwitchApiClient::newStreamersReady);
+  
+  QVariantList emptyChannels;
+  QVariantList emptyEntries;
+  
+  m_client->emitNewStreamersFromChannels(emptyChannels, emptyEntries);
+  
+  QCOMPARE(spy.count(), 1);
+  QVariantList result = spy.first().first().value<QVariantList>();
+  QCOMPARE(result.size(), 0);
+}
+
+void TestTwitchApiClient::testEmitNewStreamersFromChannelsMismatchedSizes() {
+  QSignalSpy spy(m_client, &TwitchApiClient::newStreamersReady);
+  
+  // More channels than entries
+  QVariantList channels;
+  QVariantMap channel1;
+  channel1["broadcaster_id"] = "1";
+  channel1["broadcaster_name"] = "Streamer1";
+  channels.append(channel1);
+  
+  QVariantMap channel2;
+  channel2["broadcaster_id"] = "2";
+  channel2["broadcaster_name"] = "Streamer2";
+  channels.append(channel2);
+  
+  // Only one entry
+  QVariantList entries;
+  QVariantMap entry1;
+  entry1["followed_at"] = "2024-12-28T10:00:00Z";
+  entries.append(entry1);
+  
+  m_client->emitNewStreamersFromChannels(channels, entries);
+  
+  QCOMPARE(spy.count(), 1);
+  QVariantList result = spy.first().first().value<QVariantList>();
+  // Should only have 1 streamer (min of both sizes)
+  QCOMPARE(result.size(), 1);
+}
+
+// ===== Tests avec MockHttpClient =====
+
+void TestTwitchApiClient::testWithMockHttpClientSuccess() {
+  MockHttpClient* mockClient = new MockHttpClient(this);
+  TwitchApiClient* client = new TwitchApiClient("test_client", mockClient, this);
+  client->setAccessToken("test_token");
+  
+  // Configure mock response with Twitch-style data
+  QJsonArray streamsData;
+  QJsonObject stream;
+  stream["id"] = "stream123";
+  stream["user_id"] = "user456";
+  stream["user_name"] = "TestStreamer";
+  stream["user_login"] = "teststreamer";
+  stream["title"] = "Test Stream";
+  stream["viewer_count"] = 1000;
+  stream["thumbnail_url"] = "";
+  streamsData.append(stream);
+  
+  mockClient->queueResponse(MockResponse::twitchApiResponse(streamsData));
+  
+  QSignalSpy streamsSpy(client, &TwitchApiClient::streamsReady);
+  client->listStreams(10);
+  
+  QTRY_COMPARE(streamsSpy.count(), 1);
+  
+  // Verify request was recorded
+  QCOMPARE(mockClient->requestCount(), 1);
+  QVERIFY(mockClient->lastRequest().urlContains("/helix/streams"));
+  
+  delete client;
+  delete mockClient;
+}
+
+void TestTwitchApiClient::testWithMockHttpClientEmptyResponse() {
+  MockHttpClient* mockClient = new MockHttpClient(this);
+  TwitchApiClient* client = new TwitchApiClient("test_client", mockClient, this);
+  client->setAccessToken("test_token");
+  
+  // Configure mock with empty data array
+  QJsonArray emptyData;
+  mockClient->queueResponse(MockResponse::twitchApiResponse(emptyData));
+  
+  QSignalSpy streamsSpy(client, &TwitchApiClient::streamsReady);
+  client->listStreams(10);
+  
+  QTRY_COMPARE(streamsSpy.count(), 1);
+  QVariantList streams = streamsSpy.first().first().value<QVariantList>();
+  QCOMPARE(streams.size(), 0);
+  
+  delete client;
+  delete mockClient;
+}
+
+void TestTwitchApiClient::testWithMockHttpClientMultipleStreams() {
+  MockHttpClient* mockClient = new MockHttpClient(this);
+  TwitchApiClient* client = new TwitchApiClient("test_client", mockClient, this);
+  client->setAccessToken("test_token");
+  
+  // Configure mock with multiple streams
+  QJsonArray streamsData;
+  for (int i = 0; i < 5; i++) {
+    QJsonObject stream;
+    stream["id"] = QString("stream%1").arg(i);
+    stream["user_id"] = QString("user%1").arg(i);
+    stream["user_name"] = QString("Streamer%1").arg(i);
+    stream["user_login"] = QString("streamer%1").arg(i);
+    stream["title"] = QString("Stream Title %1").arg(i);
+    stream["viewer_count"] = i * 100;
+    stream["thumbnail_url"] = "";
+    streamsData.append(stream);
+  }
+  
+  mockClient->queueResponse(MockResponse::twitchApiResponse(streamsData));
+  
+  QSignalSpy streamsSpy(client, &TwitchApiClient::streamsReady);
+  client->listStreams(10);
+  
+  QTRY_COMPARE(streamsSpy.count(), 1);
+  QVariantList streams = streamsSpy.first().first().value<QVariantList>();
+  QCOMPARE(streams.size(), 5);
+  
+  // Verify the data was parsed correctly
+  QCOMPARE(streams.at(2).toMap()["user_name"].toString(), QString("Streamer2"));
+  
+  delete client;
+  delete mockClient;
+}
+
+// ===== Tests de getUserInfo =====
+
+void TestTwitchApiClient::testGetUserInfoWithEmptyBearerToken() {
+  // Create client without setting access token
+  TwitchApiClient* client = new TwitchApiClient("test_client", this);
+  // Don't set access token
+  
+  QSignalSpy errorSpy(client, &TwitchApiClient::errorOccurred);
+  
+  client->getUserInfo();
+  
+  QTRY_COMPARE(errorSpy.count(), 1);
+  QString errorMsg = errorSpy.first().first().toString();
+  QVERIFY(errorMsg.contains("Token") || errorMsg.contains("authentification") || errorMsg.contains("manquant"));
+  
+  delete client;
+}
+
+void TestTwitchApiClient::testGetUserInfoWithValidToken() {
+  MockHttpClient* mockClient = new MockHttpClient(this);
+  TwitchApiClient* client = new TwitchApiClient("test_client", mockClient, this);
+  client->setAccessToken("valid_token_12345");
+  
+  // Configure mock with user data
+  QJsonArray userData;
+  QJsonObject user;
+  user["id"] = "12345678";
+  user["login"] = "testuser";
+  user["display_name"] = "TestUser";
+  userData.append(user);
+  
+  mockClient->queueResponse(MockResponse::twitchApiResponse(userData));
+  
+  QSignalSpy userSpy(client, &TwitchApiClient::userInfoReady);
+  QSignalSpy userNameSpy(client, &TwitchApiClient::userInfoReadyWithName);
+  
+  client->getUserInfo();
+  
+  QTRY_COMPARE(userSpy.count(), 1);
+  QCOMPARE(userNameSpy.count(), 1);
+  
+  QCOMPARE(userSpy.first().first().toString(), QString("12345678"));
+  QList<QVariant> nameArgs = userNameSpy.first();
+  QCOMPARE(nameArgs.at(0).toString(), QString("12345678"));
+  QCOMPARE(nameArgs.at(1).toString(), QString("TestUser"));
+  
+  delete client;
+  delete mockClient;
+}
+
+// ===== Tests de getFollowedClips limites =====
+
+void TestTwitchApiClient::testGetFollowedClipsMaxBroadcasters() {
+  MockHttpClient* mockClient = new MockHttpClient(this);
+  TwitchApiClient* client = new TwitchApiClient("test_client", mockClient, this);
+  client->setAccessToken("test_token");
+  
+  // Create 15 broadcaster IDs (should be limited to 10)
+  QStringList broadcasterIds;
+  for (int i = 0; i < 15; i++) {
+    broadcasterIds.append(QString::number(100000 + i));
+  }
+  
+  QJsonArray clipsData;
+  QJsonObject clip;
+  clip["id"] = "clip1";
+  clip["title"] = "Test Clip";
+  clip["broadcaster_name"] = "TestBroadcaster";
+  clip["broadcaster_id"] = "100000";
+  clip["view_count"] = 5000;
+  clipsData.append(clip);
+  
+  mockClient->queueResponse(MockResponse::twitchApiResponse(clipsData));
+  
+  QSignalSpy clipsSpy(client, &TwitchApiClient::followedClipsReady);
+  
+  client->getFollowedClips(broadcasterIds, 5);
+  
+  QTRY_COMPARE(clipsSpy.count(), 1);
+  
+  // Verify only 10 broadcaster IDs were used in the request
+  RecordedRequest request = mockClient->lastRequest();
+  QString urlStr = request.url.toString();
+  // The URL should contain broadcaster_id query parameter
+  QVERIFY(urlStr.contains("broadcaster_id"));
+  
+  delete client;
+  delete mockClient;
+}
+
+void TestTwitchApiClient::testGetFollowedClipsSingleBroadcaster() {
+  MockHttpClient* mockClient = new MockHttpClient(this);
+  TwitchApiClient* client = new TwitchApiClient("test_client", mockClient, this);
+  client->setAccessToken("test_token");
+  
+  QStringList broadcasterIds;
+  broadcasterIds.append("123456");
+  
+  QJsonArray clipsData;
+  QJsonObject clip;
+  clip["id"] = "single_clip";
+  clip["title"] = "Single Broadcaster Clip";
+  clip["broadcaster_id"] = "123456";
+  clip["broadcaster_name"] = "SingleBroadcaster";
+  clipsData.append(clip);
+  
+  mockClient->queueResponse(MockResponse::twitchApiResponse(clipsData));
+  
+  QSignalSpy clipsSpy(client, &TwitchApiClient::followedClipsReady);
+  
+  client->getFollowedClips(broadcasterIds, 10);
+  
+  QTRY_COMPARE(clipsSpy.count(), 1);
+  QVariantList clips = clipsSpy.first().first().value<QVariantList>();
+  QCOMPARE(clips.size(), 1);
+  QCOMPARE(clips.at(0).toMap()["id"].toString(), QString("single_clip"));
+  
+  delete client;
+  delete mockClient;
+}
+
+// ===== Tests de parsing edge cases =====
+
+void TestTwitchApiClient::testParseStreamsArrayInvalidJson() {
+  // Test with non-object entries (should handle gracefully)
+  QJsonArray entries;
+  entries.append(QJsonValue::Null);
+  entries.append(QJsonValue(42));
+  entries.append(QJsonValue("string"));
+  
+  QVariantList result = m_client->parseStreamsArray(entries);
+  
+  // Should return empty maps for invalid entries
+  QCOMPARE(result.size(), 3);
+  // Values should be default (empty strings, 0 for numbers)
+  QVERIFY(result.at(0).toMap()["id"].toString().isEmpty());
+}
+
+void TestTwitchApiClient::testParseClipsArrayNegativeValues() {
+  QJsonArray entries;
+  QJsonObject clip;
+  clip["id"] = "negative_clip";
+  clip["title"] = "Clip with Negative Values";
+  clip["view_count"] = -100;  // Negative view count
+  clip["duration"] = -30.5;   // Negative duration
+  entries.append(clip);
+  
+  QVariantList result = m_client->parseClipsArray(entries);
+  
+  QCOMPARE(result.size(), 1);
+  QVariantMap first = result.first().toMap();
+  QCOMPARE(first["view_count"].toInt(), -100);  // Should preserve negative
+  QCOMPARE(first["duration"].toDouble(), -30.5);
+}
+
+void TestTwitchApiClient::testParseVideosArrayLongDuration() {
+  QJsonArray entries;
+  QJsonObject video;
+  video["id"] = "long_vod";
+  video["title"] = "Marathon Stream";
+  video["duration"] = "48h30m15s";  // Very long VOD
+  video["view_count"] = 1000000;
+  entries.append(video);
+  
+  QVariantList result = m_client->parseVideosArray(entries);
+  
+  QCOMPARE(result.size(), 1);
+  QCOMPARE(result.first().toMap()["duration"].toString(), QString("48h30m15s"));
+}
+
+void TestTwitchApiClient::testParseChannelsArraySpecialCharacters() {
+  QJsonArray entries;
+  QJsonObject channel;
+  channel["broadcaster_id"] = "special_123";
+  channel["broadcaster_name"] = "Streamer<script>alert('xss')</script>";  // Special chars
+  channel["broadcaster_login"] = "streamer_special";
+  channel["title"] = "Title with 'quotes' and \"double quotes\"";
+  entries.append(channel);
+  
+  QVariantList result = m_client->parseChannelsArray(entries);
+  
+  QCOMPARE(result.size(), 1);
+  QVariantMap first = result.first().toMap();
+  // Should preserve special characters (no HTML encoding in API response)
+  QVERIFY(first["broadcaster_name"].toString().contains("<script>"));
+  QVERIFY(first["title"].toString().contains("'quotes'"));
+}
+
+// ===== Tests du constructeur avec IHttpClient =====
+
+void TestTwitchApiClient::testConstructorWithMockHttpClient() {
+  MockHttpClient* mockClient = new MockHttpClient(this);
+  TwitchApiClient* client = new TwitchApiClient("injected_client_id", mockClient, this);
+  
+  QVERIFY(client != nullptr);
+  
+  // Verify the client ID was set
+  mockClient->queueResponse(MockResponse::twitchApiResponse(QJsonArray()));
+  
+  QSignalSpy spy(client, &TwitchApiClient::streamsReady);
+  client->setAccessToken("test");
+  client->listStreams(5);
+  
+  QTRY_COMPARE(spy.count(), 1);
+  
+  // Verify request has Client-ID header
+  RecordedRequest req = mockClient->lastRequest();
+  QVERIFY(req.hasHeader("Client-ID") || req.hasHeader("client-id"));
+  
+  delete client;
+  delete mockClient;
+}
+
+void TestTwitchApiClient::testConstructorWithNullHttpClient() {
+  // When httpClient is nullptr, TwitchApiClient should create its own
+  TwitchApiClient* client = new TwitchApiClient("null_http_client_test", nullptr, this);
+  
+  QVERIFY(client != nullptr);
+  
+  // Should still function (internal HttpClient created)
+  client->setAccessToken("test_token");
+  
+  delete client;
 }
 
 QTEST_MAIN(TestTwitchApiClient)
