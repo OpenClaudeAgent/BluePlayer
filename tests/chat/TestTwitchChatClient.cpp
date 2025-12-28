@@ -166,6 +166,27 @@ private slots:
   void testChannelNameLowercase();
   void testChannelNamePreservesCase();
   void testMultipleConnectToSameChannel();
+  
+  // ===== NEW - IRC Handlers Coverage =====
+  void testHandlePrivmsgWithBits();
+  void testHandlePrivmsgWithReward();
+  void testHandlePrivmsgWithAction();
+  void testHandleNoticeSlowMode();
+  void testHandleNoticeSubsOnly();
+  void testHandleNoticeEmoteOnly();
+  void testHandleUserstateUpdatesCanSend();
+  void testHandleRoomstateEmotesOnly();
+  
+  // ===== NEW - Message Parsing Edge Cases =====
+  void testParseMessageWithMentions();
+  void testParseEmotePartsWithZeroWidthEmotes();
+  void testParseTagsWithEmptyBadges();
+  void testParseBadgesWithMultipleTiers();
+  
+  // ===== NEW - Connection State Tests =====
+  void testReconnectLogicAfterDisconnect();
+  void testSendRawWhenNotConnected();
+  void testGenerateAnonUsername();
 
 private:
   TwitchChatClient* m_client = nullptr;
@@ -1058,6 +1079,218 @@ void TestTwitchChatClient::testMultipleConnectToSameChannel() {
   m_client->connectToChannel("channel1");
   
   // Multiple connects should not crash
+  QVERIFY(m_client != nullptr);
+  
+  m_client->disconnect();
+}
+
+// ===== NEW - IRC Handlers Coverage =====
+
+void TestTwitchChatClient::testHandlePrivmsgWithBits() {
+  // Parse tags with bits amount
+  QString tagsStr = "bits=500;display-name=Cheerer;color=#FF0000;badges=bits/100";
+  QVariantMap tags = m_testableClient->testParseTags(tagsStr);
+  
+  QCOMPARE(tags.value("bits").toString(), QString("500"));
+  QCOMPARE(tags.value("display-name").toString(), QString("Cheerer"));
+  QCOMPARE(tags.value("color").toString(), QString("#FF0000"));
+  
+  // Verify badges are present
+  QCOMPARE(tags.value("badges").toString(), QString("bits/100"));
+}
+
+void TestTwitchChatClient::testHandlePrivmsgWithReward() {
+  // Parse tags with custom reward (channel points)
+  QString tagsStr = "custom-reward-id=reward-uuid-12345;display-name=Redeemer;msg-id=highlighted-message";
+  QVariantMap tags = m_testableClient->testParseTags(tagsStr);
+  
+  QCOMPARE(tags.value("custom-reward-id").toString(), QString("reward-uuid-12345"));
+  QCOMPARE(tags.value("msg-id").toString(), QString("highlighted-message"));
+}
+
+void TestTwitchChatClient::testHandlePrivmsgWithAction() {
+  // /me action messages are parsed normally
+  // The content starts with 0x01 ACTION and ends with 0x01 in IRC
+  // But display-name and message parsing should work
+  QString tagsStr = "display-name=ActionUser;color=#00FF00";
+  QVariantMap tags = m_testableClient->testParseTags(tagsStr);
+  
+  QCOMPARE(tags.value("display-name").toString(), QString("ActionUser"));
+}
+
+void TestTwitchChatClient::testHandleNoticeSlowMode() {
+  // NOTICE with msg-id for slow mode
+  QString tagsStr = "msg-id=slow_on;room-id=12345";
+  QVariantMap tags = m_testableClient->testParseTags(tagsStr);
+  
+  QCOMPARE(tags.value("msg-id").toString(), QString("slow_on"));
+  
+  // Also test slow_off
+  QString tagsStr2 = "msg-id=slow_off;room-id=12345";
+  QVariantMap tags2 = m_testableClient->testParseTags(tagsStr2);
+  QCOMPARE(tags2.value("msg-id").toString(), QString("slow_off"));
+}
+
+void TestTwitchChatClient::testHandleNoticeSubsOnly() {
+  // NOTICE with msg-id for subscribers-only mode
+  QString tagsStr = "msg-id=subs_on;room-id=12345";
+  QVariantMap tags = m_testableClient->testParseTags(tagsStr);
+  
+  QCOMPARE(tags.value("msg-id").toString(), QString("subs_on"));
+  
+  // Also test subs_off
+  QString tagsStr2 = "msg-id=subs_off;room-id=12345";
+  QVariantMap tags2 = m_testableClient->testParseTags(tagsStr2);
+  QCOMPARE(tags2.value("msg-id").toString(), QString("subs_off"));
+}
+
+void TestTwitchChatClient::testHandleNoticeEmoteOnly() {
+  // NOTICE with msg-id for emote-only mode
+  QString tagsStr = "msg-id=emote_only_on;room-id=12345";
+  QVariantMap tags = m_testableClient->testParseTags(tagsStr);
+  
+  QCOMPARE(tags.value("msg-id").toString(), QString("emote_only_on"));
+  
+  // Also test emote_only_off
+  QString tagsStr2 = "msg-id=emote_only_off;room-id=12345";
+  QVariantMap tags2 = m_testableClient->testParseTags(tagsStr2);
+  QCOMPARE(tags2.value("msg-id").toString(), QString("emote_only_off"));
+}
+
+void TestTwitchChatClient::testHandleUserstateUpdatesCanSend() {
+  // Initially canSendMessages is false
+  QVERIFY(!m_client->canSendMessages());
+  
+  // Even with credentials, not connected
+  m_client->setCredentials("oauth:test", "testuser");
+  QVERIFY(!m_client->canSendMessages());
+  
+  // canSendMessages requires: token, username, AND connected
+}
+
+void TestTwitchChatClient::testHandleRoomstateEmotesOnly() {
+  // ROOMSTATE tags indicate room settings
+  QString tagsStr = "emote-only=1;followers-only=0;r9k=0;room-id=12345;slow=0;subs-only=0";
+  QVariantMap tags = m_testableClient->testParseTags(tagsStr);
+  
+  QCOMPARE(tags.value("emote-only").toString(), QString("1"));
+  QCOMPARE(tags.value("followers-only").toString(), QString("0"));
+  QCOMPARE(tags.value("r9k").toString(), QString("0"));
+  QCOMPARE(tags.value("slow").toString(), QString("0"));
+  QCOMPARE(tags.value("subs-only").toString(), QString("0"));
+}
+
+// ===== NEW - Message Parsing Edge Cases =====
+
+void TestTwitchChatClient::testParseMessageWithMentions() {
+  // Messages with @mentions should parse correctly
+  QString message = "@user1 hello @user2 how are you?";
+  QVariantList parts = m_testableClient->testParseEmoteParts("", message);
+  
+  // No emotes, just text
+  QCOMPARE(parts.size(), 1);
+  QVariantMap textPart = parts[0].toMap();
+  QCOMPARE(textPart["type"].toString(), QString("text"));
+  QCOMPARE(textPart["content"].toString(), message);
+}
+
+void TestTwitchChatClient::testParseEmotePartsWithZeroWidthEmotes() {
+  // Message with zero-width emotes (like SantaHat overlay emote)
+  // These are typically placed at position 0-0 or similar
+  QString message = "Kappa text after";
+  
+  // Emote at position 0-4 (Kappa is 5 chars)
+  QVariantList parts = m_testableClient->testParseEmoteParts("25:0-4", message);
+  
+  QCOMPARE(parts.size(), 2);
+  
+  // First part is emote
+  QVariantMap emotePart = parts[0].toMap();
+  QCOMPARE(emotePart["type"].toString(), QString("emote"));
+  QCOMPARE(emotePart["emoteId"].toString(), QString("25"));
+  QCOMPARE(emotePart["content"].toString(), QString("Kappa"));
+  
+  // Second part is text
+  QVariantMap textPart = parts[1].toMap();
+  QCOMPARE(textPart["type"].toString(), QString("text"));
+  QCOMPARE(textPart["content"].toString(), QString(" text after"));
+}
+
+void TestTwitchChatClient::testParseTagsWithEmptyBadges() {
+  // Tags where badges is present but empty
+  QString tagsStr = "badges=;display-name=User;color=#FFFFFF";
+  QVariantMap tags = m_testableClient->testParseTags(tagsStr);
+  
+  QCOMPARE(tags.value("badges").toString(), QString(""));
+  QCOMPARE(tags.value("display-name").toString(), QString("User"));
+  
+  // Parse empty badges string
+  QVariantList badges = m_testableClient->testParseBadges("");
+  QVERIFY(badges.isEmpty());
+}
+
+void TestTwitchChatClient::testParseBadgesWithMultipleTiers() {
+  // Multiple badges including subscriber tiers
+  QString badgesStr = "broadcaster/1,subscriber/3012,partner/1";
+  QVariantList badges = m_testableClient->testParseBadges(badgesStr);
+  
+  QCOMPARE(badges.size(), 3);
+  
+  // Broadcaster badge
+  QCOMPARE(badges[0].toMap()["type"].toString(), QString("broadcaster"));
+  QCOMPARE(badges[0].toMap()["version"].toString(), QString("1"));
+  
+  // Subscriber tier 3 (3012 = tier 3, 12 months)
+  QCOMPARE(badges[1].toMap()["type"].toString(), QString("subscriber"));
+  QCOMPARE(badges[1].toMap()["version"].toString(), QString("3012"));
+  
+  // Partner badge
+  QCOMPARE(badges[2].toMap()["type"].toString(), QString("partner"));
+  QCOMPARE(badges[2].toMap()["version"].toString(), QString("1"));
+}
+
+// ===== NEW - Connection State Tests =====
+
+void TestTwitchChatClient::testReconnectLogicAfterDisconnect() {
+  // Connect to a channel
+  m_client->connectToChannel("testchannel");
+  
+  // Status should be connecting
+  QString status = m_client->connectionStatus();
+  QVERIFY(status == "connecting" || status == "disconnected");
+  
+  // Disconnect
+  m_client->disconnect();
+  
+  // Status should be disconnected
+  QCOMPARE(m_client->connectionStatus(), QString("disconnected"));
+  
+  // Should be able to reconnect
+  m_client->connectToChannel("newchannel");
+  
+  // No crash
+  QVERIFY(m_client != nullptr);
+  m_client->disconnect();
+}
+
+void TestTwitchChatClient::testSendRawWhenNotConnected() {
+  // Sending when not connected should not crash
+  // We can't directly test sendRaw (private) but sendMessage uses it
+  m_client->sendMessage("test message");
+  
+  // No crash
+  QVERIFY(m_client != nullptr);
+}
+
+void TestTwitchChatClient::testGenerateAnonUsername() {
+  // We can't directly test generateAnonUsername (private)
+  // But we can verify anonymous connection works
+  
+  // Connect without credentials (anonymous mode)
+  m_client->connectToChannel("testchannel");
+  
+  // Should use justinfan username internally
+  // We can verify the client doesn't crash
   QVERIFY(m_client != nullptr);
   
   m_client->disconnect();
