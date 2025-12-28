@@ -565,10 +565,15 @@ Item {
         // =====================================================================
         
         function test_cacheClick_emitsSignal() {
-            // Arrange
+            // Arrange - reset and set fresh data
+            searchResults.channelResults = []
+            searchResults.cacheResults = []
+            wait(100)  // Wait for model to clear
+            
             searchResults.cacheResults = root.testCacheResults
             searchResults.hasSearchQuery = true
-            wait(50)
+            wait(100)  // Wait for Repeater to rebuild
+            
             var mouseArea = findChild(searchResults, "cacheMouse_0")
             verify(mouseArea !== null, "Cache mouse area should exist")
             
