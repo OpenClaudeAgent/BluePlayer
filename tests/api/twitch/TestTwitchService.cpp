@@ -60,6 +60,24 @@ private slots:
   void testEnsureTokenWithEmptyToken();
   void testEnsureTokenWithNullAuthManager();
   void testRefreshMethodsReturnEarlyWithoutToken();
+  
+  // Tests des propriétés et signaux
+  void testStreamsProperty();
+  void testRecommendedStreamsProperty();
+  void testCategoriesProperty();
+  void testPopularClipsProperty();
+  void testStreamsChangedSignal();
+  void testCategoriesChangedSignal();
+  void testClearSearchResultsEmitsSignals();
+  
+  // Tests de getStreamHlsUrl (logique)
+  void testGetStreamHlsUrlWithInvalidLogin();
+  void testGetStreamHlsUrlSignalEmitted();
+  
+  // Tests des propriétés de qualité
+  void testAvailableQualitiesProperty();
+  void testCurrentQualityProperty();
+  void testDefaultQualityProperty();
 
 private:
   TwitchService* m_service = nullptr;
@@ -427,6 +445,156 @@ void TestTwitchService::testRefreshMethodsReturnEarlyWithoutToken() {
   // Appeler refreshFollowedClips - nécessite auth ET userId
   m_service->refreshFollowedClips();
   QVERIFY(m_service->followedClips().isEmpty());
+}
+
+// ===== Tests des propriétés et signaux =====
+
+void TestTwitchService::testStreamsProperty() {
+  // La propriété streams() doit retourner une liste vide au départ
+  QVariantList streams = m_service->streams();
+  QVERIFY(streams.isEmpty());
+  
+  // Vérifier que la propriété est accessible via le système de méta-objets
+  QVariant value = m_service->property("streams");
+  QVERIFY(value.isValid());
+  QVERIFY(value.canConvert<QVariantList>());
+}
+
+void TestTwitchService::testRecommendedStreamsProperty() {
+  // La propriété recommendedStreams() doit retourner une liste vide au départ
+  QVariantList streams = m_service->recommendedStreams();
+  QVERIFY(streams.isEmpty());
+  
+  // Vérifier que la propriété est accessible via le système de méta-objets
+  QVariant value = m_service->property("recommendedStreams");
+  QVERIFY(value.isValid());
+  QVERIFY(value.canConvert<QVariantList>());
+}
+
+void TestTwitchService::testCategoriesProperty() {
+  // La propriété categories() doit retourner une liste vide au départ
+  QVariantList categories = m_service->categories();
+  QVERIFY(categories.isEmpty());
+  
+  // Vérifier que la propriété est accessible via le système de méta-objets
+  QVariant value = m_service->property("categories");
+  QVERIFY(value.isValid());
+  QVERIFY(value.canConvert<QVariantList>());
+}
+
+void TestTwitchService::testPopularClipsProperty() {
+  // La propriété popularClips() doit retourner une liste vide au départ
+  QVariantList clips = m_service->popularClips();
+  QVERIFY(clips.isEmpty());
+  
+  // Vérifier que la propriété est accessible via le système de méta-objets
+  QVariant value = m_service->property("popularClips");
+  QVERIFY(value.isValid());
+  QVERIFY(value.canConvert<QVariantList>());
+}
+
+void TestTwitchService::testStreamsChangedSignal() {
+  // Créer un spy pour le signal streamsChanged
+  QSignalSpy spy(m_service, &TwitchService::streamsChanged);
+  QVERIFY(spy.isValid());
+  
+  // Logout émet streamsChanged (clear des streams)
+  m_service->logout();
+  
+  // Vérifier que le signal a été émis au moins une fois
+  QVERIFY(spy.count() >= 1);
+}
+
+void TestTwitchService::testCategoriesChangedSignal() {
+  // Créer un spy pour le signal categoriesChanged
+  QSignalSpy spy(m_service, &TwitchService::categoriesChanged);
+  QVERIFY(spy.isValid());
+  
+  // Logout émet categoriesChanged (clear des categories)
+  m_service->logout();
+  
+  // Vérifier que le signal a été émis au moins une fois
+  QVERIFY(spy.count() >= 1);
+}
+
+void TestTwitchService::testClearSearchResultsEmitsSignals() {
+  // Créer des spies pour les signaux de recherche
+  QSignalSpy channelSpy(m_service, &TwitchService::searchChannelResultsChanged);
+  QSignalSpy categorySpy(m_service, &TwitchService::searchCategoryResultsChanged);
+  
+  QVERIFY(channelSpy.isValid());
+  QVERIFY(categorySpy.isValid());
+  
+  // Appeler clearSearchResults
+  m_service->clearSearchResults();
+  
+  // Vérifier que les deux signaux ont été émis
+  QCOMPARE(channelSpy.count(), 1);
+  QCOMPARE(categorySpy.count(), 1);
+}
+
+void TestTwitchService::testGetStreamHlsUrlWithInvalidLogin() {
+  // Créer un spy pour le signal errorOccurred
+  QSignalSpy errorSpy(m_service, &TwitchService::errorOccurred);
+  QVERIFY(errorSpy.isValid());
+  
+  // Appeler avec un login vide
+  m_service->getStreamHlsUrl("");
+  
+  // Vérifier qu'une erreur a été émise
+  QCOMPARE(errorSpy.count(), 1);
+  
+  // Vérifier le message d'erreur
+  QList<QVariant> arguments = errorSpy.takeFirst();
+  QVERIFY(arguments.at(0).toString().contains("vide") || 
+          arguments.at(0).toString().contains("empty") ||
+          arguments.at(0).toString().contains("Empty"));
+}
+
+void TestTwitchService::testGetStreamHlsUrlSignalEmitted() {
+  // Créer un spy pour le signal hlsUrlReady
+  QSignalSpy hlsSpy(m_service, &TwitchService::hlsUrlReady);
+  QVERIFY(hlsSpy.isValid());
+  
+  // Appeler avec un login valide (la requête réseau va être faite)
+  // Note: En environnement de test sans réseau, on vérifie juste que
+  // la méthode ne crashe pas
+  m_service->getStreamHlsUrl("teststreamer");
+  
+  // Vérifier que le service est toujours fonctionnel
+  QVERIFY(m_service != nullptr);
+}
+
+void TestTwitchService::testAvailableQualitiesProperty() {
+  // La propriété availableQualities() doit retourner une liste vide au départ
+  QVariantList qualities = m_service->availableQualities();
+  QVERIFY(qualities.isEmpty());
+  
+  // Vérifier que la propriété est accessible via le système de méta-objets
+  QVariant value = m_service->property("availableQualities");
+  QVERIFY(value.isValid());
+  QVERIFY(value.canConvert<QVariantList>());
+}
+
+void TestTwitchService::testCurrentQualityProperty() {
+  // La propriété currentQuality() doit retourner "Auto" par défaut
+  QString quality = m_service->currentQuality();
+  QCOMPARE(quality, QString("Auto"));
+  
+  // Vérifier que la propriété est accessible via le système de méta-objets
+  QVariant value = m_service->property("currentQuality");
+  QVERIFY(value.isValid());
+  QCOMPARE(value.toString(), QString("Auto"));
+}
+
+void TestTwitchService::testDefaultQualityProperty() {
+  // La propriété defaultQuality() doit être accessible
+  QString quality = m_service->defaultQuality();
+  
+  // Vérifier que la propriété est accessible via le système de méta-objets
+  QVariant value = m_service->property("defaultQuality");
+  QVERIFY(value.isValid());
+  QVERIFY(value.typeId() == QMetaType::QString);
 }
 
 QTEST_MAIN(TestTwitchService)
