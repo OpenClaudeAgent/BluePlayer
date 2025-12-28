@@ -117,6 +117,7 @@ Consultez la [Roadmap](roadmap/README.md) pour le suivi des tâches planifiées 
 
 | Version | Date | Description |
 |---------|------|-------------|
+| v0.27.0 | 2025-12-28 | Infrastructure E2E (MockTwitchServer, MockHlsServer, fixtures JSON, 6 tests) |
 | v0.26.0 | 2025-12-28 | Thème Clair/Sombre (détection système, sélecteur auto/light/dark, migration composants) |
 | v0.25.0 | 2025-12-28 | Picture-in-Picture (fenêtre flottante, contrôles hover, ratio 16:9, raccourci P) |
 | v0.24.0 | 2025-12-28 | Mode Audio (placeholder visuel, labels qualité normalisés, toast redesigné) |

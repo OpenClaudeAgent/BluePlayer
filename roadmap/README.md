@@ -159,7 +159,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 37 | Raccourcis clavier globaux | [plan-37](./plan-37-global-hotkeys.md) | `feature/global-hotkeys` | - | 🔴 En attente |
 | 38 | Mode Debug | [plan-38](./plan-38-debug-mode.md) | `feature/debug-mode` | - | 🔴 En attente |
 | 39 | Export des VOD cachées | [plan-39](./plan-39-export-cached-vod.md) | `feature/export-vod` | - | 🔴 En attente |
-| **40** | **Infrastructure Tests E2E** | [plan-40](./plan-40-e2e-testing-infrastructure.md) | `test/e2e-infrastructure` | - | 🔴 En attente |
+| **40** | **Infrastructure Tests E2E** | [plan-40](./plan-40-e2e-testing-infrastructure.md) | `test/e2e-infrastructure` | v0.27.0 | 🟢 Terminé |
 
 ### Plans spéciaux
 
@@ -220,6 +220,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 2025-12-28 | Tâche 16 terminée - Mode Audio (placeholder visuel, labels normalisés, toast redesigné) |
 | 2025-12-28 | Tâche 17 terminée - Picture-in-Picture (fenêtre flottante, contrôles hover, ratio 16:9) |
 | 2025-12-28 | Tâche 18 terminée - Thème Clair/Sombre (détection système, sélecteur, migration composants) |
+| 2025-12-28 | Tâche 40 terminée - Infrastructure E2E (MockTwitchServer, MockHlsServer, fixtures, 6 tests passants) |
 
 ---
 

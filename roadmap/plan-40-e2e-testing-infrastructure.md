@@ -162,22 +162,23 @@ target_link_libraries(test_e2e_scenarios PRIVATE
 
 ## Checklist de validation
 
-### Infrastructure
-- [ ] MockTwitchServer demarre et repond aux requetes
-- [ ] MockHlsServer sert des playlists HLS valides
-- [ ] TestApplication lance BluePlayer avec les mocks injectes
-- [ ] Les variables d'environnement sont lues correctement
+### Infrastructure (Phase 1 - Terminee)
+- [x] MockTwitchServer demarre et repond aux requetes
+- [x] MockHlsServer sert des playlists HLS valides
+- [x] Les variables d'environnement sont lues correctement
+- [x] Fixtures JSON chargees (3 streams, 4 users, token)
+- [x] 6 tests d'infrastructure passants
 
-### Premier test E2E
+### Premier test E2E (Phase 2 - A venir)
 - [ ] L'application demarre sans erreur en mode test
 - [ ] La Home affiche les streams mockes
 - [ ] Le clic sur un stream ouvre PlayerView
 - [ ] Le stream se charge (verification du state "playing")
 - [ ] Pas de crash ou erreur pendant le flux
 
-### CI/CD
+### CI/CD (Phase 3 - A venir)
 - [ ] Les tests E2E s'executent dans le pipeline
-- [ ] Timeout configure (max 60s par test)
+- [x] Timeout configure (max 60s par test)
 - [ ] Capture d'ecran sur echec
 
 ## Notes techniques
