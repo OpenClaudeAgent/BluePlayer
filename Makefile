@@ -81,12 +81,33 @@ validate:
 		echo "== [$$(date '+%F %T')] Validation completed =="; \
 	} 2>&1 | tee -a $(VALIDATE_LOG)
 
-# Run the application
+# Run the application (clean → build → test → run)
 .PHONY: run
-run: build
+run: clean build
 	@mkdir -p $(LOG_DIR)
 	@{ \
+		echo "== [$$(date '+%F %T')] Running tests before launch =="; \
+		cd $(BUILD_DIR) && $(LOAD_ENV_SCRIPT) ctest --output-on-failure; \
+		test_status=$$?; \
+		if [ $$test_status -ne 0 ]; then \
+			echo ""; \
+			echo "!! [$$(date '+%F %T')] TESTS FAILED - Application will NOT run !!"; \
+			echo ""; \
+			exit 1; \
+		fi; \
+		echo "== [$$(date '+%F %T')] All tests passed =="; \
+		echo ""; \
 		echo "== [$$(date '+%F %T')] Running BluePlayer =="; \
+		$(LOAD_ENV_SCRIPT) $(BUILD_DIR)/src/BluePlayer.app/Contents/MacOS/BluePlayer; \
+		echo "== [$$(date '+%F %T')] BluePlayer stopped =="; \
+	} 2>&1 | tee -a $(RUN_LOG)
+
+# Run the application without tests (quick development mode)
+.PHONY: run-quick
+run-quick: build
+	@mkdir -p $(LOG_DIR)
+	@{ \
+		echo "== [$$(date '+%F %T')] Running BluePlayer (no tests) =="; \
 		$(LOAD_ENV_SCRIPT) $(BUILD_DIR)/src/BluePlayer.app/Contents/MacOS/BluePlayer; \
 		echo "== [$$(date '+%F %T')] BluePlayer stopped =="; \
 	} 2>&1 | tee -a $(RUN_LOG)
@@ -151,7 +172,8 @@ help:
 	@echo "  make mutation-test - Run mutation tests with Mull"
 	@echo "  make test-all     - Run tests, coverage, and mutation tests"
 	@echo "  make validate     - Validate build (compile, test, coverage check)"
-	@echo "  make run          - Build and run the application"
+	@echo "  make run          - Clean, build, test, then run (stops if tests fail)"
+	@echo "  make run-quick    - Build and run without tests (dev mode)"
 	@echo "  make format       - Format source code with clang-format"
 	@echo "  make format-check - Check code formatting (dry run)"
 	@echo "  make lint         - Run clang-tidy static analysis"
