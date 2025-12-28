@@ -154,6 +154,7 @@ qt_add_qml_module(BluePlayer
     ui/PlayerView.qml
     ui/CacheManagerView.qml
     ui/VideoPlayer.qml
+    ui/PipWindow.qml
     ui/themes/BlueTheme.js
     ui/components/BaseCard.qml
     ui/components/BlueCard.qml
@@ -182,6 +183,7 @@ qt_add_qml_module(BluePlayer
     ui/components/QualityControl.qml
     ui/components/CircleButton.qml
     ui/components/PanelHeader.qml
+    ui/components/PipPlaceholder.qml
 )
 
 target_link_libraries(BluePlayer

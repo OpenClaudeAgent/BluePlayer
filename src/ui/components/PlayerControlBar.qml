@@ -33,6 +33,10 @@ Rectangle {
     // Quality selector properties
     property var availableQualities: []      // List of {name: "1080p60", url: "..."}
     property string currentQuality: "Auto"   // Currently selected quality
+    
+    // Picture-in-Picture properties
+    property bool pipActive: false           // True when PiP window is open
+    property bool pipEnabled: true           // False when in fullscreen (mutually exclusive)
 
     // Chip button dimensions (for consistent sizing)
     readonly property int chipWidth: 64
@@ -56,6 +60,7 @@ Rectangle {
     signal cropToggleClicked()
     signal chatToggleClicked()
     signal qualitySelected(string quality)
+    signal pipClicked()
 
     height: 80
 
@@ -397,6 +402,55 @@ Rectangle {
                 muted: controlBar.muted
                 onVolumeRequested: (newVolume) => controlBar.volumeRequested(newVolume)
                 onMuteClicked: controlBar.muteClicked()
+            }
+
+            // Picture-in-Picture Button
+            ControlButton {
+                id: pipButton
+                width: chipHeight; height: chipHeight
+                active: controlBar.pipActive
+                enabled: controlBar.pipEnabled
+                opacity: enabled ? 1.0 : 0.4
+                tooltipText: controlBar.pipActive ? qsTr("Exit Picture-in-Picture (P)") : qsTr("Picture-in-Picture (P)")
+                onClicked: controlBar.pipClicked()
+
+                Behavior on opacity {
+                    NumberAnimation { duration: BlueTheme.animHoverDuration; easing.type: Easing.OutCubic }
+                }
+
+                // PiP icon: two nested rectangles
+                Canvas {
+                    anchors.centerIn: parent
+                    width: 16
+                    height: 12
+                    onPaint: {
+                        var ctx = getContext("2d")
+                        ctx.reset()
+                        ctx.strokeStyle = "#FFFFFF"
+                        ctx.fillStyle = "#FFFFFF"
+                        ctx.lineWidth = 1.5
+                        ctx.lineCap = "round"
+                        ctx.lineJoin = "round"
+
+                        // Main window outline using moveTo/lineTo
+                        ctx.beginPath()
+                        ctx.moveTo(1, 1)
+                        ctx.lineTo(15, 1)
+                        ctx.lineTo(15, 11)
+                        ctx.lineTo(1, 11)
+                        ctx.closePath()
+                        ctx.stroke()
+
+                        // Small PiP window (filled, bottom-right)
+                        ctx.beginPath()
+                        ctx.moveTo(9, 5)
+                        ctx.lineTo(14, 5)
+                        ctx.lineTo(14, 10)
+                        ctx.lineTo(9, 10)
+                        ctx.closePath()
+                        ctx.fill()
+                    }
+                }
             }
 
             // Fullscreen Button

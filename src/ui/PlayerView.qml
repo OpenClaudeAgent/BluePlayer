@@ -53,6 +53,10 @@ Item {
   property bool chatVisible: false
   property bool chatEnabled: !isVodMode  // Chat disabled in VOD mode
   
+  // Picture-in-Picture properties
+  property bool pipActive: false
+  property bool pipEnabled: true  // Disabled when fullscreen
+  
   // Quality selector properties
   property var availableQualities: []
   property string currentQuality: "Auto"
@@ -65,6 +69,8 @@ Item {
   property int pendingSeekPosition: 0  // Position to seek to when media is ready
   
   signal backRequested()
+  signal pipRequested()
+  signal pipReturnRequested()
   
   // Timer pour la sauvegarde automatique de la progression (toutes les 30s)
   Timer {
@@ -310,6 +316,27 @@ Item {
     toast.show(cropMode ? qsTr("Crop mode enabled") : qsTr("Fit mode enabled"))
   }
   
+  // PiP functions
+  function togglePip() {
+    if (!pipEnabled) return
+    playerRoot.pipRequested()
+  }
+  
+  function getVideoPlayer() {
+    return mpvPlayer
+  }
+  
+  function getVideoContainer() {
+    return videoContainer
+  }
+  
+  function returnVideoToPlayer() {
+    if (mpvPlayer) {
+      mpvPlayer.parent = videoContainer
+      mpvPlayer.anchors.fill = videoContainer
+    }
+  }
+  
   
   Rectangle {
     anchors.fill: parent
@@ -532,6 +559,18 @@ Item {
       }
     }
     
+    // PiP Placeholder Overlay - Shown when video is in PiP window
+    PipPlaceholder {
+      id: pipPlaceholder
+      anchors.fill: parent
+      visible: playerRoot.pipActive
+      z: 50  // Above video but below controls
+      
+      onReturnRequested: {
+        playerRoot.pipReturnRequested()
+      }
+    }
+    
     // 2. Mouse Interaction Layer (Background)
     // Placed here so it is BEHIND interface overlays (TopBar, ControlBar)
     // Only covers video area, not chat panel
@@ -711,6 +750,8 @@ Item {
       chatEnabled: playerRoot.chatEnabled
       availableQualities: playerRoot.availableQualities
       currentQuality: playerRoot.currentQuality
+      pipActive: playerRoot.pipActive
+      pipEnabled: playerRoot.pipEnabled
       
       onPlayPauseClicked: togglePlayPause()
       onStopClicked: {
@@ -766,6 +807,9 @@ Item {
         if (twitchService) {
           twitchService.setStreamQuality(quality)
         }
+      }
+      onPipClicked: {
+        playerRoot.togglePip()
       }
     }
 
@@ -911,13 +955,18 @@ Item {
         event.accepted = true
         break
       case Qt.Key_Escape:
-        // If fullscreen, exit fullscreen first; otherwise quit player
-        var winEsc = Window.window
-        if (winEsc && winEsc.visibility === Window.FullScreen) {
-          winEsc.showNormal()
+        // Priority: PiP → Fullscreen → Quit player
+        if (playerRoot.pipActive) {
+          // If PiP active, close it and return video
+          playerRoot.pipReturnRequested()
         } else {
-          requestStop()
-          playerRoot.backRequested()
+          var winEsc = Window.window
+          if (winEsc && winEsc.visibility === Window.FullScreen) {
+            winEsc.showNormal()
+          } else {
+            requestStop()
+            playerRoot.backRequested()
+          }
         }
         event.accepted = true
         break
@@ -977,6 +1026,11 @@ Item {
           // Quality popup is handled by PlayerControlBar
           toast.show(qsTr("Use the quality button"))
         }
+        event.accepted = true
+        break
+      case Qt.Key_P:
+        // Toggle Picture-in-Picture
+        togglePip()
         event.accepted = true
         break
     }

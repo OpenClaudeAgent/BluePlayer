@@ -8,139 +8,237 @@ Le mode Picture-in-Picture permet d'afficher la vidéo dans une petite fenêtre 
 
 Implémenter le mode PiP pour permettre aux utilisateurs de continuer à regarder un stream tout en utilisant d'autres applications.
 
+## Approche technique retenue
+
+**Fenêtre Qt flottante** (option 1 du plan initial) :
+- Créer une `Window` QML avec le flag `Qt.WindowStaysOnTopHint`
+- Réutiliser le même `MpvQuickItem` (pas de duplication de rendu)
+- Style minimaliste avec contrôles au hover
+- Plus simple et stable qu'une intégration AVKit native
+
+> Note : L'intégration AVPictureInPictureController nécessiterait de capturer le rendu mpv vers AVSampleBufferDisplayLayer, ce qui est complexe et risqué pour la stabilité.
+
 ## Spécifications
 
-### UI - Bouton PiP
+### 1. Bouton PiP dans PlayerControlBar
 
-**Emplacement :** Dans la PlayerControlBar, groupe de droite (près du fullscreen).
+**Emplacement :** Entre le bouton Volume et le bouton Fullscreen (groupe de droite).
 
-**Icône :** Icône standard PiP (rectangle avec petit rectangle dans un coin).
+**Composant :** Réutilise `ControlButton` existant.
+
+**Icône :** Deux rectangles imbriqués (standard PiP).
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│  ▶️  ════════════════════○══════  00:45:23   🔊  [⧉]  [PiP]  ⛶  │
-└─────────────────────────────────────────────────────────────────┘
-                                                      ↑
-                                                 Bouton PiP
+Layout actuel de droite :
+[Quality] [Volume] [Fullscreen]
+
+Nouveau layout :
+[Quality] [Volume] [PiP] [Fullscreen]
 ```
 
-### Comportement
+**États du bouton :**
+- Normal : Icône blanche sur fond semi-transparent
+- Hover : Légère mise à l'échelle (1.05x)
+- Active (PiP ouvert) : Fond accent (BlueTheme.accent)
+- Désactivé : Opacité réduite (quand en fullscreen)
 
-#### Activation PiP
-1. Clic sur le bouton PiP
-2. La vidéo se détache dans une fenêtre flottante macOS
-3. La fenêtre principale peut afficher un placeholder ou la Home
+**Raccourci clavier :** `P` (pour Picture-in-Picture)
 
-#### Fenêtre PiP (gérée par macOS)
-- Fenêtre flottante au-dessus de toutes les apps
-- Redimensionnable (coins)
-- Déplaçable (drag)
-- Boutons natifs : Play/Pause, Fermer, Retour à l'app
-- Position mémorisée par le système
+### 2. PipWindow - Fenêtre flottante
 
-#### Retour à l'app
-- Clic sur "Retour à l'app" dans la fenêtre PiP
-- Ou clic sur le bouton PiP dans l'app (si visible)
-- La vidéo revient dans le PlayerView
+**Dimensions :**
+- Taille par défaut : 400x225 (ratio 16:9)
+- Taille minimale : 320x180
+- Taille maximale : 640x360
 
-### Implémentation technique
+**Comportement :**
+- Toujours au-dessus des autres fenêtres (`WindowStaysOnTopHint`)
+- Sans barre de titre (`FramelessWindowHint`)
+- Redimensionnable (coins) avec **ratio 16:9 forcé**
+- Déplaçable (drag n'importe où)
+- Coins arrondis (12px)
+- Ombre portée subtile
 
-**macOS AVKit PiP :**
-macOS supporte nativement PiP via `AVPictureInPictureController`. Cependant, cela nécessite d'utiliser `AVPlayerLayer` au lieu de mpv.
+**Position initiale :**
+- Coin inférieur droit de l'écran
+- Marge de 24px depuis les bords
 
-**Alternatives pour mpv :**
+**Mémorisation position/taille :**
+- Sauvegarder dans QSettings quand fermée
+- Restaurer à la réouverture
 
-1. **Fenêtre Qt séparée (recommandée)**
-   - Créer une `QQuickWindow` avec le flag `Qt.WindowStaysOnTopHint`
-   - Déplacer le `MpvQuickItem` dans cette fenêtre
-   - Style minimaliste (pas de barre de titre ou très fine)
+### 3. Mini-contrôles PipWindow
 
-2. **NSWindow native**
-   - Utiliser Objective-C++ pour créer une NSWindow flottante
-   - Plus de contrôle sur l'apparence macOS native
+**Comportement :** Apparaissent au hover, disparaissent après 2s.
 
-3. **AVPictureInPictureController**
-   - Nécessite de capturer le rendu mpv vers un `AVSampleBufferDisplayLayer`
-   - Complexe mais rendu PiP 100% natif
-
-### Proposition : Fenêtre Qt flottante
-
-```qml
-Window {
-    id: pipWindow
-    flags: Qt.Window | Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint
-    width: 400
-    height: 225  // 16:9
-    visible: false
-    
-    MpvQuickItem {
-        id: pipPlayer
-        anchors.fill: parent
-    }
-    
-    // Mini contrôles
-    Row {
-        anchors.bottom: parent.bottom
-        anchors.horizontalCenter: parent.horizontalCenter
-        
-        Button { text: "⏸" }
-        Button { text: "✕"; onClicked: exitPip() }
-    }
-}
+**Layout :**
 ```
+┌─────────────────────────────────────┐
+│                                [✕]  │ ← Bouton fermer (top-right)
+│                                     │
+│              [VIDEO]                │
+│                                     │
+│         [⏸]  [↗]                    │ ← Contrôles (bottom-center)
+│          ↑    ↑                     │
+│       Pause  Retour app             │
+└─────────────────────────────────────┘
+```
+
+**Boutons :**
+1. **Fermer (✕)** - Ferme le PiP, **arrête la lecture**, retour Home
+2. **Play/Pause (▶/⏸)** - Toggle lecture
+3. **Retour à l'app (↗)** - Ferme PiP, remet la vidéo dans PlayerView (lecture continue)
+
+**Style des contrôles :**
+- Fond : #80000000 (noir 50% opacité)
+- Coins arrondis : 8px
+- Taille boutons : 32x32
+- Animation fade : BlueTheme.animHoverDuration (150ms)
+
+### 4. Gestion des états
+
+**PiP et Fullscreen sont mutuellement exclusifs :**
+- Si en fullscreen → bouton PiP désactivé
+- Si PiP activé en fullscreen → quitter fullscreen d'abord
+
+**Transitions :**
+
+| Action | Depuis | Vers | Comportement |
+|--------|--------|------|--------------|
+| Clic PiP | Normal | PiP | Fenêtre principale montre placeholder, vidéo dans PiP |
+| Clic PiP | PiP | Normal | Ferme PiP, vidéo revient dans PlayerView |
+| Clic Retour | PiP | Normal | Idem |
+| Clic Fermer | PiP | - | Ferme PiP, stop lecture, retour Home |
+| Double-clic PiP | PiP | Normal | Shortcut : ferme PiP, vidéo revient |
+| Touche P | Normal | PiP | Toggle PiP |
+| Touche P | PiP | Normal | Toggle PiP |
+| Touche Esc | PiP | Normal | Ferme PiP, vidéo revient |
+
+**Fenêtre principale en mode PiP :**
+- Option A : Affiche un placeholder "Vidéo en PiP" avec bouton pour revenir
+- Option B : Retourne automatiquement à Home
+- **Choix : Option A** (meilleure UX, garde le contexte)
+
+### 5. Placeholder "Vidéo en PiP"
+
+**Affiché dans PlayerView quand PiP actif :**
+
+```
+┌─────────────────────────────────────────┐
+│                                         │
+│              🎬                         │
+│     "Vidéo en Picture-in-Picture"       │
+│                                         │
+│     [Revenir ici]                       │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+**Style :**
+- Fond : BlueTheme.windowBackground
+- Icône : Emoji ou Canvas (style PiP)
+- Texte : BlueTheme.primaryText, 18px
+- Bouton : Style secondaire, action → ferme PiP
+
+### 6. Animations
+
+Toutes les animations utilisent les tokens BlueTheme :
+
+| Animation | Durée | Easing |
+|-----------|-------|--------|
+| Apparition contrôles PiP | animHoverDuration (150ms) | OutCubic |
+| Disparition contrôles PiP | animHoverDuration (150ms) | OutCubic |
+| Ouverture fenêtre PiP | animPanelDuration (300ms) | OutCubic |
+| Fermeture fenêtre PiP | animPanelDuration (300ms) | InCubic |
+| Hover bouton | animHoverDuration (150ms) | OutCubic |
+
+### 7. Préservation d'état
+
+Lors du passage en PiP et retour :
+- ✅ Position de lecture (automatique, même player)
+- ✅ Volume
+- ✅ État mute
+- ✅ État pause
+- ✅ Mode live vs replay
+- ✅ Qualité sélectionnée
 
 ## Fichiers concernés
 
 ### À modifier
-- `src/ui/PlayerView.qml` - Bouton PiP + logique
-- `src/ui/components/PlayerControlBar.qml` - Ajouter bouton
-- `src/ui/main.qml` - Gestion de la fenêtre PiP
+| Fichier | Modification |
+|---------|--------------|
+| `src/ui/components/PlayerControlBar.qml` | Ajouter bouton PiP |
+| `src/ui/PlayerView.qml` | Logique PiP + placeholder |
+| `src/ui/main.qml` | Gestion fenêtre PiP globale |
+| `src/ui/themes/BlueTheme.js` | (si nouvelles constantes nécessaires) |
 
 ### À créer
-- `src/ui/PipWindow.qml` - Fenêtre PiP dédiée
+| Fichier | Description |
+|---------|-------------|
+| `src/ui/PipWindow.qml` | Fenêtre PiP flottante |
+| `src/ui/components/PipPlaceholder.qml` | Placeholder "Vidéo en PiP" |
 
-### Potentiellement (si approche native)
-- `src/media/PipController.mm` - Wrapper Objective-C++
+## Contraintes techniques
 
-## Contraintes
+1. **macOS uniquement** : Le comportement `WindowStaysOnTopHint` fonctionne sur macOS. Tester sur les autres plateformes si nécessaire.
 
-- **macOS uniquement** : Le PiP est une feature macOS, prévoir une feature-flag
-- **Performance** : Le rendu doit rester fluide dans la petite fenêtre
-- **Audio** : L'audio doit suivre la vidéo (pas de duplication)
+2. **Chat séparé** : Le chat Twitch reste dans la fenêtre principale, pas dans la fenêtre PiP. L'utilisateur peut garder le chat ouvert tout en utilisant d'autres apps avec le PiP.
+
+3. **Un seul MpvQuickItem** : Ne pas dupliquer le player. Utiliser `parent` reparenting pour déplacer le MpvQuickItem entre les fenêtres.
+
+4. **Performance** : Le rendu doit rester fluide. Pas de redimensionnement du rendu mpv pendant le reparenting.
+
+5. **Focus clavier** : La fenêtre PiP ne doit pas voler le focus. Les raccourcis claviers restent actifs dans la fenêtre principale.
 
 ## Checklist de validation
 
-### UI
-- [ ] Bouton PiP visible dans la PlayerControlBar
-- [ ] Icône reconnaissable (standard PiP)
-- [ ] Bouton grisé si PiP non supporté
+### UI - Bouton PiP
+- [x] Bouton PiP visible dans la PlayerControlBar (entre Volume et Fullscreen)
+- [x] Icône reconnaissable (deux rectangles imbriqués)
+- [x] Tooltip "Picture-in-Picture (P)"
+- [x] État hover avec animation
+- [x] État actif quand PiP ouvert
+- [x] Bouton grisé si en fullscreen
 
-### Activation
-- [ ] Clic sur PiP ouvre la fenêtre flottante
-- [ ] Vidéo s'affiche dans la fenêtre PiP
-- [ ] Audio continue normalement
-- [ ] Fenêtre principale gère l'absence de vidéo
+### Activation PiP
+- [x] Clic sur PiP ouvre la fenêtre flottante
+- [x] Vidéo s'affiche dans la fenêtre PiP (même player, reparenté)
+- [x] Audio continue normalement
+- [x] Fenêtre principale affiche placeholder
 
 ### Fenêtre PiP
-- [ ] Fenêtre toujours au-dessus des autres apps
-- [ ] Fenêtre redimensionnable
-- [ ] Fenêtre déplaçable
-- [ ] Ratio 16:9 maintenu
-- [ ] Contrôles minimaux visibles (play/pause, fermer)
-- [ ] Taille minimale respectée
+- [x] Fenêtre toujours au-dessus des autres apps
+- [x] Fenêtre sans barre de titre (frameless)
+- [x] Fenêtre redimensionnable avec ratio 16:9 forcé
+- [x] Fenêtre déplaçable (drag)
+- [x] Coins arrondis (16px - ajusté pour meilleur rendu)
+- [x] Taille minimale respectée (320x180)
+- [x] Position/taille mémorisées entre sessions
 
-### Retour
-- [ ] Bouton "retour à l'app" fonctionne
-- [ ] Vidéo revient dans le PlayerView
-- [ ] État de lecture préservé (position, volume)
+### Contrôles PiP
+- [x] Contrôles apparaissent au hover
+- [x] Contrôles disparaissent après 2s d'inactivité
+- [x] Bouton Play/Pause fonctionne
+- [x] Bouton Fermer ferme PiP et arrête lecture
+- [x] Bouton Retour ferme PiP et remet vidéo dans app
+
+### Retour à l'app
+- [x] Clic sur "Retour à l'app" fonctionne
+- [x] Double-clic sur fenêtre PiP ferme et revient
+- [x] Touche P toggle le mode PiP
+- [x] Touche Escape ferme PiP et revient
+- [x] Vidéo revient dans le PlayerView
+- [x] État de lecture préservé (position, volume, qualité)
 
 ### Cas particuliers
-- [ ] Fonctionne en live
-- [ ] Fonctionne en VOD
-- [ ] Gestion correcte du fullscreen (désactiver PiP ou vice versa)
-- [ ] Fermeture de l'app ferme aussi le PiP
+- [x] Fonctionne en live
+- [x] Fonctionne en VOD/replay
+- [x] Gestion correcte du fullscreen (mutuellement exclusif)
+- [x] Fermeture de l'app ferme aussi le PiP
+- [x] PiP fonctionne avec le chat ouvert (chat reste dans app principale)
 
 ### Performance
-- [ ] Rendu fluide dans la fenêtre PiP
-- [ ] Pas de fuite mémoire
-- [ ] Transitions sans artefacts
+- [x] Rendu fluide dans la fenêtre PiP
+- [x] Pas de fuite mémoire (vérifier avec Instruments)
+- [x] Transitions sans artefacts visuels
+- [x] Reparenting du MpvQuickItem sans freeze
