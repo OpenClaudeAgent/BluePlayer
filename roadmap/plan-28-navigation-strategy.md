@@ -152,11 +152,15 @@ Chaque panel "prend le controle" de la barre de navigation :
 
 ## Checklist de validation
 
-- [ ] Les boutons de navigation globaux et les headers de panels ne se chevauchent jamais
-- [ ] PreferencesView et CacheManagerView utilisent le meme composant pour leur header
-- [ ] Un composant CircleButton/IconButton reutilisable existe dans components/
-- [ ] Un composant TopBar/NavigationBar centralise la logique de navigation
-- [ ] Les transitions entre vues sont fluides et coherentes
-- [ ] Le hack de marge droite dans CacheManagerView a ete supprime
-- [ ] L'ajout d'un nouveau panel ne necessite pas de duplication de code header
-- [ ] L'experience utilisateur est coherente entre toutes les vues
+- [x] Les boutons de navigation globaux et les headers de panels ne se chevauchent jamais
+- [x] PreferencesView et CacheManagerView utilisent le meme composant pour leur header
+- [x] Un composant CircleButton/IconButton reutilisable existe dans components/
+- [ ] Un composant TopBar/NavigationBar centralise la logique de navigation (Option B choisie : boutons cachés)
+- [x] Les transitions entre vues sont fluides et coherentes
+- [x] Le hack de marge droite dans CacheManagerView a ete supprime
+- [x] L'ajout d'un nouveau panel ne necessite pas de duplication de code header
+- [x] L'experience utilisateur est coherente entre toutes les vues
+
+## Stratégie implémentée
+
+**Option B** : Les boutons de navigation globaux (↺ ⚙️) sont cachés quand un panel est ouvert. Chaque panel utilise `PanelHeader.qml` pour son header avec bouton retour.
