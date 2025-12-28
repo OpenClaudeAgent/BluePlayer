@@ -145,6 +145,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 27 | Suppression MpvFboItem (Legacy) | [plan-27](./plan-27-remove-mpvfboitem.md) | `refactor/remove-mpvfboitem` | - | 🔴 En attente |
 | 28 | Strategie Navigation Globale | [plan-28](./plan-28-navigation-strategy.md) | `feature/navigation-strategy` | v0.20.0 | 🟢 Terminé |
 | 29 | Persistance Qualité par Défaut | [plan-29](./plan-29-default-quality-persistence.md) | `feature/default-quality` | v0.21.0 | 🟢 Terminé |
+| 30 | Harmonisation des Toasts | [plan-30](./plan-30-toast-harmonization.md) | `feature/toast-harmonization` | - | 🔴 En attente |
 
 ### Plans spéciaux
 
@@ -225,3 +226,4 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 2025-12-28 | Ajout plan 27 - Suppression MpvFboItem (code legacy mort, remplace tâche 24.20) |
 | 2025-12-28 | Ajout plan 28 - Stratégie Navigation Globale (TopBar, CircleButton, refactoring headers) |
 | 2025-12-28 | Ajout plan 29 - Persistance Qualité par Défaut (persistance, intégration TwitchService, fallback) |
+| 2025-12-28 | Ajout plan 30 - Harmonisation des Toasts (feedback visuel pour tous les contrôles player) |
