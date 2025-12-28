@@ -80,9 +80,11 @@ Rectangle {
 Cette fonctionnalité ne peut être implémentée qu'APRÈS le plan-11 (Sélection de la Qualité du Stream).
 
 **Workflow prévu :**
-1. Plan-11 implémente le sélecteur de qualité dans le player
-2. Plan-12 peut ensuite ajouter un paramètre "Qualité par défaut" dans les préférences
-3. Ce paramètre sera automatiquement appliqué au démarrage de chaque stream
+1. Plan-11 implémente le sélecteur de qualité dans le player ✅
+2. Plan-12 peut ensuite ajouter un paramètre "Qualité par défaut" dans les préférences ✅ (UI uniquement)
+3. Ce paramètre sera automatiquement appliqué au démarrage de chaque stream ❌ (reporté)
+
+> **Note d'implémentation (2025-12-28)** : Lors de l'implémentation, l'UI du dropdown a été créée mais la persistance et l'intégration avec TwitchService ont été jugées trop complexes pour ce plan. Ces fonctionnalités sont reportées au **Plan 29** dédié.
 
 **UI envisagée :**
 ```
@@ -109,26 +111,46 @@ Cette fonctionnalité ne peut être implémentée qu'APRÈS le plan-11 (Sélecti
 ## Checklist de validation
 
 ### Bugs
-- [ ] Le bouton "Fermer" ferme le panel
-- [ ] Le bouton "Revenir à l'accueil" ramène à la Home
-- [ ] La box authentification a un padding uniforme (haut, bas, gauche, droite)
-- [ ] Le bouton "Se déconnecter" ne touche plus le bord
+- [x] Le bouton "Fermer" ferme le panel (bouton ← dans le header)
+- [x] Le bouton "Revenir à l'accueil" ramène à la Home
+- [x] La box authentification a un padding uniforme (haut, bas, gauche, droite)
+- [x] Le bouton "Se déconnecter" ne touche plus le bord
 
 ### UI générale
-- [ ] Les espacements sont cohérents
-- [ ] Les sections sont bien délimitées
-- [ ] La police et les tailles sont harmonisées
-- [ ] Le design est moderne et propre
+- [x] Les espacements sont cohérents
+- [x] Les sections sont bien délimitées
+- [x] La police et les tailles sont harmonisées
+- [x] Le design est moderne et propre
 
 ### Nouvelles fonctionnalités
-- [ ] Section "Cache & Stockage" présente
-- [ ] Slider pour la taille max du cache
-- [ ] Affichage de l'espace utilisé
-- [ ] Bouton "Vider le cache"
-- [ ] Les paramètres sont sauvegardés
-- [ ] Les paramètres sont chargés au démarrage
+- [x] Section "Cache & Stockage" présente
+- [x] Stepper pour la taille max du cache (remplace slider)
+- [x] Affichage de l'espace utilisé avec barre de progression
+- [x] Bouton "Vider le cache" avec dialog de confirmation
+- [ ] Les paramètres sont sauvegardés (qualité par défaut non persistée - backend à implémenter)
+- [ ] Les paramètres sont chargés au démarrage (qualité par défaut non persistée)
 
 ### Tests
-- [ ] Navigation fluide (ouvrir/fermer le panel)
-- [ ] Pas de régression sur la déconnexion Twitch
-- [ ] Les préférences persistent après redémarrage
+- [x] Navigation fluide (ouvrir/fermer le panel)
+- [x] Pas de régression sur la déconnexion Twitch
+- [ ] Les préférences persistent après redémarrage (partiel - cache OK, qualité non)
+
+---
+
+## Bonus (ajouté lors de l'implémentation)
+
+- **Section Lecture avec qualité par défaut** : Dropdown pour choisir la qualité par défaut (UI uniquement, voir Plan 29 pour persistance)
+- **Composant BlueDropdown** : Composant dropdown réutilisable ajouté au design system
+- **Header moderne** : Bouton retour (←) avec titre, style glassmorphism
+- **Composant PreferencesSection** : Composant inline pour les sections avec icône et titre
+- **Indicateur de connexion animé** : Point vert pulsant quand connecté à Twitch
+- **Barre de cache dynamique** : Se rafraîchit automatiquement quand la taille max change
+- **Plan 28 créé** : Identification du problème d'overlap et plan pour stratégie navigation globale
+
+## Reporté au Plan 29
+
+Lors de l'analyse, les fonctionnalités suivantes ont été jugées trop complexes pour ce plan et reportées :
+
+- **Persistance de la qualité par défaut** : Sauvegarder le choix de l'utilisateur (QSettings ou Config.cpp)
+- **Intégration avec TwitchService** : Appliquer automatiquement la qualité par défaut à l'ouverture d'un stream
+- **Synchronisation player ↔ préférences** : Mettre à jour les préférences si l'utilisateur change la qualité dans le player

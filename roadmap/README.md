@@ -80,6 +80,8 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 18 (Thème) | 12 (Préférences) | Sélecteur de thème dans les préférences |
 | 19.2-19.3 (Channels offline) | 6 (Search) ✅ | Étend la recherche existante |
 | **24 (Refactoring)** | Aucune | Peut démarrer immédiatement, sous-tâches 24.1-24.3 CRITIQUES |
+| **28 (Navigation)** | Aucune | Recommandé avant Plan 12 (Préférences) pour architecture propre |
+| 29 (Qualité défaut) | 11 (Qualité) ✅, 12 (Préférences) ✅ | Persistance et intégration de l'UI créée en Plan 12 |
 
 ---
 
@@ -125,7 +127,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 9 | Vitesse lecture intelligente | [plan-09](./plan-09-playback-speed.md) | `feature/playback-speed` | v0.9.0 | 🟢 Terminé |
 | 10 | Animations & Transitions | [plan-10](./plan-10-animations.md) | `feature/animations` | v0.10.0 | 🟢 Terminé |
 | 11 | Sélecteur Qualité Stream | [plan-11](./plan-11-quality-selector.md) | `feature/quality-selector` | v0.18.0 | 🟢 Terminé |
-| 12 | Panel Préférences | [plan-12](./plan-12-preferences.md) | `feature/preferences` | - | 🔴 En attente |
+| 12 | Panel Préférences | [plan-12](./plan-12-preferences.md) | `feature/preferences` | v0.19.0 | 🟢 Terminé |
 | 13 | Internationalisation (i18n) | [plan-13](./plan-13-internationalization.md) | `feature/i18n` | - | 🔴 En attente |
 | 14 | Bouton Follow/Unfollow | [plan-14](./plan-14-follow-button.md) | `feature/follow-button` | - | 🔴 En attente |
 | 15 | Historique VOD cachés | [plan-15](./plan-15-watch-history.md) | `feature/watch-history` | - | 🔴 En attente |
@@ -141,6 +143,8 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | **25** | **Audit UI/UX Design** | [plan-25](./plan-25-ui-design-audit.md) | `design/ui-audit` | - | 🔴 En attente |
 | 26 | Icône Application BluePlayer | [plan-26](./plan-26-app-icon.md) | `feature/app-icon` | - | 🔴 En attente |
 | 27 | Suppression MpvFboItem (Legacy) | [plan-27](./plan-27-remove-mpvfboitem.md) | `refactor/remove-mpvfboitem` | - | 🔴 En attente |
+| 28 | Strategie Navigation Globale | [plan-28](./plan-28-navigation-strategy.md) | `feature/navigation-strategy` | - | 🔴 En attente |
+| 29 | Persistance Qualité par Défaut | [plan-29](./plan-29-default-quality-persistence.md) | `feature/default-quality` | - | 🔴 En attente |
 
 ### Plans spéciaux
 
@@ -151,6 +155,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 🚨 Critique | Plan 24 | **INSTANCE** - Audit Q4 2025 (27 décembre) basé sur le template Plan 21 |
 | 🎨 Design | Plan 25 | Audit UI/UX & Design System (20 sous-tâches) |
 | 🧹 Cleanup | Plan 27 | Suppression code legacy (remplace tâche 24.20) |
+| 🏗️ Architecture | Plan 28 | Stratégie navigation globale (TopBar, composants réutilisables) |
 
 > **Note Plan 21 vs Plan 24** :
 > - **Plan 21** est un template récurrent définissant la méthodologie d'audit qualité
@@ -190,6 +195,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 2025-12-28 | Plan 24 Sprint 7 terminé - +32 tests (unitaires + intégration), CI/CD reporté |
 | 2025-12-28 | **Plan 24 TERMINÉ** - Refactoring Profond complet (7 sprints, v0.11.0 → v0.17.0) |
 | 2025-12-28 | Tâche 11 terminée - Sélecteur qualité stream (bouton HD/SD, popup, qualité VOD cachée) |
+| 2025-12-28 | Tâche 12 terminée - Panel Préférences modernisé (design, dropdown qualité, cache, BlueDropdown) |
 
 ---
 
@@ -211,3 +217,5 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 2025-12-27 | Ajout plan 25 - Audit UI/UX Design (20 sous-tâches : palette, typographie, composants) |
 | 2025-12-28 | Ajout plan 26 - Icône Application BluePlayer (intégration icône "Blue Drop Play" validée) |
 | 2025-12-28 | Ajout plan 27 - Suppression MpvFboItem (code legacy mort, remplace tâche 24.20) |
+| 2025-12-28 | Ajout plan 28 - Stratégie Navigation Globale (TopBar, CircleButton, refactoring headers) |
+| 2025-12-28 | Ajout plan 29 - Persistance Qualité par Défaut (persistance, intégration TwitchService, fallback) |
