@@ -182,6 +182,7 @@ add_executable(test_http_client
   core/network/TestHttpClient.cpp
 )
 target_link_libraries(test_http_client PRIVATE
+  test_helpers
   ${TEST_LIBS}
   blueplayer_core
 )
