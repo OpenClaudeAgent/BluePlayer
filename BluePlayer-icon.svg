@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Gradient pour le fond (style Big Sur) -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#0b1727"/>
+      <stop offset="100%" style="stop-color:#040b15"/>
+    </linearGradient>
+    
+    <!-- Gradient pour la goutte -->
+    <linearGradient id="dropGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#5bc0ff"/>
+      <stop offset="60%" style="stop-color:#3da2ff"/>
+      <stop offset="100%" style="stop-color:#2878cc"/>
+    </linearGradient>
+    
+    <!-- Gradient pour le reflet -->
+    <linearGradient id="highlightGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.4"/>
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0"/>
+    </linearGradient>
+    
+    <!-- Ombre portée -->
+    <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="15" stdDeviation="25" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+    
+    <!-- Lueur interne -->
+    <filter id="innerGlow">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="8" result="blur"/>
+      <feOffset dx="0" dy="0"/>
+      <feComposite in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.36  0 0 0 0 0.75  0 0 0 0 1  0 0 0 0.6 0"/>
+      <feBlend in2="SourceGraphic"/>
+    </filter>
+  </defs>
+  
+  <!-- Fond arrondi style macOS Big Sur -->
+  <rect x="40" y="40" width="944" height="944" rx="212" ry="212" fill="url(#bgGradient)"/>
+  
+  <!-- Bordure subtile -->
+  <rect x="40" y="40" width="944" height="944" rx="212" ry="212" 
+        fill="none" stroke="#5bc0ff" stroke-width="2" stroke-opacity="0.2"/>
+  
+  <!-- Goutte d'eau principale -->
+  <g filter="url(#dropShadow)">
+    <path d="M512 180
+             C512 180 300 420 300 580
+             C300 700 395 820 512 820
+             C629 820 724 700 724 580
+             C724 420 512 180 512 180Z" 
+          fill="url(#dropGradient)"/>
+  </g>
+  
+  <!-- Reflet sur la goutte (effet 3D) -->
+  <ellipse cx="420" cy="480" rx="80" ry="120" fill="url(#highlightGradient)" transform="rotate(-20 420 480)"/>
+  
+  <!-- Triangle Play -->
+  <path d="M460 470
+           L460 630
+           L610 550
+           Z" 
+        fill="#ffffff" 
+        fill-opacity="0.95"/>
+  
+  <!-- Petit reflet sur le play -->
+  <path d="M460 470
+           L460 520
+           L500 495
+           Z" 
+        fill="#ffffff" 
+        fill-opacity="0.3"/>
+</svg>
