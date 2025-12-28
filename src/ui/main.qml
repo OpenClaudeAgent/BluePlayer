@@ -1,7 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 6.5
 import QtQuick.Layouts 1.15
-
+import QtQuick.Window 2.15
 
 import "themes/BlueTheme.js" as BlueTheme
 import "components"
@@ -125,6 +125,10 @@ ApplicationWindow {
         item.isVodMode = root.vodFilePath.length > 0
         item.backRequested.connect(function() {
           console.log("[main.qml] Back requested, returning to previous view")
+          // Close PiP if active before navigating away
+          if (pipWindow.visible) {
+            closePip()
+          }
           // Si on venait du cache manager, y retourner
           if (root.vodFilePath.length > 0) {
             root.currentView = "cache"
@@ -136,7 +140,124 @@ ApplicationWindow {
             root.currentView = "home"
           }
         })
+        
+        // Connect PiP signals
+        item.pipRequested.connect(function() {
+          console.log("[main.qml] PiP requested")
+          if (!pipWindow.visible) {
+            openPip()
+          } else {
+            closePip()
+          }
+        })
+        
+        item.pipReturnRequested.connect(function() {
+          console.log("[main.qml] PiP return requested")
+          closePip()
+        })
       }
+    }
+  }
+  
+  // ==========================================================================
+  // PICTURE-IN-PICTURE WINDOW
+  // ==========================================================================
+  
+  PipWindow {
+    id: pipWindow
+    visible: false
+    
+    onCloseRequested: {
+      console.log("[main.qml] PiP close requested - stopping playback")
+      closePip()
+      // Stop playback and return to home
+      if (playerLoader.item) {
+        playerLoader.item.requestStop()
+        playerLoader.item.backRequested()
+      }
+    }
+    
+    onReturnToAppRequested: {
+      console.log("[main.qml] PiP return to app requested")
+      closePip()
+    }
+    
+    onPlayPauseRequested: {
+      console.log("[main.qml] PiP play/pause requested")
+      if (playerLoader.item) {
+        playerLoader.item.togglePlayPause()
+      }
+    }
+  }
+  
+  // PiP management functions
+  function openPip() {
+    if (!playerLoader.item) return
+    
+    var player = playerLoader.item
+    var videoPlayer = player.getVideoPlayer()
+    
+    if (videoPlayer) {
+      console.log("[main.qml] Opening PiP - reparenting video")
+      
+      // Set PiP window properties
+      pipWindow.playing = player.playing
+      pipWindow.paused = player.paused
+      pipWindow.streamerName = player.streamerName || player.streamerLogin
+      
+      // Reparent video to PiP window
+      pipWindow.attachVideo(videoPlayer)
+      
+      // Show PiP window
+      pipWindow.visible = true
+      
+      // Update player state
+      player.pipActive = true
+    }
+  }
+  
+  function closePip() {
+    if (!playerLoader.item) return
+    
+    var player = playerLoader.item
+    
+    console.log("[main.qml] Closing PiP - returning video to player")
+    
+    // Detach video from PiP
+    pipWindow.detachVideo()
+    
+    // Return video to player
+    player.returnVideoToPlayer()
+    
+    // Hide PiP window
+    pipWindow.visible = false
+    
+    // Update player state
+    player.pipActive = false
+  }
+  
+  // Sync PiP state with player
+  Connections {
+    target: playerLoader.item
+    enabled: playerLoader.item !== null
+    
+    function onPlayingChanged() {
+      if (pipWindow.visible && playerLoader.item) {
+        pipWindow.playing = playerLoader.item.playing
+      }
+    }
+    
+    function onPausedChanged() {
+      if (pipWindow.visible && playerLoader.item) {
+        pipWindow.paused = playerLoader.item.paused
+      }
+    }
+  }
+  
+  // Track fullscreen state to disable PiP button
+  onVisibilityChanged: {
+    if (playerLoader.item) {
+      playerLoader.item.pipEnabled = (visibility !== Window.FullScreen)
     }
   }
 
@@ -357,6 +478,11 @@ ApplicationWindow {
   // --------------------------------------------------------------------------
   property string previousView: "home"
   onCurrentViewChanged: {
+    // Close PiP when leaving player view
+    if (currentView !== "player" && pipWindow.visible) {
+      closePip()
+    }
+    
     if (previousView === "player" && currentView === "home") {
       console.log("[main.qml] Returned from player, refreshing home data")
       var service = root.getTwitchService()
