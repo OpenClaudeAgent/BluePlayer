@@ -1,7 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Controls 6.5
 import QtQuick.Layouts 1.15
-import Qt.labs.settings 1.1
 
 import "themes/BlueTheme.js" as BlueTheme
 import "components"
@@ -23,19 +22,22 @@ Item {
     // Cache refresh trigger (incremented to force binding refresh)
     property int cacheRefreshTrigger: 0
 
-    // Language settings
-    Settings {
-        id: languageSettings
-        category: "i18n"
-        property string language: "system"
+    // Language preference - connected to backend LanguageManager
+    property string currentLanguage: {
+        var mgr = getLanguageManager()
+        return mgr ? mgr.currentLanguage : "system"
     }
 
-    // Language preference
-    property string currentLanguage: languageSettings.language
+    function getLanguageManager() {
+        return typeof languageManager !== "undefined" ? languageManager : null
+    }
 
     function setLanguage(lang) {
-        languageSettings.language = lang
-        console.log("[PreferencesView] Language set to:", lang)
+        var mgr = getLanguageManager()
+        if (mgr) {
+            mgr.setLanguage(lang)
+            console.log("[PreferencesView] Language changed to:", lang)
+        }
     }
 
     // Access helpers
@@ -171,21 +173,8 @@ Item {
                                         if (value === "English") langCode = "en"
                                         else if (value === "Français") langCode = "fr"
                                         preferencesRoot.setLanguage(langCode)
-                                        restartHint.visible = true
                                     }
                                 }
-                            }
-
-                            // Restart hint
-                            Text {
-                                id: restartHint
-                                visible: false
-                                text: qsTr("Restart required to apply language change")
-                                font.family: BlueTheme.fontFamily
-                                font.pixelSize: 12
-                                font.italic: true
-                                color: BlueTheme.statusWarning
-                                Layout.fillWidth: true
                             }
                         }
                     }

@@ -23,6 +23,8 @@ set(BLUEPLAYER_CORE_SOURCES
   core/CacheManager.hpp
   core/FileLogger.cpp
   core/FileLogger.hpp
+  core/LanguageManager.cpp
+  core/LanguageManager.hpp
   core/network/HttpClient.cpp
   core/network/HttpClient.hpp
   core/network/ApiClientBase.cpp

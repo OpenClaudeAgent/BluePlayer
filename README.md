@@ -124,6 +124,7 @@ Consultez la [Roadmap](roadmap/README.md) pour le suivi des tâches planifiées 
 
 | Version | Date | Description |
 |---------|------|-------------|
+| v0.22.0 | 2025-12-28 | Internationalisation (i18n) avec changement de langue à chaud (EN/FR) |
 | v0.21.0 | 2025-12-28 | Persistance qualité par défaut (QSettings, intégration TwitchService, fallback) |
 | v0.20.0 | 2025-12-28 | Navigation globale (CircleButton, PanelHeader, boutons cachés dans panels) |
 | v0.19.0 | 2025-12-28 | Panel Préférences modernisé (design, dropdown qualité, cache, composant BlueDropdown) |

@@ -39,6 +39,16 @@ Item {
     }
   }
 
+  // Refresh sections when language changes
+  Connections {
+    target: typeof languageManager !== "undefined" ? languageManager : null
+    enabled: target !== null
+    function onLanguageChanged() {
+      console.log("[HomeView] Language changed, refreshing sections")
+      viewModel.refreshTranslations()
+    }
+  }
+
   // Utiliser sectionsData du ViewModel, mis à jour via le signal
   property var sectionsData: viewModel.sectionsData
 

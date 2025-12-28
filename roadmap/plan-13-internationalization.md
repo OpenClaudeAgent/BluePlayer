@@ -182,48 +182,53 @@ if (translator.load("blueplayer_" + locale, ":/i18n")) {
 ## Checklist de validation
 
 ### Configuration (13.1)
-- [ ] CMakeLists.txt configure Qt LinguistTools
-- [ ] Le dossier `src/i18n/` existe
-- [ ] `lupdate` génère les fichiers .ts
-- [ ] `lrelease` compile les fichiers .qm
-- [ ] Les fichiers .qm sont inclus dans les ressources
+- [x] CMakeLists.txt configure Qt LinguistTools
+- [x] Le dossier `src/i18n/` existe
+- [x] `lupdate` génère les fichiers .ts
+- [x] `lrelease` compile les fichiers .qm
+- [x] Les fichiers .qm sont inclus dans les ressources
 
 ### Normalisation (13.2)
-- [ ] Tous les textes visibles utilisent `qsTr()`
-- [ ] Les textes sources sont en anglais
-- [ ] Pas de texte hardcodé en français restant
-- [ ] Les placeholders dynamiques utilisent `%1`, `%2`, etc.
+- [x] Tous les textes visibles utilisent `qsTr()`
+- [x] Les textes sources sont en anglais
+- [x] Pas de texte hardcodé en français restant
+- [x] Les placeholders dynamiques utilisent `%1`, `%2`, etc.
 
 ### Traduction française (13.3)
-- [ ] Fichier `blueplayer_fr.ts` complet
-- [ ] Toutes les chaînes sont traduites (pas de "unfinished")
-- [ ] Les traductions sont naturelles et correctes
-- [ ] Cohérence du vocabulaire (même terme pour même concept)
+- [x] Fichier `blueplayer_fr.ts` complet
+- [x] Toutes les chaînes sont traduites (pas de "unfinished")
+- [x] Les traductions sont naturelles et correctes
+- [x] Cohérence du vocabulaire (même terme pour même concept)
 
 ### Chargement (13.4)
-- [ ] QTranslator chargé au démarrage
-- [ ] La langue s'applique à toute l'UI
-- [ ] Pas d'erreur si fichier .qm manquant (fallback silencieux)
+- [x] QTranslator chargé au démarrage
+- [x] La langue s'applique à toute l'UI
+- [x] Pas d'erreur si fichier .qm manquant (fallback silencieux)
 
 ### Détection système (13.5)
-- [ ] Langue française détectée sur système fr_FR
-- [ ] Fallback anglais sur systèmes non-français
-- [ ] La préférence utilisateur prime sur la détection
+- [x] Langue française détectée sur système fr_FR
+- [x] Fallback anglais sur systèmes non-français
+- [x] La préférence utilisateur prime sur la détection
 
 ### Vérification UI (13.6)
-- [ ] Aucun texte coupé ou tronqué
-- [ ] Les boutons restent lisibles
-- [ ] Les layouts ne cassent pas
-- [ ] Testé en français ET en anglais
+- [x] Aucun texte coupé ou tronqué
+- [x] Les boutons restent lisibles
+- [x] Les layouts ne cassent pas
+- [x] Testé en français ET en anglais
 
 ### Sélecteur préférences (13.7)
-- [ ] Dropdown/liste de langues disponibles
-- [ ] Changement de langue appliqué immédiatement (ou après redémarrage)
-- [ ] Préférence sauvegardée
-- [ ] Préférence chargée au démarrage
+- [x] Dropdown/liste de langues disponibles
+- [x] Changement de langue appliqué immédiatement (ou après redémarrage)
+- [x] Préférence sauvegardée
+- [x] Préférence chargée au démarrage
 
 ### Tests globaux
-- [ ] L'app démarre en anglais sur système anglais
-- [ ] L'app démarre en français sur système français
-- [ ] Le changement manuel de langue fonctionne
-- [ ] Pas de régression fonctionnelle
+- [x] L'app démarre en anglais sur système anglais
+- [x] L'app démarre en français sur système français
+- [x] Le changement manuel de langue fonctionne
+- [x] Pas de régression fonctionnelle
+
+## Bonus (ajouté lors de l'implémentation)
+
+- **Changement de langue à chaud** : La langue change immédiatement sans redémarrage grâce au LanguageManager
+- **Rafraîchissement des sections Home** : Les titres des sections sont automatiquement mis à jour lors du changement de langue

@@ -104,6 +104,14 @@ public:
   [[nodiscard]] QVariantList sectionsData() const { return m_sectionsData; }
 
   /**
+   * @brief Rafraîchit les sections pour les nouvelles traductions
+   * 
+   * Appelée quand la langue change pour recréer les titres de sections
+   * avec les nouvelles traductions.
+   */
+  Q_INVOKABLE void refreshTranslations();
+
+  /**
    * @brief Transforme les streams Twitch en format compatible avec StreamCard
    * @param twitchStreams Les streams bruts depuis l'API Twitch
    * @return Les streams transformés

@@ -25,6 +25,7 @@
 #include "chat/TwitchChatClient.hpp"
 #include "core/CacheManager.hpp"
 #include "core/FileLogger.hpp"
+#include "core/LanguageManager.hpp"
 #include "media/MpvQuickItem.hpp"
 #include "ui/CacheManagerViewModel.hpp"
 #include "ui/HomeViewModel.hpp"
@@ -115,32 +116,10 @@ int main(int argc, char *argv[]) {
   app.setOrganizationDomain("blueplayer.app");
   app.setApplicationDisplayName(QStringLiteral(u"BluePlayer"));
 
-  // Load translations
-  QTranslator translator;
-  QSettings settings;
-  QString preferredLanguage = settings.value("i18n/language", "system").toString();
-  QString locale;
-
-  if (preferredLanguage.isEmpty() || preferredLanguage == "system") {
-    // Use system locale
-    locale = QLocale::system().name(); // e.g., "fr_FR", "en_US"
-  } else {
-    locale = preferredLanguage;
-  }
-
-  // Try to load the translation
-  if (translator.load("blueplayer_" + locale, ":/i18n")) {
-    app.installTranslator(&translator);
-    qDebug() << "[i18n] Loaded translation for:" << locale;
-  } else if (locale.startsWith("fr") &&
-             translator.load("blueplayer_fr", ":/i18n")) {
-    // Fallback for any French locale
-    app.installTranslator(&translator);
-    qDebug() << "[i18n] Loaded French translation (fallback)";
-  } else {
-    qDebug() << "[i18n] Using default English (no translation loaded for:"
-             << locale << ")";
-  }
+  // Initialize language manager (handles translations)
+  blueplayer::core::LanguageManager languageManager;
+  // Load initial translation based on saved preference
+  languageManager.setLanguage(languageManager.currentLanguage());
   // FFmpegMediaService removed
 
   qmlRegisterType<blueplayer::media::MpvQuickItem>("BluePlayer.Media", 1, 0,
@@ -159,10 +138,15 @@ int main(int argc, char *argv[]) {
   QQmlApplicationEngine engine;
   // FFmpegMediaService removed
 
+  // Connect language manager to engine for hot-reload translations
+  languageManager.setEngine(&engine);
+
   engine.rootContext()->setContextProperty("twitchService",
                                            coreApp.twitchService());
   engine.rootContext()->setContextProperty("cacheManager",
                                            coreApp.cacheManager());
+  engine.rootContext()->setContextProperty("languageManager",
+                                           &languageManager);
   const QUrl url(QStringLiteral("qrc:/qt/qml/BluePlayer/ui/main.qml"));
   QObject::connect(
       &engine, &QQmlApplicationEngine::objectCreationFailed, &app,

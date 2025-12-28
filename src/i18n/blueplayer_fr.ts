@@ -37,6 +37,57 @@
 </context>
 
 <!-- ============================================================ -->
+<!-- HomeViewModel (C++) -->
+<!-- ============================================================ -->
+<context>
+    <name>blueplayer::ui::HomeViewModel</name>
+    <message>
+        <source>Your followed streamers</source>
+        <translation>Vos streamers suivis</translation>
+    </message>
+    <message>
+        <source>Live channels</source>
+        <translation>Chaînes en direct</translation>
+    </message>
+    <message>
+        <source>Recommended for you</source>
+        <translation>Recommandé pour vous</translation>
+    </message>
+    <message>
+        <source>Based on your preferences</source>
+        <translation>Basé sur vos préférences</translation>
+    </message>
+    <message>
+        <source>Browse</source>
+        <translation>Parcourir</translation>
+    </message>
+    <message>
+        <source>Discover popular categories</source>
+        <translation>Découvrez les catégories populaires</translation>
+    </message>
+    <message>
+        <source>Popular clips</source>
+        <translation>Clips populaires</translation>
+    </message>
+    <message>
+        <source>Best moments</source>
+        <translation>Les meilleurs moments</translation>
+    </message>
+    <message>
+        <source>Category recommendations</source>
+        <translation>Recommandations par catégorie</translation>
+    </message>
+    <message>
+        <source>Discover by game</source>
+        <translation>Découvrez par jeu</translation>
+    </message>
+    <message>
+        <source>New followed streamer</source>
+        <translation>Nouveau streamer suivi</translation>
+    </message>
+</context>
+
+<!-- ============================================================ -->
 <!-- main.qml -->
 <!-- ============================================================ -->
 <context>
