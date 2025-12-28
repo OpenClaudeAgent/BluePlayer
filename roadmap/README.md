@@ -2,27 +2,30 @@
 
 ## Instructions globales
 
-### Méthodologie de travail
+### Methodologie de travail
 
-1. **Planification** : Discuter avec l'utilisateur, définir les besoins, créer un fichier plan
-2. **Création du plan** : Le plan est créé une seule fois et devient **immutable**
-3. **Implémentation** : Créer une branche dédiée, implémenter, valider avec l'utilisateur
-4. **Validation** : Parcourir la checklist avec l'utilisateur avant de merger
-5. **Merge** : Merger sur main uniquement après validation
+1. **Planification** : Discuter avec l'utilisateur, definir les besoins, creer un fichier plan
+2. **Creation du plan** : L'idee (Contexte, Objectif) est **immutable**, les Specifications et Checklist sont **mutables**
+3. **Implementation** : Creer un worktree dedie par feature, implementer, valider avec l'utilisateur
+4. **Tests** : Invoquer l'agent Tester pour ecrire les tests automatises
+5. **Quality** : Code Review + Tests Review avant le merge
+6. **Merge** : Merger sur main uniquement apres validation Quality
 
-### Règles importantes
+### Regles importantes
 
-- **Les fichiers de plan sont immutables** : Une fois créé, un plan ne doit plus être modifié (sauf les checkboxes de validation qui peuvent être cochées)
-- **Le statut est géré ici** : Seul ce fichier README est mis à jour pour suivre l'avancement
-- **Validation obligatoire** : Chaque tâche doit être validée par l'utilisateur avant merge
-- **Une branche par tâche** : Chaque tâche a sa propre branche Git
+- **Mutabilite partielle** : Contexte et Objectif sont immutables, Specifications et Checklist peuvent etre enrichies
+- **Le statut est gere ici** : Seul ce fichier README est mis a jour pour suivre l'avancement
+- **Validation obligatoire** : Chaque tache doit etre validee par l'utilisateur avant merge
+- **Un worktree par feature** : `git worktree add worktrees/feature/[nom] -b feature/[nom]`
 
-### Cycle de vie d'une tâche
+### Cycle de vie d'une tache
 
 ```
-[Planification] → [Plan créé] → [Branche créée] → [Implémentation] → [Validation] → [Merge]
-     📝              📄              🌿               💻              ✅           🔀
+[Planification] -> [Implementation] -> [Validation User] -> [Tests] -> [Quality] -> [Merge]
+      📝               💻                   ✅              🧪        🔍          🔀
 ```
+
+> **Note** : Tests et Quality sont executes **AVANT** le merge, pas apres.
 
 ---
 
@@ -31,22 +34,22 @@
 Chaque fichier de plan doit suivre cette structure :
 
 ```markdown
-# Plan XX - [Titre de la tâche]
+# Plan XX - [Titre de la tache]
 
-## Contexte
-[Description du problème ou de la fonctionnalité]
+## Contexte                         <- IMMUTABLE
+[Description du probleme ou de la fonctionnalite]
 
-## Objectif
+## Objectif                         <- IMMUTABLE
 [Ce qu'on veut accomplir]
 
-## Spécifications
-[Détails techniques, comportement attendu]
+## Specifications                   <- MUTABLE (enrichi par Executeur)
+[Details techniques, comportement attendu]
 
-## Fichiers concernés
+## Fichiers concernes
 - `path/to/file1`
 - `path/to/file2`
 
-## Checklist de validation
+## Checklist de validation          <- MUTABLE
 - [ ] Point 1
 - [ ] Point 2
 - [ ] Point 3
