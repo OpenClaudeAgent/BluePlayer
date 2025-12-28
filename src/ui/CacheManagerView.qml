@@ -379,7 +379,7 @@ Item {
                   Text {
                     id: qualityBadgeText
                     anchors.centerIn: parent
-                    text: modelData.quality || ""
+                    text: BlueTheme.formatQuality(modelData.quality)
                     font.family: BlueTheme.fontFamily
                     font.pixelSize: 10
                     font.bold: true

@@ -87,3 +87,69 @@ var scaleSelected = 1.05            // Emphasis on selection
 // - Easing.OutQuart    → Snappy responses (press feedback)
 // - Easing.OutBack     → Spring/bounce effects (emphasis)
 // - Easing.InOutSine   → Smooth pulse animations
+
+// ============================================================================
+// QUALITY DETECTION & FORMATTING
+// ============================================================================
+
+/**
+ * Checks if a quality string represents audio-only mode.
+ * 
+ * Examples:
+ *   "audio_only" → true
+ *   "Audio Only" → true
+ *   "1080p60" → false
+ */
+function isAudioQuality(quality) {
+    if (!quality) return false
+    return quality.toLowerCase().indexOf("audio") >= 0
+}
+
+/**
+ * Formats a quality label for display.
+ * Normalizes various quality formats to consistent display names.
+ * 
+ * Examples:
+ *   "audio_only" → "Audio"
+ *   "chunked" → "Source"
+ *   "1080p60" → "1080p 60fps"
+ *   "720p30" → "720p"
+ *   "Source (1080p)" → "1080p"
+ */
+function formatQuality(quality) {
+    if (!quality) return ""
+    
+    var q = quality.toLowerCase().trim()
+    
+    // Audio mode
+    if (q.indexOf("audio") >= 0) {
+        return "Audio"
+    }
+    
+    // Source/chunked → Source
+    if (q === "chunked" || q === "source") {
+        return "Source"
+    }
+    
+    // Remove "Source" prefix if followed by resolution (e.g., "Source (1080p)" → "1080p")
+    var sourceMatch = quality.match(/source\s*\(?(\d+p\d*)\)?/i)
+    if (sourceMatch) {
+        q = sourceMatch[1].toLowerCase()
+    }
+    
+    // Format resolution with fps (e.g., "1080p60" → "1080p 60fps", "720p30" → "720p")
+    var resMatch = q.match(/^(\d+p)(\d+)?$/)
+    if (resMatch) {
+        var res = resMatch[1]
+        var fps = resMatch[2]
+        
+        // Only show fps if it's 60 (skip 30fps as it's default)
+        if (fps && parseInt(fps) >= 60) {
+            return res + " " + fps + "fps"
+        }
+        return res
+    }
+    
+    // Return original if no transformation needed
+    return quality
+}

@@ -117,6 +117,7 @@ Consultez la [Roadmap](roadmap/README.md) pour le suivi des tâches planifiées 
 
 | Version | Date | Description |
 |---------|------|-------------|
+| v0.24.0 | 2025-12-28 | Mode Audio (placeholder visuel, labels qualité normalisés, toast redesigné) |
 | v0.23.0 | 2025-12-28 | Historique VOD (reprise automatique, sauvegarde 30s, tri "Dernier vu") |
 | v0.22.0 | 2025-12-28 | Internationalisation (i18n) avec changement de langue à chaud (EN/FR) |
 | v0.21.0 | 2025-12-28 | Persistance qualité par défaut (QSettings, intégration TwitchService, fallback) |

@@ -42,17 +42,20 @@ Item {
             ColorAnimation { duration: BlueTheme.animHoverDuration; easing.type: Easing.OutCubic }
         }
 
-        // HD/SD Icon - based on current quality
+        // Quality Icon - HD/SD or Audio indicator
         Text {
             anchors.centerIn: parent
             text: {
+                if (BlueTheme.isAudioQuality(root.currentQuality)) {
+                    return "\uD83D\uDD0A"  // 🔊
+                }
                 var q = root.currentQuality.toLowerCase()
                 if (q.indexOf("1440") >= 0 || q.indexOf("1080") >= 0 || q.indexOf("720") >= 0) {
                     return "HD"
                 }
                 return "SD"
             }
-            font.pixelSize: 10
+            font.pixelSize: BlueTheme.isAudioQuality(root.currentQuality) ? 14 : 10
             font.family: BlueTheme.fontFamily
             font.bold: true
             font.letterSpacing: -0.5
@@ -71,7 +74,9 @@ Item {
         }
 
         ToolTip.visible: qualityMouseArea.containsMouse && !root.showPopup
-        ToolTip.text: qsTr("Quality: %1 (Q)").arg(root.currentQuality)
+        ToolTip.text: BlueTheme.isAudioQuality(root.currentQuality) 
+            ? qsTr("Audio only mode (Q)") 
+            : qsTr("Quality: %1 (Q)").arg(BlueTheme.formatQuality(root.currentQuality))
         ToolTip.delay: 800
     }
 
@@ -194,7 +199,7 @@ Item {
                         // Quality label
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
-                            text: modelData.name
+                            text: BlueTheme.formatQuality(modelData.name)
                             color: qualityItem.isSelected ? "#FFFFFF" : BlueTheme.secondaryText
                             font.pixelSize: 13
                             font.family: BlueTheme.fontFamily

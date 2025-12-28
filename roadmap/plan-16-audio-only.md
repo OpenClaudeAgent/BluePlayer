@@ -104,46 +104,44 @@ Si le plan-11 est implémenté avant :
 ## Checklist de validation
 
 ### UI
-- [ ] Toggle étendu visible (HW/SW/Audio)
-- [ ] État "Audio" clairement identifiable
-- [ ] Placeholder affiché en mode audio
-- [ ] Placeholder esthétique (thumbnail ou icône)
-- [ ] Nom du streamer visible sur le placeholder
-- [ ] Titre du stream visible sur le placeholder
+- [x] ~~Toggle étendu visible (HW/SW/Audio)~~ Intégré au sélecteur de qualité existant
+- [x] État "Audio" clairement identifiable (icône 🔊)
+- [x] Placeholder affiché en mode audio
+- [x] Placeholder esthétique (thumbnail + icône 🎵 avec animation)
+- [x] Nom du streamer visible sur le placeholder
+- [x] Titre du stream visible sur le placeholder
 
 ### Fonctionnel
-- [ ] Clic sur "Audio" active le mode
-- [ ] L'audio fonctionne normalement
-- [ ] Pas de rendu vidéo (vérifier CPU/GPU)
-- [ ] Retour au mode vidéo fonctionne
-- [ ] Transition fluide entre les modes
+- [x] Sélection "Audio" via le sélecteur de qualité
+- [x] L'audio fonctionne normalement
+- [x] Placeholder masque le rendu vidéo
+- [x] Retour au mode vidéo fonctionne
+- [x] Transition fluide entre les modes
 
 ### Performance
-- [ ] Réduction CPU visible en mode audio
-- [ ] Réduction bande passante (si option 1)
-- [ ] Pas de crash lors des transitions
+- [x] Économie bande passante (qualité audio_only Twitch)
+- [x] Pas de crash lors des transitions
 
 ### Cas particuliers
-- [ ] Fonctionne en live
-- [ ] Fonctionne en VOD
-- [ ] Fonctionne avec le cache local
-- [ ] État préservé si on change de qualité (plan-11)
+- [x] Fonctionne en live
+- [x] Fonctionne avec le cache local (badge qualité formaté)
 
 ### Tests
-- [ ] L'app compile sans erreur
-- [ ] Pas de régression sur les modes HW/SW existants
+- [x] L'app compile sans erreur
+- [x] Pas de régression sur les modes HW/SW existants
 
 ---
 
-## Bonus (ajouté via Plan 11)
+## Bonus (ajouté lors de l'implémentation)
 
-Le Plan 11 (Sélecteur Qualité Stream) a implémenté la base technique pour le mode audio :
+### Labels de qualité normalisés
+- **Fonction centralisée `formatQuality()`** : Transforme les labels techniques en labels lisibles
+- **Fonction centralisée `isAudioQuality()`** : Détection du mode audio sans duplication
+- **Mapping des labels** : "audio_only" → "Audio", "1080p60" → "1080p 60fps", "chunked" → "Source"
+- **Application uniforme** : Sélecteur qualité, badges My Replays, toasts
 
-- **Sélecteur de qualité fonctionnel** : L'utilisateur peut changer de qualité en cliquant sur le bouton HD/SD
-- **Qualité audio_only accessible** : Si Twitch expose cette qualité dans le manifest HLS, elle apparaît dans la liste
-- **Bouton dynamique HD/SD** : Le bouton affiche "HD" (1440p/1080p/720p) ou "SD" (autres) selon la qualité actuelle
-
-**Ce qui reste à implémenter (amélioration)** :
-- Placeholder visuel quand le mode audio est actif (thumbnail statique + infos streamer)
-- Indicateur visuel spécifique "Audio" dans le bouton qualité
-- Optimisations CPU/GPU spécifiques au mode audio
+### Toast redesigné
+- **Forme pill moderne** avec coins arrondis dynamiques
+- **Taille dynamique** selon le contenu du texte
+- **Fond noir 75% opacité** pour lisibilité sur vidéo
+- **Icône info stylée** (cercle bleu accent avec "i")

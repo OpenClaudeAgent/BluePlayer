@@ -57,6 +57,9 @@ Item {
   property var availableQualities: []
   property string currentQuality: "Auto"
   
+  // Audio-only mode detection
+  property bool isAudioOnly: BlueTheme.isAudioQuality(currentQuality)
+  
   // Watch history properties
   property int lastSavedPosition: 0  // Track last saved position to avoid redundant saves
   property int pendingSeekPosition: 0  // Position to seek to when media is ready
@@ -427,6 +430,108 @@ Item {
       }
     }
     
+    // Audio-Only Placeholder Overlay
+    Rectangle {
+      id: audioOnlyPlaceholder
+      anchors.fill: parent
+      visible: playerRoot.isAudioOnly && playerRoot.playing
+      color: BlueTheme.windowBackground
+      
+      // Background with thumbnail (blurred effect simulated with darker overlay)
+      Image {
+        id: audioThumbnail
+        anchors.fill: parent
+        source: playerRoot.streamThumbnailUrl
+        fillMode: Image.PreserveAspectCrop
+        asynchronous: true
+        cache: true
+        opacity: 0.3
+      }
+      
+      // Dark overlay for contrast
+      Rectangle {
+        anchors.fill: parent
+        color: "#80000000"
+      }
+      
+      // Center content
+      Column {
+        anchors.centerIn: parent
+        spacing: BlueTheme.spacingMedium
+        
+        // Audio wave icon
+        Rectangle {
+          anchors.horizontalCenter: parent.horizontalCenter
+          width: 80
+          height: 80
+          radius: 40
+          color: "#33FFFFFF"
+          border.color: BlueTheme.accent
+          border.width: 2
+          
+          Text {
+            anchors.centerIn: parent
+            text: "\uD83C\uDFB5"  // 🎵
+            font.pixelSize: 36
+          }
+          
+          // Pulsing animation
+          SequentialAnimation on scale {
+            running: audioOnlyPlaceholder.visible
+            loops: Animation.Infinite
+            NumberAnimation { to: 1.05; duration: 1000; easing.type: Easing.InOutSine }
+            NumberAnimation { to: 1.0; duration: 1000; easing.type: Easing.InOutSine }
+          }
+        }
+        
+        // "Audio Only" label
+        Text {
+          anchors.horizontalCenter: parent.horizontalCenter
+          text: qsTr("Audio Only")
+          color: "#FFFFFF"
+          font.pixelSize: 24
+          font.family: BlueTheme.fontFamily
+          font.weight: Font.DemiBold
+        }
+        
+        // Streamer info
+        Column {
+          anchors.horizontalCenter: parent.horizontalCenter
+          spacing: 4
+          topPadding: BlueTheme.spacingSmall
+          
+          Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: playerRoot.streamerName || playerRoot.streamerLogin
+            color: BlueTheme.primaryText
+            font.pixelSize: 16
+            font.family: BlueTheme.fontFamily
+            font.weight: Font.Medium
+            visible: text.length > 0
+          }
+          
+          Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: playerRoot.streamTitle
+            color: BlueTheme.secondaryText
+            font.pixelSize: 13
+            font.family: BlueTheme.fontFamily
+            maximumLineCount: 2
+            wrapMode: Text.WordWrap
+            horizontalAlignment: Text.AlignHCenter
+            width: Math.min(implicitWidth, 400)
+            visible: text.length > 0
+          }
+        }
+      }
+      
+      // Fade in animation
+      opacity: visible ? 1.0 : 0.0
+      Behavior on opacity {
+        NumberAnimation { duration: BlueTheme.animOverlayDuration; easing.type: Easing.OutCubic }
+      }
+    }
+    
     // 2. Mouse Interaction Layer (Background)
     // Placed here so it is BEHIND interface overlays (TopBar, ControlBar)
     // Only covers video area, not chat panel
@@ -687,18 +792,34 @@ Item {
       }
     }
 
-    // Toast pour toggles rapides
+    // Toast pour toggles rapides - Design moderne avec taille dynamique
     Rectangle {
       id: toast
       anchors.horizontalCenter: parent.horizontalCenter
       anchors.bottom: playerControlBar.top
-      anchors.bottomMargin: 12
-      radius: 10
-      color: "#CC000000"
-      border.color: "#55FFFFFF"
+      anchors.bottomMargin: BlueTheme.spacingMedium
+      
+      // Taille dynamique basée sur le contenu
+      width: toastContent.width + BlueTheme.spacingLarge
+      height: toastContent.height + BlueTheme.spacingMedium
+      
+      // Style moderne
+      radius: height / 2  // Pill shape
+      color: "#BF000000"  // Noir 75% opacité
+      border.color: "#1AFFFFFF"  // Bordure très subtile
+      border.width: 1
+      
       visible: opacity > 0
       opacity: 0
-      Behavior on opacity { NumberAnimation { duration: BlueTheme.animContentFadeDuration; easing.type: Easing.OutCubic } }
+      
+      // Animation d'apparition fluide
+      Behavior on opacity { 
+        NumberAnimation { 
+          duration: BlueTheme.animContentFadeDuration
+          easing.type: Easing.OutCubic 
+        } 
+      }
+      
       property string text: ""
 
       function show(msg) {
@@ -707,11 +828,37 @@ Item {
       }
 
       Row {
-        anchors.margins: 12
-        anchors.fill: parent
-        spacing: 8
-        Text { text: "\u2139"; color: "#FFFFFF"; font.pixelSize: 13 }
-        Text { text: toast.text; color: "#FFFFFF"; font.pixelSize: 13 }
+        id: toastContent
+        anchors.centerIn: parent
+        spacing: BlueTheme.spacingSmall
+        
+        // Icône info avec style
+        Rectangle {
+          width: 18
+          height: 18
+          radius: 9
+          color: BlueTheme.accent
+          anchors.verticalCenter: parent.verticalCenter
+          
+          Text {
+            anchors.centerIn: parent
+            text: "i"
+            color: "#FFFFFF"
+            font.pixelSize: 11
+            font.family: BlueTheme.fontFamily
+            font.weight: Font.Bold
+          }
+        }
+        
+        // Texte du toast
+        Text { 
+          text: toast.text
+          color: BlueTheme.primaryText
+          font.pixelSize: 13
+          font.family: BlueTheme.fontFamily
+          font.weight: Font.Medium
+          anchors.verticalCenter: parent.verticalCenter
+        }
       }
 
       SequentialAnimation {
@@ -901,7 +1048,7 @@ Item {
           })
         }
         
-        toast.show(qsTr("Quality: %1").arg(playerRoot.currentQuality))
+        toast.show(qsTr("Quality: %1").arg(BlueTheme.formatQuality(playerRoot.currentQuality)))
       }
     }
   }
