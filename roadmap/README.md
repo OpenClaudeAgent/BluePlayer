@@ -128,6 +128,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 23 | Auto-refresh Home | [plan-23](./plan-23-auto-refresh.md) | `feature/auto-refresh` | - | 🔴 En attente |
 | **24** | **Refactoring Profond** | [plan-24](./plan-24-deep-refactoring.md) | `refactor/deep-analysis` | - | 🔴 En attente |
 | **25** | **Audit UI/UX Design** | [plan-25](./plan-25-ui-design-audit.md) | `design/ui-audit` | - | 🔴 En attente |
+| 26 | Icône Application BluePlayer | [plan-26](./plan-26-app-icon.md) | `feature/app-icon` | - | 🔴 En attente |
 
 ### Plans spéciaux
 
@@ -180,3 +181,4 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 2025-12-27 | Tâche 9 terminée - Vitesse lecture intelligente (auto-reset, protection live edge, mode replay) |
 | 2025-12-27 | Ajout plan 24 - Refactoring Technique (25 sous-tâches : sécurité, QML refactoring, C++ refactoring, tests) |
 | 2025-12-27 | Ajout plan 25 - Audit UI/UX Design (20 sous-tâches : palette, typographie, radius, composants, accessibilité) |
+| 2025-12-28 | Ajout plan 26 - Icône Application BluePlayer (intégration icône "Blue Drop Play" validée) |
