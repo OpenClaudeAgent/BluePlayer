@@ -85,6 +85,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | **24 (Refactoring)** | Aucune | Peut démarrer immédiatement, sous-tâches 24.1-24.3 CRITIQUES |
 | **28 (Navigation)** | Aucune | Recommandé avant Plan 12 (Préférences) pour architecture propre |
 | 29 (Qualité défaut) | 11 (Qualité) ✅, 12 (Préférences) ✅ | Persistance et intégration de l'UI créée en Plan 12 |
+| **40 (E2E Testing)** | Aucune | Infrastructure technique, peut démarrer immédiatement |
 
 ---
 
@@ -158,6 +159,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 37 | Raccourcis clavier globaux | [plan-37](./plan-37-global-hotkeys.md) | `feature/global-hotkeys` | - | 🔴 En attente |
 | 38 | Mode Debug | [plan-38](./plan-38-debug-mode.md) | `feature/debug-mode` | - | 🔴 En attente |
 | 39 | Export des VOD cachées | [plan-39](./plan-39-export-cached-vod.md) | `feature/export-vod` | - | 🔴 En attente |
+| **40** | **Infrastructure Tests E2E** | [plan-40](./plan-40-e2e-testing-infrastructure.md) | `test/e2e-infrastructure` | - | 🔴 En attente |
 
 ### Plans spéciaux
 
@@ -169,6 +171,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 🎨 Design | Plan 25 | Audit UI/UX & Design System (20 sous-tâches) |
 | 🧹 Cleanup | Plan 27 | Suppression code legacy (remplace tâche 24.20) |
 | 🏗️ Architecture | Plan 28 | Stratégie navigation globale (TopBar, composants réutilisables) |
+| 🧪 Testing | Plan 40 | **Infrastructure E2E** - Mock servers, test application, premier scenario |
 
 > **Note Plan 21 vs Plan 24** :
 > - **Plan 21** est un template récurrent définissant la méthodologie d'audit qualité
