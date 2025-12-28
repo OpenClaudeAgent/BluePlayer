@@ -96,7 +96,9 @@ private slots:
     void onError(QAbstractSocket::SocketError error);
     void onReconnectTimer();
 
-private:
+protected:
+    // Protected for testability - allows test subclasses to access parsing methods
+    
     /**
      * @brief Parse a raw IRC message line
      */
@@ -121,6 +123,8 @@ private:
      * @return List of badge objects
      */
     QVariantList parseBadges(const QString& badgesTag);
+
+private:
 
     /**
      * @brief Send raw IRC command

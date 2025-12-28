@@ -5,6 +5,27 @@
 
 using namespace BluePlayer;
 
+/**
+ * @brief Test helper that exposes protected parsing methods for testing
+ */
+class TestableTwitchChatClient : public TwitchChatClient {
+public:
+  using TwitchChatClient::TwitchChatClient;
+  
+  // Expose protected parsing methods for testing
+  QVariantMap testParseTags(const QString& tagsString) {
+    return parseTags(tagsString);
+  }
+  
+  QVariantList testParseEmoteParts(const QString& emotesTag, const QString& message) {
+    return parseEmoteParts(emotesTag, message);
+  }
+  
+  QVariantList testParseBadges(const QString& badgesTag) {
+    return parseBadges(badgesTag);
+  }
+};
+
 class TestTwitchChatClient : public QObject {
   Q_OBJECT
 
@@ -49,13 +70,32 @@ private slots:
   void testSendMessageWithoutCredentials();
   void testSendMessageEmptyMessage();
 
-  // Tests de parsing (comportement)
-  void testParseSimpleMessage();
-  void testParseMessageWithBadges();
-  void testParseMessageWithEmotes();
+  // Tests de parsing IRC Tags
+  void testParseTagsEmpty();
+  void testParseTagsSingleTag();
+  void testParseTagsMultipleTags();
+  void testParseTagsWithEscapedCharacters();
+  void testParseTagsDisplayName();
+  void testParseTagsColor();
+  
+  // Tests de parsing Badges
+  void testParseBadgesEmpty();
+  void testParseBadgesSingle();
+  void testParseBadgesMultiple();
+  void testParseBadgesMalformed();
+  
+  // Tests de parsing Emotes
+  void testParseEmotePartsNoEmotes();
+  void testParseEmotePartsSingleEmote();
+  void testParseEmotePartsMultipleEmotes();
+  void testParseEmotePartsEmoteAtStart();
+  void testParseEmotePartsEmoteAtEnd();
+  void testParseEmotePartsConsecutiveEmotes();
+  void testParseEmotePartsSameEmoteMultipleTimes();
 
 private:
   TwitchChatClient* m_client = nullptr;
+  TestableTwitchChatClient* m_testableClient = nullptr;
 };
 
 void TestTwitchChatClient::initTestCase() {
@@ -66,6 +106,7 @@ void TestTwitchChatClient::cleanupTestCase() {
 
 void TestTwitchChatClient::init() {
   m_client = new TwitchChatClient(this);
+  m_testableClient = new TestableTwitchChatClient(this);
 }
 
 void TestTwitchChatClient::cleanup() {
@@ -73,6 +114,11 @@ void TestTwitchChatClient::cleanup() {
     m_client->disconnect();
     delete m_client;
     m_client = nullptr;
+  }
+  if (m_testableClient) {
+    m_testableClient->disconnect();
+    delete m_testableClient;
+    m_testableClient = nullptr;
   }
 }
 
@@ -241,22 +287,221 @@ void TestTwitchChatClient::testSendMessageEmptyMessage() {
   QVERIFY(m_client != nullptr);
 }
 
-// ===== Tests de parsing =====
+// ===== Tests de parsing IRC Tags =====
 
-void TestTwitchChatClient::testParseSimpleMessage() {
-  // Les méthodes de parsing sont privées, on teste via le comportement
-  // Pour un test complet, il faudrait un mock du WebSocket
-  QVERIFY(m_client != nullptr);
+void TestTwitchChatClient::testParseTagsEmpty() {
+  QVariantMap tags = m_testableClient->testParseTags("");
+  QVERIFY(tags.isEmpty());
 }
 
-void TestTwitchChatClient::testParseMessageWithBadges() {
-  // Test de parsing de badges - testé via comportement
-  QVERIFY(m_client != nullptr);
+void TestTwitchChatClient::testParseTagsSingleTag() {
+  QVariantMap tags = m_testableClient->testParseTags("color=#FF4500");
+  
+  QCOMPARE(tags.size(), 1);
+  QCOMPARE(tags.value("color").toString(), QString("#FF4500"));
 }
 
-void TestTwitchChatClient::testParseMessageWithEmotes() {
-  // Test de parsing d'emotes - testé via comportement
-  QVERIFY(m_client != nullptr);
+void TestTwitchChatClient::testParseTagsMultipleTags() {
+  QString tagsStr = "badge-info=subscriber/12;badges=subscriber/12,premium/1;"
+                    "color=#1E90FF;display-name=TestUser;emotes=;id=abc123";
+  QVariantMap tags = m_testableClient->testParseTags(tagsStr);
+  
+  QCOMPARE(tags.value("badge-info").toString(), QString("subscriber/12"));
+  QCOMPARE(tags.value("badges").toString(), QString("subscriber/12,premium/1"));
+  QCOMPARE(tags.value("color").toString(), QString("#1E90FF"));
+  QCOMPARE(tags.value("display-name").toString(), QString("TestUser"));
+  QCOMPARE(tags.value("id").toString(), QString("abc123"));
+}
+
+void TestTwitchChatClient::testParseTagsWithEscapedCharacters() {
+  // IRC tag escaping: \s = space, \: = semicolon, \\ = backslash
+  QString tagsStr = "msg=Hello\\sWorld;value=a\\:b\\\\c";
+  QVariantMap tags = m_testableClient->testParseTags(tagsStr);
+  
+  QCOMPARE(tags.value("msg").toString(), QString("Hello World"));
+  QCOMPARE(tags.value("value").toString(), QString("a;b\\c"));
+}
+
+void TestTwitchChatClient::testParseTagsDisplayName() {
+  QString tagsStr = "display-name=Kappa123";
+  QVariantMap tags = m_testableClient->testParseTags(tagsStr);
+  
+  QCOMPARE(tags.value("display-name").toString(), QString("Kappa123"));
+}
+
+void TestTwitchChatClient::testParseTagsColor() {
+  QString tagsStr = "color=#8A2BE2";
+  QVariantMap tags = m_testableClient->testParseTags(tagsStr);
+  
+  QCOMPARE(tags.value("color").toString(), QString("#8A2BE2"));
+}
+
+// ===== Tests de parsing Badges =====
+
+void TestTwitchChatClient::testParseBadgesEmpty() {
+  QVariantList badges = m_testableClient->testParseBadges("");
+  QVERIFY(badges.isEmpty());
+}
+
+void TestTwitchChatClient::testParseBadgesSingle() {
+  QVariantList badges = m_testableClient->testParseBadges("moderator/1");
+  
+  QCOMPARE(badges.size(), 1);
+  QVariantMap badge = badges[0].toMap();
+  QCOMPARE(badge.value("type").toString(), QString("moderator"));
+  QCOMPARE(badge.value("version").toString(), QString("1"));
+}
+
+void TestTwitchChatClient::testParseBadgesMultiple() {
+  QVariantList badges = m_testableClient->testParseBadges("broadcaster/1,subscriber/24,premium/1");
+  
+  QCOMPARE(badges.size(), 3);
+  
+  QVariantMap badge0 = badges[0].toMap();
+  QCOMPARE(badge0.value("type").toString(), QString("broadcaster"));
+  QCOMPARE(badge0.value("version").toString(), QString("1"));
+  
+  QVariantMap badge1 = badges[1].toMap();
+  QCOMPARE(badge1.value("type").toString(), QString("subscriber"));
+  QCOMPARE(badge1.value("version").toString(), QString("24"));
+  
+  QVariantMap badge2 = badges[2].toMap();
+  QCOMPARE(badge2.value("type").toString(), QString("premium"));
+  QCOMPARE(badge2.value("version").toString(), QString("1"));
+}
+
+void TestTwitchChatClient::testParseBadgesMalformed() {
+  // Malformed badge without slash should be skipped
+  QVariantList badges = m_testableClient->testParseBadges("valid/1,invalid,another/2");
+  
+  QCOMPARE(badges.size(), 2);
+  QCOMPARE(badges[0].toMap().value("type").toString(), QString("valid"));
+  QCOMPARE(badges[1].toMap().value("type").toString(), QString("another"));
+}
+
+// ===== Tests de parsing Emotes =====
+
+void TestTwitchChatClient::testParseEmotePartsNoEmotes() {
+  QVariantList parts = m_testableClient->testParseEmoteParts("", "Hello World!");
+  
+  QCOMPARE(parts.size(), 1);
+  QVariantMap part = parts[0].toMap();
+  QCOMPARE(part.value("type").toString(), QString("text"));
+  QCOMPARE(part.value("content").toString(), QString("Hello World!"));
+}
+
+void TestTwitchChatClient::testParseEmotePartsSingleEmote() {
+  // Emote format: emoteId:startPos-endPos
+  // "Kappa" at position 6-10 in "Hello Kappa World"
+  QVariantList parts = m_testableClient->testParseEmoteParts("25:6-10", "Hello Kappa World");
+  
+  QCOMPARE(parts.size(), 3);
+  
+  // Text before emote
+  QVariantMap part0 = parts[0].toMap();
+  QCOMPARE(part0.value("type").toString(), QString("text"));
+  QCOMPARE(part0.value("content").toString(), QString("Hello "));
+  
+  // Emote
+  QVariantMap part1 = parts[1].toMap();
+  QCOMPARE(part1.value("type").toString(), QString("emote"));
+  QCOMPARE(part1.value("emoteId").toString(), QString("25"));
+  QCOMPARE(part1.value("content").toString(), QString("Kappa"));
+  
+  // Text after emote
+  QVariantMap part2 = parts[2].toMap();
+  QCOMPARE(part2.value("type").toString(), QString("text"));
+  QCOMPARE(part2.value("content").toString(), QString(" World"));
+}
+
+void TestTwitchChatClient::testParseEmotePartsMultipleEmotes() {
+  // Two different emotes: Kappa at 0-4, PogChamp at 6-13
+  // Message: "Kappa PogChamp!" (length 15)
+  //           01234 567890123 4
+  QVariantList parts = m_testableClient->testParseEmoteParts("25:0-4/88:6-13", "Kappa PogChamp!");
+  
+  QCOMPARE(parts.size(), 4);
+  
+  // First emote (Kappa)
+  QVariantMap part0 = parts[0].toMap();
+  QCOMPARE(part0.value("type").toString(), QString("emote"));
+  QCOMPARE(part0.value("emoteId").toString(), QString("25"));
+  QCOMPARE(part0.value("content").toString(), QString("Kappa"));
+  
+  // Space between emotes
+  QVariantMap part1 = parts[1].toMap();
+  QCOMPARE(part1.value("type").toString(), QString("text"));
+  QCOMPARE(part1.value("content").toString(), QString(" "));
+  
+  // Second emote (PogChamp)
+  QVariantMap part2 = parts[2].toMap();
+  QCOMPARE(part2.value("type").toString(), QString("emote"));
+  QCOMPARE(part2.value("emoteId").toString(), QString("88"));
+  QCOMPARE(part2.value("content").toString(), QString("PogChamp"));
+  
+  // Trailing exclamation mark
+  QVariantMap part3 = parts[3].toMap();
+  QCOMPARE(part3.value("type").toString(), QString("text"));
+  QCOMPARE(part3.value("content").toString(), QString("!"));
+}
+
+void TestTwitchChatClient::testParseEmotePartsEmoteAtStart() {
+  // Emote at the very beginning
+  QVariantList parts = m_testableClient->testParseEmoteParts("25:0-4", "Kappa is great");
+  
+  QCOMPARE(parts.size(), 2);
+  
+  QVariantMap part0 = parts[0].toMap();
+  QCOMPARE(part0.value("type").toString(), QString("emote"));
+  QCOMPARE(part0.value("content").toString(), QString("Kappa"));
+  
+  QVariantMap part1 = parts[1].toMap();
+  QCOMPARE(part1.value("type").toString(), QString("text"));
+  QCOMPARE(part1.value("content").toString(), QString(" is great"));
+}
+
+void TestTwitchChatClient::testParseEmotePartsEmoteAtEnd() {
+  // Emote at the very end
+  QVariantList parts = m_testableClient->testParseEmoteParts("25:11-15", "I love you Kappa");
+  
+  QCOMPARE(parts.size(), 2);
+  
+  QVariantMap part0 = parts[0].toMap();
+  QCOMPARE(part0.value("type").toString(), QString("text"));
+  QCOMPARE(part0.value("content").toString(), QString("I love you "));
+  
+  QVariantMap part1 = parts[1].toMap();
+  QCOMPARE(part1.value("type").toString(), QString("emote"));
+  QCOMPARE(part1.value("content").toString(), QString("Kappa"));
+}
+
+void TestTwitchChatClient::testParseEmotePartsConsecutiveEmotes() {
+  // Two emotes next to each other with no space
+  QVariantList parts = m_testableClient->testParseEmoteParts("25:0-4/88:5-12", "KappaPogChamp");
+  
+  QCOMPARE(parts.size(), 2);
+  
+  QVariantMap part0 = parts[0].toMap();
+  QCOMPARE(part0.value("type").toString(), QString("emote"));
+  QCOMPARE(part0.value("emoteId").toString(), QString("25"));
+  
+  QVariantMap part1 = parts[1].toMap();
+  QCOMPARE(part1.value("type").toString(), QString("emote"));
+  QCOMPARE(part1.value("emoteId").toString(), QString("88"));
+}
+
+void TestTwitchChatClient::testParseEmotePartsSameEmoteMultipleTimes() {
+  // Same emote used multiple times: "Kappa Kappa Kappa"
+  QVariantList parts = m_testableClient->testParseEmoteParts("25:0-4,6-10,12-16", "Kappa Kappa Kappa");
+  
+  QCOMPARE(parts.size(), 5);
+  
+  // All three should be emotes with text spaces between
+  QCOMPARE(parts[0].toMap().value("type").toString(), QString("emote"));
+  QCOMPARE(parts[1].toMap().value("type").toString(), QString("text"));
+  QCOMPARE(parts[2].toMap().value("type").toString(), QString("emote"));
+  QCOMPARE(parts[3].toMap().value("type").toString(), QString("text"));
+  QCOMPARE(parts[4].toMap().value("type").toString(), QString("emote"));
 }
 
 QTEST_MAIN(TestTwitchChatClient)
