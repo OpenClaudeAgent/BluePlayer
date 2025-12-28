@@ -8,6 +8,21 @@
 
 using namespace blueplayer::core;
 
+/**
+ * @brief Sous-classe testable de NetworkCache
+ * 
+ * Expose la méthode protégée isEntryValid() pour les tests unitaires.
+ */
+class TestableNetworkCache : public NetworkCache {
+public:
+  using NetworkCache::NetworkCache;
+  
+  // Expose la méthode protégée pour les tests
+  [[nodiscard]] bool testIsEntryValid(const QNetworkCacheMetaData& metaData) const {
+    return isEntryValid(metaData);
+  }
+};
+
 class TestNetworkCache : public QObject {
   Q_OBJECT
 
@@ -43,9 +58,18 @@ private slots:
   // Tests du comportement du cache
   void testCacheDirectory();
   void testCacheClear();
+  
+  // Tests de isEntryValid()
+  void testIsEntryValidWithInvalidMetadata();
+  void testIsEntryValidWithValidExpiration();
+  void testIsEntryValidWithExpiredExpiration();
+  void testIsEntryValidWithValidLastModified();
+  void testIsEntryValidWithExpiredLastModified();
+  void testIsEntryValidWithNoDatesFallback();
+  void testIsEntryValidWithBothDates();
 
 private:
-  NetworkCache* m_cache = nullptr;
+  TestableNetworkCache* m_cache = nullptr;
   QTemporaryDir* m_tempDir = nullptr;
 };
 
@@ -57,7 +81,7 @@ void TestNetworkCache::cleanupTestCase() {
 
 void TestNetworkCache::init() {
   m_tempDir = new QTemporaryDir();
-  m_cache = new NetworkCache();
+  m_cache = new TestableNetworkCache();
   m_cache->setCacheDirectory(m_tempDir->path());
 }
 
@@ -199,6 +223,96 @@ void TestNetworkCache::testCacheClear() {
   
   // La taille du cache doit être 0 après clear
   QCOMPARE(m_cache->cacheSize(), qint64(0));
+}
+
+// ===== Tests de isEntryValid() =====
+
+void TestNetworkCache::testIsEntryValidWithInvalidMetadata() {
+  // Arrange - Créer des métadonnées invalides (pas d'URL)
+  QNetworkCacheMetaData metaData;
+  
+  // Assert - Les métadonnées sans URL sont invalides
+  QVERIFY(!metaData.isValid());
+  QVERIFY(!m_cache->testIsEntryValid(metaData));
+}
+
+void TestNetworkCache::testIsEntryValidWithValidExpiration() {
+  // Arrange - Créer des métadonnées avec expiration dans le futur
+  QNetworkCacheMetaData metaData;
+  metaData.setUrl(QUrl("https://example.com/test"));
+  metaData.setExpirationDate(QDateTime::currentDateTime().addSecs(3600)); // +1h
+  
+  // Assert - L'entrée doit être valide
+  QVERIFY(metaData.isValid());
+  QVERIFY(m_cache->testIsEntryValid(metaData));
+}
+
+void TestNetworkCache::testIsEntryValidWithExpiredExpiration() {
+  // Arrange - Créer des métadonnées avec expiration dans le passé
+  QNetworkCacheMetaData metaData;
+  metaData.setUrl(QUrl("https://example.com/test"));
+  metaData.setExpirationDate(QDateTime::currentDateTime().addSecs(-3600)); // -1h
+  
+  // Assert - L'entrée doit être invalide (expirée)
+  QVERIFY(metaData.isValid());
+  QVERIFY(!m_cache->testIsEntryValid(metaData));
+}
+
+void TestNetworkCache::testIsEntryValidWithValidLastModified() {
+  // Arrange - Configurer un TTL de 300 secondes (5 min)
+  m_cache->configure(10 * 1024 * 1024, 300);
+  
+  // Créer des métadonnées avec lastModified récent (< TTL)
+  QNetworkCacheMetaData metaData;
+  metaData.setUrl(QUrl("https://example.com/test"));
+  // lastModified il y a 60 secondes (< 300s TTL)
+  metaData.setLastModified(QDateTime::currentDateTime().addSecs(-60));
+  
+  // Assert - L'entrée doit être valide (TTL non dépassé)
+  QVERIFY(metaData.isValid());
+  QVERIFY(m_cache->testIsEntryValid(metaData));
+}
+
+void TestNetworkCache::testIsEntryValidWithExpiredLastModified() {
+  // Arrange - Configurer un TTL de 300 secondes (5 min)
+  m_cache->configure(10 * 1024 * 1024, 300);
+  
+  // Créer des métadonnées avec lastModified ancien (> TTL)
+  QNetworkCacheMetaData metaData;
+  metaData.setUrl(QUrl("https://example.com/test"));
+  // lastModified il y a 600 secondes (> 300s TTL)
+  metaData.setLastModified(QDateTime::currentDateTime().addSecs(-600));
+  
+  // Assert - L'entrée doit être invalide (TTL dépassé)
+  QVERIFY(metaData.isValid());
+  QVERIFY(!m_cache->testIsEntryValid(metaData));
+}
+
+void TestNetworkCache::testIsEntryValidWithNoDatesFallback() {
+  // Arrange - Créer des métadonnées valides sans dates
+  QNetworkCacheMetaData metaData;
+  metaData.setUrl(QUrl("https://example.com/test"));
+  // Pas de date d'expiration ni de lastModified
+  
+  // Assert - L'entrée doit être valide (fallback)
+  QVERIFY(metaData.isValid());
+  QVERIFY(m_cache->testIsEntryValid(metaData));
+}
+
+void TestNetworkCache::testIsEntryValidWithBothDates() {
+  // Arrange - Configurer un TTL court
+  m_cache->configure(10 * 1024 * 1024, 60);
+  
+  // Créer des métadonnées avec les deux dates
+  // expirationDate valide, lastModified expiré
+  QNetworkCacheMetaData metaData;
+  metaData.setUrl(QUrl("https://example.com/test"));
+  metaData.setExpirationDate(QDateTime::currentDateTime().addSecs(3600)); // +1h
+  metaData.setLastModified(QDateTime::currentDateTime().addSecs(-120)); // -2min (> 60s TTL)
+  
+  // Assert - L'entrée doit être valide car expirationDate prend priorité
+  QVERIFY(metaData.isValid());
+  QVERIFY(m_cache->testIsEntryValid(metaData));
 }
 
 QTEST_MAIN(TestNetworkCache)
