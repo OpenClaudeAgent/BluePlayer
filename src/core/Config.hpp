@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QHash>
+#include <QSettings>
 #include <QString>
 #include <QStringList>
 #include <QUrl>
@@ -49,6 +50,19 @@ public:
 
   // Logging Configuration
   QString logLevel(const QString& category) const;
+
+  // User Preferences (persisted via QSettings)
+  /**
+   * @brief Obtient la qualité de stream par défaut
+   * @return Le nom de la qualité (ex: "Auto", "1080p60", "720p")
+   */
+  QString defaultQuality() const;
+  
+  /**
+   * @brief Définit la qualité de stream par défaut
+   * @param quality Le nom de la qualité à sauvegarder
+   */
+  void setDefaultQuality(const QString& quality);
 
 private:
   Config() = default;

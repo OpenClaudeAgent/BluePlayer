@@ -144,7 +144,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 26 | Icône Application BluePlayer | [plan-26](./plan-26-app-icon.md) | `feature/app-icon` | - | 🔴 En attente |
 | 27 | Suppression MpvFboItem (Legacy) | [plan-27](./plan-27-remove-mpvfboitem.md) | `refactor/remove-mpvfboitem` | - | 🔴 En attente |
 | 28 | Strategie Navigation Globale | [plan-28](./plan-28-navigation-strategy.md) | `feature/navigation-strategy` | v0.20.0 | 🟢 Terminé |
-| 29 | Persistance Qualité par Défaut | [plan-29](./plan-29-default-quality-persistence.md) | `feature/default-quality` | - | 🔴 En attente |
+| 29 | Persistance Qualité par Défaut | [plan-29](./plan-29-default-quality-persistence.md) | `feature/default-quality` | v0.21.0 | 🟢 Terminé |
 
 ### Plans spéciaux
 
@@ -197,6 +197,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 2025-12-28 | Tâche 11 terminée - Sélecteur qualité stream (bouton HD/SD, popup, qualité VOD cachée) |
 | 2025-12-28 | Tâche 12 terminée - Panel Préférences modernisé (design, dropdown qualité, cache, BlueDropdown) |
 | 2025-12-28 | Tâche 28 terminée - Navigation globale (CircleButton, PanelHeader, boutons cachés dans panels) |
+| 2025-12-28 | Tâche 29 terminée - Persistance qualité par défaut (QSettings, TwitchService, fallback intelligent) |
 
 ---
 

@@ -2,6 +2,7 @@
 
 #include "api/twitch/TwitchApiClient.hpp"
 #include "api/twitch/TwitchAuthManager.hpp"
+#include "core/Config.hpp"
 #include "core/ISecureStorage.hpp"
 #include "core/InputValidator.hpp"
 #include "core/Logger.hpp"
@@ -584,6 +585,20 @@ QString TwitchService::currentQuality() const {
   return m_currentQuality.isEmpty() ? QStringLiteral("Auto") : m_currentQuality;
 }
 
+QString TwitchService::defaultQuality() const {
+  return core::Config::instance().defaultQuality();
+}
+
+void TwitchService::setDefaultQuality(const QString& quality) {
+  QString currentDefault = defaultQuality();
+  if (currentDefault != quality) {
+    core::Config::instance().setDefaultQuality(quality);
+    Logger::info(LogCategory::Twitch,
+                 QStringLiteral("Default quality changed to: %1").arg(quality));
+    emit defaultQualityChanged();
+  }
+}
+
 void TwitchService::setStreamQuality(const QString& qualityName) {
   Logger::debug(LogCategory::Twitch,
                 QStringLiteral("setStreamQuality() called with: %1").arg(qualityName));
@@ -1072,19 +1087,123 @@ TwitchService::selectBestQualityFromPlaylist(const QString &playlistContent) {
   Logger::info(LogCategory::Twitch,
                QStringLiteral("Found %1 quality options").arg(m_availableQualities.size()));
 
-  // Sélectionner la meilleure qualité
-  const QualityVariant &best = variants.first();
-  m_currentQuality = (best.name == QStringLiteral("chunked")) 
-                     ? QStringLiteral("Source (%1p)").arg(best.height)
-                     : best.name;
+  // Obtenir la qualité par défaut configurée par l'utilisateur
+  QString preferredQuality = defaultQuality();
+  Logger::debug(LogCategory::Twitch,
+                QStringLiteral("User default quality preference: %1").arg(preferredQuality));
+
+  // Si "Auto" ou vide, utiliser la meilleure qualité disponible
+  if (preferredQuality.isEmpty() || preferredQuality == QStringLiteral("Auto")) {
+    const QualityVariant &best = variants.first();
+    m_currentQuality = (best.name == QStringLiteral("chunked")) 
+                       ? QStringLiteral("Source (%1p)").arg(best.height)
+                       : best.name;
+    emit currentQualityChanged();
+    Logger::debug(LogCategory::Twitch,
+                  QStringLiteral("[DEBUG] Auto mode: Selected best quality: %1 (%2x%3)")
+                      .arg(best.name)
+                      .arg(best.width)
+                      .arg(best.height));
+    return best.url;
+  }
+
+  // Hiérarchie de qualité pour le fallback intelligent
+  // Plus le score est élevé, meilleure est la qualité
+  auto getQualityScore = [](const QString& qualityName, int height) -> int {
+    // Gestion spéciale pour "chunked" (source)
+    if (qualityName == QStringLiteral("chunked")) {
+      return 1000 + height; // Source est toujours la meilleure
+    }
+    
+    // Score basé sur la résolution et le framerate
+    int score = 0;
+    if (qualityName.contains(QStringLiteral("1080p60"))) score = 900;
+    else if (qualityName.contains(QStringLiteral("1080p")) || height >= 1080) score = 850;
+    else if (qualityName.contains(QStringLiteral("720p60"))) score = 750;
+    else if (qualityName.contains(QStringLiteral("720p")) || height >= 720) score = 700;
+    else if (qualityName.contains(QStringLiteral("480p")) || height >= 480) score = 500;
+    else if (qualityName.contains(QStringLiteral("360p")) || height >= 360) score = 360;
+    else if (qualityName.contains(QStringLiteral("160p")) || height >= 160) score = 160;
+    else if (qualityName.contains(QStringLiteral("audio"))) score = 10;
+    else score = height; // Fallback sur la hauteur
+    
+    return score;
+  };
+
+  // Calculer le score de la qualité demandée
+  int targetScore = getQualityScore(preferredQuality, 0);
+  
+  // Chercher la qualité exacte ou le meilleur fallback
+  const QualityVariant* selectedVariant = nullptr;
+  const QualityVariant* fallbackLower = nullptr;
+  const QualityVariant* fallbackHigher = nullptr;
+  int closestLowerDiff = INT_MAX;
+  int closestHigherDiff = INT_MAX;
+
+  for (const QualityVariant &v : variants) {
+    QString displayName = (v.name == QStringLiteral("chunked")) 
+                          ? QStringLiteral("Source (%1p)").arg(v.height)
+                          : v.name;
+    int variantScore = getQualityScore(v.name, v.height);
+    
+    // Chercher correspondance exacte (par nom ou par hauteur)
+    if (preferredQuality == displayName || 
+        preferredQuality == v.name ||
+        (preferredQuality.contains(QString::number(v.height)) && 
+         preferredQuality.contains(QStringLiteral("p")))) {
+      selectedVariant = &v;
+      Logger::debug(LogCategory::Twitch,
+                    QStringLiteral("Found exact quality match: %1").arg(displayName));
+      break;
+    }
+    
+    // Calculer les fallbacks
+    int diff = targetScore - variantScore;
+    if (diff > 0 && diff < closestLowerDiff) {
+      // Qualité inférieure la plus proche
+      closestLowerDiff = diff;
+      fallbackLower = &v;
+    } else if (diff < 0 && (-diff) < closestHigherDiff) {
+      // Qualité supérieure la plus proche
+      closestHigherDiff = -diff;
+      fallbackHigher = &v;
+    }
+  }
+
+  // Appliquer la logique de fallback si pas de correspondance exacte
+  if (!selectedVariant) {
+    // Préférer une qualité inférieure, sinon prendre la supérieure
+    if (fallbackLower) {
+      selectedVariant = fallbackLower;
+      Logger::info(LogCategory::Twitch,
+                   QStringLiteral("Quality '%1' not available, using fallback (lower): %2")
+                       .arg(preferredQuality, fallbackLower->name));
+    } else if (fallbackHigher) {
+      selectedVariant = fallbackHigher;
+      Logger::info(LogCategory::Twitch,
+                   QStringLiteral("Quality '%1' not available, using fallback (higher): %2")
+                       .arg(preferredQuality, fallbackHigher->name));
+    } else {
+      // Dernier recours: prendre la meilleure qualité
+      selectedVariant = &variants.first();
+      Logger::warning(LogCategory::Twitch,
+                      QStringLiteral("No suitable fallback found, using best available: %1")
+                          .arg(selectedVariant->name));
+    }
+  }
+
+  // Mettre à jour la qualité courante
+  m_currentQuality = (selectedVariant->name == QStringLiteral("chunked")) 
+                     ? QStringLiteral("Source (%1p)").arg(selectedVariant->height)
+                     : selectedVariant->name;
   emit currentQualityChanged();
   Logger::debug(LogCategory::Twitch,
-                QStringLiteral("[DEBUG] Selected best quality: %1 (%2x%3)")
-                    .arg(best.name)
-                    .arg(best.width)
-                    .arg(best.height));
+                QStringLiteral("[DEBUG] Selected quality: %1 (%2x%3)")
+                    .arg(selectedVariant->name)
+                    .arg(selectedVariant->width)
+                    .arg(selectedVariant->height));
 
-  return best.url;
+  return selectedVariant->url;
 }
 
 void TwitchService::onTokenInvalidated() {

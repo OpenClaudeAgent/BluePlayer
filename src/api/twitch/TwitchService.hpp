@@ -45,6 +45,7 @@ class TwitchService : public QObject {
   Q_PROPERTY(QString accessToken READ accessToken NOTIFY accessTokenChanged)
   Q_PROPERTY(QVariantList availableQualities READ availableQualities NOTIFY availableQualitiesChanged)
   Q_PROPERTY(QString currentQuality READ currentQuality NOTIFY currentQualityChanged)
+  Q_PROPERTY(QString defaultQuality READ defaultQuality WRITE setDefaultQuality NOTIFY defaultQualityChanged)
 
 public:
   /**
@@ -169,6 +170,18 @@ public:
   [[nodiscard]] QString currentQuality() const;
 
   /**
+   * @brief Obtient la qualité par défaut configurée par l'utilisateur
+   * @return Le nom de la qualité par défaut (ex: "Auto", "1080p60", "720p")
+   */
+  [[nodiscard]] QString defaultQuality() const;
+
+  /**
+   * @brief Définit la qualité par défaut (persistée dans les préférences)
+   * @param quality Le nom de la qualité à utiliser par défaut
+   */
+  Q_INVOKABLE void setDefaultQuality(const QString& quality);
+
+  /**
    * @brief Lance le processus d'authentification OAuth
    */
   Q_INVOKABLE void login();
@@ -287,6 +300,7 @@ signals:
   void adFilterLog(const QString& message);
   void availableQualitiesChanged();
   void currentQualityChanged();
+  void defaultQualityChanged();
   void qualityChanged(const QString& url);
 
 private:
