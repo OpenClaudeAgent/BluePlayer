@@ -22,6 +22,12 @@ private slots:
   void testDefaultValues();
   void testLogLevel();
   void testNetworkCacheConfig();
+  
+  // Tests for Plan 29 - Default Quality Persistence
+  void testDefaultQuality_initialValue();
+  void testDefaultQuality_setAndGet();
+  void testDefaultQuality_persistence();
+  void testDefaultQuality_variousValues();
 };
 
 void TestConfig::initTestCase() {
@@ -172,6 +178,65 @@ void TestConfig::testNetworkCacheConfig() {
   
   qunsetenv("BLUEPLAYER_NETWORK_CACHE_SIZE");
   qunsetenv("BLUEPLAYER_NETWORK_CACHE_TTL");
+}
+
+// ===== Tests for Plan 29 - Default Quality Persistence =====
+
+void TestConfig::testDefaultQuality_initialValue() {
+  Config& config = Config::instance();
+  
+  // Clear any existing setting first
+  QSettings settings(QStringLiteral("BluePlayer"), QStringLiteral("BluePlayer"));
+  settings.remove(QStringLiteral("playback/defaultQuality"));
+  settings.sync();
+  
+  // Default value should be "Auto"
+  QString quality = config.defaultQuality();
+  QCOMPARE(quality, QString("Auto"));
+}
+
+void TestConfig::testDefaultQuality_setAndGet() {
+  Config& config = Config::instance();
+  
+  // Set a quality
+  config.setDefaultQuality("1080p60");
+  
+  // Get it back
+  QString quality = config.defaultQuality();
+  QCOMPARE(quality, QString("1080p60"));
+  
+  // Clean up
+  config.setDefaultQuality("Auto");
+}
+
+void TestConfig::testDefaultQuality_persistence() {
+  Config& config = Config::instance();
+  
+  // Set a quality
+  config.setDefaultQuality("720p");
+  
+  // Verify it was persisted to QSettings
+  QSettings settings(QStringLiteral("BluePlayer"), QStringLiteral("BluePlayer"));
+  QString storedValue = settings.value(QStringLiteral("playback/defaultQuality")).toString();
+  QCOMPARE(storedValue, QString("720p"));
+  
+  // Clean up
+  config.setDefaultQuality("Auto");
+}
+
+void TestConfig::testDefaultQuality_variousValues() {
+  Config& config = Config::instance();
+  
+  // Test various quality values
+  QStringList qualities = {"Auto", "1080p60", "1080p", "720p60", "720p", "480p", "360p", "160p"};
+  
+  for (const QString& q : qualities) {
+    config.setDefaultQuality(q);
+    QCOMPARE(config.defaultQuality(), q);
+  }
+  
+  // Clean up
+  config.setDefaultQuality("Auto");
 }
 
 QTEST_MAIN(TestConfig)
