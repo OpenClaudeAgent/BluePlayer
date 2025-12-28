@@ -83,6 +83,34 @@ set(BLUEPLAYER_QML_SOURCE_DIR "${CMAKE_SOURCE_DIR}/src/ui")
 message(STATUS "BluePlayer QML sources: ${BLUEPLAYER_QML_SOURCE_DIR}")
 
 # ============================================================================
+# E2E Launcher (standalone app with mock servers)
+# ============================================================================
+
+add_executable(e2e_launcher
+    e2e_launcher.cpp
+)
+
+target_link_libraries(e2e_launcher PRIVATE
+    Qt6::Core
+    Qt6::Quick
+    Qt6::Qml
+    Qt6::Gui
+    e2e_mock_servers
+    blueplayer_core
+    blueplayer_media
+)
+
+target_link_directories(e2e_launcher PRIVATE ${HOMEBREW_PREFIX}/lib)
+
+target_include_directories(e2e_launcher PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/mocks
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+set_target_properties(e2e_launcher PROPERTIES AUTOMOC ON)
+
+# ============================================================================
 # CTest Integration
 # ============================================================================
 
@@ -106,11 +134,14 @@ message(STATUS "")
 message(STATUS "E2E Test Infrastructure configured:")
 message(STATUS "  - Mock servers: MockTwitchServer, MockHlsServer")
 message(STATUS "  - Test runner: e2e_tests")
+message(STATUS "  - Standalone launcher: e2e_launcher")
 message(STATUS "  - QML tests: ${E2E_QML_SOURCE_DIR}/tst_*.qml")
 message(STATUS "")
-message(STATUS "To run E2E tests:")
-message(STATUS "  make e2e_tests && ./tests/e2e/e2e_tests")
+message(STATUS "To run E2E tests (headless):")
+message(STATUS "  cd build && cmake --build . --target e2e_tests")
+message(STATUS "  QT_QPA_PLATFORM=offscreen ./tests/e2e/e2e_tests -input ../tests/e2e")
 message(STATUS "")
-message(STATUS "To run with visible UI (not headless):")
-message(STATUS "  QT_QPA_PLATFORM= ./tests/e2e/e2e_tests")
+message(STATUS "To launch app with mock servers (interactive):")
+message(STATUS "  cd build && cmake --build . --target e2e_launcher")
+message(STATUS "  ./tests/e2e/e2e_launcher")
 message(STATUS "")
