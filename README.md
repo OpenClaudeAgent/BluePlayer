@@ -72,10 +72,18 @@ Le projet utilise `CMake` pour la configuration et la compilation, orchestrées 
 
 ## Exécution
 
-Pour exécuter l'application après une compilation réussie :
+Pour exécuter l'application avec validation complète (recommandé) :
 
 ```bash
 make run
+```
+
+> Cette commande effectue : **clean → build → test → run**. L'application ne se lance que si tous les tests passent.
+
+Pour un lancement rapide sans tests (mode développement) :
+
+```bash
+make run-quick
 ```
 
 ## Tests
@@ -88,8 +96,11 @@ make test
 
 ## Autres commandes Make
 
--   `make clean` : Nettoie le répertoire de build.
--   `make help`  : Affiche toutes les cibles disponibles et leur description.
+-   `make run`       : Clean, build, test, puis run (bloque si tests échouent).
+-   `make run-quick` : Build et run sans tests (mode dev rapide).
+-   `make clean`     : Nettoie le répertoire de build.
+-   `make test`      : Compile et exécute les tests.
+-   `make help`      : Affiche toutes les cibles disponibles.
 
 ## Structure du Projet
 

@@ -123,10 +123,18 @@ make build
 
 ### 7.2. Exécution de BluePlayer
 
-Après une compilation réussie, lancez l'application avec :
+Pour lancer l'application avec validation complète (recommandé) :
 
 ```bash
 make run
+```
+
+> Cette commande effectue : **clean → build → test → run**. L'application ne démarre que si tous les tests passent.
+
+Pour un lancement rapide sans tests (mode développement) :
+
+```bash
+make run-quick
 ```
 
 ### 7.3. Exécution des Tests
@@ -139,8 +147,11 @@ make test
 
 ### 7.4. Autres commandes
 
--   `make clean` : Nettoie le répertoire de build.
--   `make help`  : Affiche toutes les cibles disponibles et leur description.
+-   `make run`       : Clean, build, test, puis run (bloque si tests échouent).
+-   `make run-quick` : Build et run sans tests (mode dev rapide).
+-   `make clean`     : Nettoie le répertoire de build.
+-   `make test`      : Compile et exécute les tests.
+-   `make help`      : Affiche toutes les cibles disponibles.
 
 > Vous pouvez également lancer l'application via Qt Creator si vous l'avez installé.
 
