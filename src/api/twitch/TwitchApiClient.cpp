@@ -1,5 +1,6 @@
 #include "api/twitch/TwitchApiClient.hpp"
 
+#include "core/Config.hpp"
 #include "core/Constants.hpp"
 #include "core/Logger.hpp"
 #include "core/InputValidator.hpp"
@@ -65,8 +66,24 @@ void TwitchApiClient::setAccessToken(const QString& token) {
   core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("Access token set, length: %1").arg(token.length()));
 }
 
+QUrl TwitchApiClient::buildHelixUrl(const QString& endpoint) const {
+  const auto& config = core::Config::instance();
+  QString baseUrl = QStringLiteral("https://api.twitch.tv");
+  
+  // SECURITY: Only use mock URL in test mode AND if it's localhost
+  if (config.isTestMode()) {
+    const QString mockUrl = config.twitchApiBaseUrl();
+    if (mockUrl.startsWith(QStringLiteral("http://localhost")) || 
+        mockUrl.startsWith(QStringLiteral("http://127.0.0.1"))) {
+      baseUrl = mockUrl;
+    }
+  }
+  
+  return QUrl(baseUrl + endpoint);
+}
+
 void TwitchApiClient::listStreams(int limit) {
-  QUrl url(QStringLiteral("https://api.twitch.tv/helix/streams"));
+  QUrl url = buildHelixUrl(QStringLiteral("/helix/streams"));
   QUrlQuery query;
   query.addQueryItem(QStringLiteral("first"), QString::number(limit));
   url.setQuery(query);
@@ -88,7 +105,7 @@ void TwitchApiClient::getRecommendedStreams(int limit) {
   
   // Utiliser l'endpoint /streams pour obtenir les streams populaires comme recommandations
   // On peut filtrer par game_id ou language si nécessaire pour personnaliser
-  QUrl url(QStringLiteral("https://api.twitch.tv/helix/streams"));
+  QUrl url = buildHelixUrl(QStringLiteral("/helix/streams"));
   QUrlQuery query;
   query.addQueryItem(QStringLiteral("first"), QString::number(limit));
   // Optionnel: filtrer par langue ou jeu pour personnaliser les recommandations
@@ -164,7 +181,7 @@ void TwitchApiClient::getTopCategories(int limit) {
   }
   
   // Utiliser l'endpoint /games/top pour obtenir les catégories/jeux populaires
-  QUrl url(QStringLiteral("https://api.twitch.tv/helix/games/top"));
+  QUrl url = buildHelixUrl(QStringLiteral("/helix/games/top"));
   QUrlQuery query;
   query.addQueryItem(QStringLiteral("first"), QString::number(limit));
   url.setQuery(query);
@@ -186,7 +203,7 @@ void TwitchApiClient::getPopularClips(int limit) {
   
   // L'API Twitch nécessite un game_id ou broadcaster_id pour /clips
   // Utiliser "Just Chatting" (game_id: 509658) comme catégorie populaire par défaut
-  QUrl url(QStringLiteral("https://api.twitch.tv/helix/clips"));
+  QUrl url = buildHelixUrl(QStringLiteral("/helix/clips"));
   QUrlQuery query;
   query.addQueryItem(QStringLiteral("game_id"), QStringLiteral("509658"));  // Just Chatting
   query.addQueryItem(QStringLiteral("first"), QString::number(limit));
@@ -221,7 +238,7 @@ void TwitchApiClient::getFollowedClips(const QStringList& broadcasterIds, int li
   const int maxBroadcastersPerRequest = 10;
   QStringList limitedBroadcasterIds = broadcasterIds.mid(0, maxBroadcastersPerRequest);
   
-  QUrl url(QStringLiteral("https://api.twitch.tv/helix/clips"));
+  QUrl url = buildHelixUrl(QStringLiteral("/helix/clips"));
   QUrlQuery query;
   QString broadcasterIdsStr = limitedBroadcasterIds.join(QStringLiteral(","));
   query.addQueryItem(QStringLiteral("broadcaster_id"), broadcasterIdsStr);
@@ -251,7 +268,7 @@ void TwitchApiClient::getVideos(const QString& userId, int limit) {
   }
   
   // Utiliser l'endpoint /videos pour obtenir les VODs archivés
-  QUrl url(QStringLiteral("https://api.twitch.tv/helix/videos"));
+  QUrl url = buildHelixUrl(QStringLiteral("/helix/videos"));
   QUrlQuery query;
   query.addQueryItem(QStringLiteral("user_id"), userId);
   query.addQueryItem(QStringLiteral("type"), QStringLiteral("archive"));  // Seulement les VODs archivés
@@ -328,7 +345,7 @@ void TwitchApiClient::getUserInfo() {
   }
   core::Logger::debug(core::LogCategory::Twitch, QStringLiteral("[DEBUG] Bearer token available for getUserInfo, length: %1").arg(token.length()));
   
-  QUrl url(QStringLiteral("https://api.twitch.tv/helix/users"));
+  QUrl url = buildHelixUrl(QStringLiteral("/helix/users"));
   core::Logger::debug(core::LogCategory::Network, QStringLiteral("Requesting user info from: %1").arg(url.toString()));
   QNetworkReply* reply = getJson(url);
   connect(reply, &QNetworkReply::finished, this, &TwitchApiClient::handleUserInfoReply);
@@ -352,7 +369,7 @@ void TwitchApiClient::listFollowedStreams(const QString& userId, int limit) {
     return;
   }
 
-  QUrl url(QStringLiteral("https://api.twitch.tv/helix/streams/followed"));
+  QUrl url = buildHelixUrl(QStringLiteral("/helix/streams/followed"));
   QUrlQuery query;
   query.addQueryItem(QStringLiteral("user_id"), userId);
   query.addQueryItem(QStringLiteral("first"), QString::number(limit));
@@ -805,7 +822,7 @@ void TwitchApiClient::getUsersInfo(const QStringList& userIds) {
   const int maxIdsPerRequest = 100;
   QStringList limitedIds = userIds.mid(0, maxIdsPerRequest);
   
-  QUrl url(QStringLiteral("https://api.twitch.tv/helix/users"));
+  QUrl url = buildHelixUrl(QStringLiteral("/helix/users"));
   QUrlQuery query;
   for (const QString& id : limitedIds) {
     query.addQueryItem(QStringLiteral("id"), id);
@@ -893,7 +910,7 @@ void TwitchApiClient::getFollowedChannels(const QString& userId, int limit) {
   }
   
   // Utiliser l'endpoint /channels/followed pour obtenir les chaînes suivies
-  QUrl url(QStringLiteral("https://api.twitch.tv/helix/channels/followed"));
+  QUrl url = buildHelixUrl(QStringLiteral("/helix/channels/followed"));
   QUrlQuery query;
   query.addQueryItem(QStringLiteral("user_id"), userId);
   if (limit > 0 && limit <= 100) {
@@ -933,7 +950,7 @@ void TwitchApiClient::getStreamsByCategory(const QString& gameId, int limit) {
   }
   
   // Utiliser l'endpoint /streams avec game_id pour filtrer par catégorie
-  QUrl url(QStringLiteral("https://api.twitch.tv/helix/streams"));
+  QUrl url = buildHelixUrl(QStringLiteral("/helix/streams"));
   QUrlQuery query;
   query.addQueryItem(QStringLiteral("game_id"), gameId);
   query.addQueryItem(QStringLiteral("first"), QString::number(limit));
@@ -1116,7 +1133,7 @@ void TwitchApiClient::searchChannels(const QString& query, int limit) {
     return;
   }
   
-  QUrl url(QStringLiteral("https://api.twitch.tv/helix/search/channels"));
+  QUrl url = buildHelixUrl(QStringLiteral("/helix/search/channels"));
   QUrlQuery urlQuery;
   urlQuery.addQueryItem(QStringLiteral("query"), query);
   urlQuery.addQueryItem(QStringLiteral("first"), QString::number(limit));

@@ -183,6 +183,13 @@ private slots:
   void handleSearchCategoriesReply();
 
 private:
+  /**
+   * @brief Construit une URL Helix en utilisant la base URL configurée
+   * @param endpoint Le chemin de l'endpoint (ex: "/helix/streams")
+   * @return L'URL complète
+   */
+  QUrl buildHelixUrl(const QString& endpoint) const;
+  
   QString expandThumbnail(const QString& templateUrl) const;
   QVariantList parseStreamsArray(const QJsonArray& entries);
   QVariantList parseClipsArray(const QJsonArray& entries);

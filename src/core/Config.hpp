@@ -48,6 +48,25 @@ public:
   int networkCacheSize() const { return m_networkCacheSize; }
   int networkCacheTTL() const { return m_networkCacheTTL; }
 
+  // Test Mode Configuration
+  /**
+   * @brief Vérifie si l'application est en mode test E2E
+   * @return true si BLUEPLAYER_TEST_MODE=1
+   */
+  bool isTestMode() const { return m_testMode; }
+  
+  /**
+   * @brief Retourne l'URL de base pour l'API Twitch (mock ou production)
+   * @return URL comme "https://api.twitch.tv" ou "http://localhost:12345"
+   */
+  QString twitchApiBaseUrl() const { return m_twitchApiBaseUrl; }
+  
+  /**
+   * @brief Retourne l'URL de base pour le serveur HLS (mock)
+   * @return URL comme "http://localhost:12346" ou vide si pas en mode test
+   */
+  QString hlsServerBaseUrl() const { return m_hlsServerBaseUrl; }
+
   // Logging Configuration
   QString logLevel(const QString& category) const;
 
@@ -96,6 +115,11 @@ private:
 
   // Logging
   QHash<QString, QString> m_logLevels;
+
+  // Test Mode
+  bool m_testMode = false;
+  QString m_twitchApiBaseUrl = QStringLiteral("https://api.twitch.tv");
+  QString m_hlsServerBaseUrl;
 };
 
 }  // namespace blueplayer::core
