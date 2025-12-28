@@ -128,6 +128,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 23 | Auto-refresh Home | [plan-23](./plan-23-auto-refresh.md) | `feature/auto-refresh` | - | 🔴 En attente |
 | **24** | **Refactoring Profond** | [plan-24](./plan-24-deep-refactoring.md) | `refactor/deep-analysis` | v0.15.0 (Sprint 5) | 🟡 En cours |
 | **25** | **Audit UI/UX Design** | [plan-25](./plan-25-ui-design-audit.md) | `design/ui-audit` | - | 🔴 En attente |
+| 26 | Icône Application BluePlayer | [plan-26](./plan-26-app-icon.md) | `feature/app-icon` | - | 🔴 En attente |
 
 ### Plans spéciaux
 
@@ -148,41 +149,42 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 
 ---
 
-## Historique des changements
+## Historique des implémentations
 
-| Date | Changement |
-|------|------------|
-| 2025-12-XX | Création de la roadmap, tâches 1-9 définies |
-| 2025-12-26 | Ajout tâche 10 - Panel Préférences |
+| Date | Implémentation |
+|------|----------------|
 | 2025-12-26 | Tâche 1 terminée - Bouton Volume (slider vertical + hover) |
-| 2025-12-26 | Réorganisation roadmap : vitesse lecture (ex plan-02) devient plan-09, dépend de plan-05 (Cache/VOD) |
 | 2025-12-26 | Tâche 2 terminée - Fullscreen harmonisé (comportement unifié + curseur auto-caché) |
 | 2025-12-26 | Tâche 3 terminée - Largeur boutons harmonisée (64px) + style uniforme |
 | 2025-12-26 | Tâche 4 terminée - Layout barre de contrôle réorganisé + timer intelligent |
 | 2025-12-26 | Tâche 5 terminée - Gestion Cache/VOD (enregistrement auto, thumbnails, mode replay, nettoyage LRU) |
-| 2025-12-27 | Ajout colonne Version au tableau de suivi + tags git v0.1.0 à v0.5.0 |
-| 2025-12-27 | Correction numérotation : plans 9-12 synchronisés avec fichiers réels |
-| 2025-12-27 | Ajout tâche 13 - Internationalisation (i18n) avec 7 sous-tâches |
 | 2025-12-27 | Tâche 6 terminée - Barre de recherche Twitch (channels live + cache local) |
-| 2025-12-27 | Session d'idéation - Définition des nouvelles fonctionnalités (plans 14-20) |
-| 2025-12-27 | Ajout plan 14 - Bouton Follow/Unfollow (PlayerView, coeur toggle) |
-| 2025-12-27 | Ajout plan 15 - Historique VOD cachés (position reprise + date visionnage) |
-| 2025-12-27 | Ajout plan 16 - Mode Audio uniquement (extension toggle HW/SW) |
-| 2025-12-27 | Ajout plan 17 - Picture-in-Picture (fenêtre flottante macOS) |
-| 2025-12-27 | Ajout plan 18 - Thème Clair/Sombre (auto système + override manuel) |
-| 2025-12-27 | Ajout plan 19 - Twitch Tracker Stats (accès stats externes) |
-| 2025-12-27 | Ajout plan 20 - Filtres Catégorie/Jeu (placeholder - design à définir) |
-| 2025-12-27 | Ajout plan 21 - Dette Technique (audit, refactoring, performance) - plan récurrent |
 | 2025-12-27 | Tâche 7 terminée - Chat Twitch intégré (lecture, envoi, emotes, badges) |
-| 2025-12-27 | Ajout plan 22 - Page succès OAuth (amélioration UX authentification) |
 | 2025-12-27 | Tâche 8 terminée - Suppression section redondante Home (5 sections au lieu de 6) |
-| 2025-12-27 | Ajout plan 23 - Auto-refresh Home (30s streams/clips, retour premier plan, gestion erreur) |
 | 2025-12-27 | Tâche 9 terminée - Vitesse lecture intelligente (auto-reset, protection live edge, mode replay) |
-| 2025-12-27 | Ajout plan 24 - Refactoring Technique (25 sous-tâches : sécurité, QML refactoring, C++ refactoring, tests) |
-| 2025-12-27 | Ajout plan 25 - Audit UI/UX Design (20 sous-tâches : palette, typographie, radius, composants, accessibilité) |
 | 2025-12-27 | Tâche 10 terminée - Animations harmonisées, transitions navigation, architecture vues optimisée |
 | 2025-12-27 | Plan 24 Sprint 1 terminé - Sécurité renforcée (Keychain, validation IRC, thread-safety) |
 | 2025-12-27 | Plan 24 Sprint 2 terminé - Refactoring PlayerView (composants QML, logique recording C++, injection dépendances) |
 | 2025-12-27 | Plan 24 Sprint 3 terminé - Refactoring PlayerControlBar (ControlButton, SeekBar, VolumeControl) + signature code |
 | 2025-12-28 | Plan 24 Sprint 4 terminé - BaseCard créé, 5 cards refactorées (-239 lignes, -26%) |
 | 2025-12-28 | Plan 24 Sprint 5 terminé - TwitchService helper ensureTokenAndExecute() (-29 lignes, 9 duplications) |
+
+---
+
+## Historique de la roadmap
+
+| Date | Évolution |
+|------|-----------|
+| 2025-12-XX | Création de la roadmap, tâches 1-9 définies |
+| 2025-12-26 | Ajout tâche 10 - Panel Préférences |
+| 2025-12-26 | Réorganisation : vitesse lecture (ex plan-02) devient plan-09, dépend de plan-05 (Cache/VOD) |
+| 2025-12-27 | Ajout colonne Version au tableau de suivi + tags git v0.1.0 à v0.5.0 |
+| 2025-12-27 | Correction numérotation : plans 9-12 synchronisés avec fichiers réels |
+| 2025-12-27 | Ajout tâche 13 - Internationalisation (i18n) avec 7 sous-tâches |
+| 2025-12-27 | Session d'idéation - Définition plans 14-20 (Follow, Historique, Audio, PiP, Thème, Stats, Filtres) |
+| 2025-12-27 | Ajout plan 21 - Dette Technique (audit, refactoring, performance) - plan récurrent |
+| 2025-12-27 | Ajout plan 22 - Page succès OAuth (amélioration UX authentification) |
+| 2025-12-27 | Ajout plan 23 - Auto-refresh Home (30s streams/clips, retour premier plan, gestion erreur) |
+| 2025-12-27 | Ajout plan 24 - Refactoring Technique (25 sous-tâches : sécurité, QML, C++, tests) |
+| 2025-12-27 | Ajout plan 25 - Audit UI/UX Design (20 sous-tâches : palette, typographie, composants) |
+| 2025-12-28 | Ajout plan 26 - Icône Application BluePlayer (intégration icône "Blue Drop Play" validée) |
