@@ -12,6 +12,9 @@ import "../themes/BlueTheme.js" as BlueTheme
 ComboBox {
     id: root
 
+    // Theme access
+    readonly property var tm: typeof themeManager !== "undefined" ? themeManager : null
+
     // Size
     implicitWidth: 140
     implicitHeight: 36
@@ -56,9 +59,14 @@ ComboBox {
     // =========================================================================
     background: Rectangle {
         radius: 10
-        color: root.hovered || root.popup.visible ? 
-               Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(1, 1, 1, 0.05)
-        border.color: root.popup.visible ? BlueTheme.accent : BlueTheme.divider
+        color: {
+            var surfaceColor = root.tm ? root.tm.surfaceSoft : BlueTheme.surfaceSoft
+            if (root.hovered || root.popup.visible) {
+                return Qt.rgba(surfaceColor.r, surfaceColor.g, surfaceColor.b, 0.8)
+            }
+            return Qt.rgba(surfaceColor.r, surfaceColor.g, surfaceColor.b, 0.5)
+        }
+        border.color: root.popup.visible ? (root.tm ? root.tm.accent : BlueTheme.accent) : (root.tm ? root.tm.divider : BlueTheme.divider)
         border.width: 1
 
         Behavior on color {
@@ -91,7 +99,7 @@ ComboBox {
             font.family: BlueTheme.fontFamily
             font.pixelSize: 13
             font.weight: Font.Medium
-            color: root.displayText ? BlueTheme.primaryText : BlueTheme.secondaryText
+            color: root.displayText ? (root.tm ? root.tm.primaryText : BlueTheme.primaryText) : (root.tm ? root.tm.secondaryText : BlueTheme.secondaryText)
             elide: Text.ElideRight
             verticalAlignment: Text.AlignVCenter
         }
@@ -105,7 +113,7 @@ ComboBox {
         y: (root.height - height) / 2
         text: "\u25BC"
         font.pixelSize: 8
-        color: BlueTheme.secondaryText
+        color: root.tm ? root.tm.secondaryText : BlueTheme.secondaryText
         rotation: root.popup.visible ? 180 : 0
 
         Behavior on rotation {
@@ -127,8 +135,8 @@ ComboBox {
 
         background: Rectangle {
             radius: 12
-            color: BlueTheme.surface
-            border.color: BlueTheme.divider
+            color: root.tm ? root.tm.surface : BlueTheme.surface
+            border.color: root.tm ? root.tm.divider : BlueTheme.divider
             border.width: 1
 
             // Shadow effect
@@ -148,29 +156,20 @@ ComboBox {
     }
 
     // =========================================================================
-    // Delegate for each option
+    // Delegate for each option (simple Rectangle pour contrôle total)
     // =========================================================================
-    delegate: ItemDelegate {
+    delegate: Rectangle {
         id: delegateItem
         width: root.width - 16
         height: 32
+        radius: 6
+        color: delegateMouseArea.containsMouse ? (root.tm ? root.tm.cardHighlight : BlueTheme.cardHighlight) : "transparent"
 
         required property var model
         required property int index
 
-        background: Rectangle {
-            radius: 6
-            color: delegateItem.hovered ? Qt.rgba(1, 1, 1, 0.1) : "transparent"
-
-            Behavior on color {
-                ColorAnimation { 
-                    duration: BlueTheme.animHoverDuration
-                    easing.type: Easing.OutCubic 
-                }
-            }
-        }
-
-        contentItem: RowLayout {
+        RowLayout {
+            anchors.fill: parent
             anchors.leftMargin: 10
             anchors.rightMargin: 10
             spacing: 8
@@ -180,19 +179,31 @@ ComboBox {
                 font.family: BlueTheme.fontFamily
                 font.pixelSize: 13
                 font.weight: root.currentIndex === delegateItem.index ? Font.DemiBold : Font.Normal
-                color: root.currentIndex === delegateItem.index ? BlueTheme.accent : BlueTheme.primaryText
+                color: root.currentIndex === delegateItem.index ? (root.tm ? root.tm.accent : BlueTheme.accent) : (root.tm ? root.tm.primaryText : BlueTheme.primaryText)
                 Layout.fillWidth: true
                 elide: Text.ElideRight
+                verticalAlignment: Text.AlignVCenter
             }
 
             Text {
                 text: root.currentIndex === delegateItem.index ? "\u2713" : ""
                 font.pixelSize: 12
                 font.weight: Font.Bold
-                color: BlueTheme.accent
+                color: root.tm ? root.tm.accent : BlueTheme.accent
+                verticalAlignment: Text.AlignVCenter
             }
         }
 
-        highlighted: root.highlightedIndex === index
+        MouseArea {
+            id: delegateMouseArea
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+                root.currentIndex = delegateItem.index
+                root.activated(delegateItem.index)
+                root.popup.close()
+            }
+        }
     }
 }

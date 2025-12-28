@@ -5,6 +5,9 @@ import "../themes/BlueTheme.js" as BlueTheme
 BaseCard {
   id: cardRoot
 
+  // Theme access
+  readonly property var tm: typeof themeManager !== "undefined" ? themeManager : null
+
   // Dimensions adaptées comme pour les catégories
   cardHeight: 260
 
@@ -28,8 +31,10 @@ BaseCard {
       Layout.fillWidth: true
       Layout.preferredHeight: 200
       radius: 8
-      color: cardRoot.isPlaceholder ? "#1a2230" : BlueTheme.surfaceSoft
-      border.color: BlueTheme.divider
+      color: cardRoot.isPlaceholder 
+             ? (tm ? tm.cardHighlight : "#1a2230")
+             : (tm ? tm.surfaceSoft : BlueTheme.surfaceSoft)
+      border.color: tm ? tm.divider : BlueTheme.divider
       border.width: 1
       clip: true
 
@@ -50,14 +55,16 @@ BaseCard {
 
       Rectangle {
         anchors.fill: parent
-        color: cardRoot.isPlaceholder ? "#1a2230" : BlueTheme.surfaceSoft
+        color: cardRoot.isPlaceholder 
+               ? (tm ? tm.cardHighlight : "#1a2230")
+               : (tm ? tm.surfaceSoft : BlueTheme.surfaceSoft)
         visible: avatarImage.status !== Image.Ready || cardRoot.isPlaceholder
 
         Text {
           anchors.centerIn: parent
           text: cardRoot.isPlaceholder ? "⋯" : (avatarImage.status === Image.Loading ? "⏳" : "👤")
           font.pixelSize: 32
-          color: BlueTheme.mutedText
+          color: tm ? tm.mutedText : BlueTheme.mutedText
           opacity: 0.5
         }
       }
@@ -70,7 +77,7 @@ BaseCard {
         width: 40
         height: 20
         radius: 10
-        color: BlueTheme.statusNegative
+        color: tm ? tm.statusNegative : BlueTheme.statusNegative
         visible: cardRoot.isLive && !cardRoot.isPlaceholder && avatarImage.status === Image.Ready
 
         Text {
@@ -89,7 +96,7 @@ BaseCard {
       font.family: BlueTheme.fontFamily
       font.pixelSize: 14
       font.bold: true
-      color: BlueTheme.primaryText
+      color: tm ? tm.primaryText : BlueTheme.primaryText
       elide: Text.ElideRight
       Layout.fillWidth: true
       horizontalAlignment: Text.AlignHCenter
@@ -100,7 +107,7 @@ BaseCard {
       text: cardRoot.isLive && cardRoot.gameName !== "" ? cardRoot.gameName : ""
       font.family: BlueTheme.fontFamily
       font.pixelSize: 11
-      color: BlueTheme.accent
+      color: tm ? tm.accent : BlueTheme.accent
       elide: Text.ElideRight
       Layout.fillWidth: true
       horizontalAlignment: Text.AlignHCenter

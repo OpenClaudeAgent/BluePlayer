@@ -11,10 +11,20 @@ ApplicationWindow {
   visible: true
   width: 1200
   height: 780
-  color: BlueTheme.windowBackground
+  color: theme.windowBackground
   font.family: BlueTheme.fontFamily
   title: qsTr("BluePlayer")
   property string currentView: "home"
+
+  // ========================================================================
+  // THEME SYSTEM - Reactive theme provider
+  // ========================================================================
+  ThemeProvider {
+    id: theme
+  }
+  
+  // Expose theme globally for child components
+  property alias themeProvider: theme
   property string statusText: qsTr("Select a stream or local video to start.")
   property string playerStreamerLogin: ""
   property string playerStreamerName: ""
@@ -34,8 +44,13 @@ ApplicationWindow {
   background: Rectangle {
     anchors.fill: parent
     gradient: Gradient {
-      GradientStop { position: 0; color: BlueTheme.gradientStart }
-      GradientStop { position: 1; color: BlueTheme.gradientEnd }
+      GradientStop { position: 0; color: theme.gradientStart }
+      GradientStop { position: 1; color: theme.gradientEnd }
+    }
+    
+    // Smooth transition when theme changes
+    Behavior on color {
+      ColorAnimation { duration: BlueTheme.animDurationStandard; easing.type: Easing.InOutCubic }
     }
   }
 
@@ -378,8 +393,12 @@ ApplicationWindow {
       Rectangle {
         anchors.fill: parent
         gradient: Gradient {
-          GradientStop { position: 0; color: BlueTheme.gradientStart }
-          GradientStop { position: 1; color: BlueTheme.gradientEnd }
+          GradientStop { position: 0; color: theme.gradientStart }
+          GradientStop { position: 1; color: theme.gradientEnd }
+        }
+        
+        Behavior on color {
+          ColorAnimation { duration: BlueTheme.animDurationStandard; easing.type: Easing.InOutCubic }
         }
       }
       
@@ -426,8 +445,12 @@ ApplicationWindow {
       Rectangle {
         anchors.fill: parent
         gradient: Gradient {
-          GradientStop { position: 0; color: BlueTheme.gradientStart }
-          GradientStop { position: 1; color: BlueTheme.gradientEnd }
+          GradientStop { position: 0; color: theme.gradientStart }
+          GradientStop { position: 1; color: theme.gradientEnd }
+        }
+        
+        Behavior on color {
+          ColorAnimation { duration: BlueTheme.animDurationStandard; easing.type: Easing.InOutCubic }
         }
       }
       

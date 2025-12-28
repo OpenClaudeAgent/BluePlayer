@@ -25,6 +25,8 @@ set(BLUEPLAYER_CORE_SOURCES
   core/FileLogger.hpp
   core/LanguageManager.cpp
   core/LanguageManager.hpp
+  core/ThemeManager.mm
+  core/ThemeManager.hpp
   core/network/HttpClient.cpp
   core/network/HttpClient.hpp
   core/network/ApiClientBase.cpp
@@ -184,6 +186,7 @@ qt_add_qml_module(BluePlayer
     ui/components/CircleButton.qml
     ui/components/PanelHeader.qml
     ui/components/PipPlaceholder.qml
+    ui/components/ThemeProvider.qml
 )
 
 target_link_libraries(BluePlayer

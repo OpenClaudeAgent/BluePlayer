@@ -8,6 +8,9 @@ import "components"
 Item {
     id: preferencesRoot
 
+    // Theme access
+    readonly property var tm: typeof themeManager !== "undefined" ? themeManager : null
+
     signal closeRequested()
 
     // Default quality preference - connected to backend TwitchService
@@ -40,6 +43,24 @@ Item {
         }
     }
 
+    // Theme preference - connected to backend ThemeManager
+    property string currentThemePreference: {
+        var mgr = getThemeManager()
+        return mgr ? mgr.themePreference : "auto"
+    }
+
+    function getThemeManager() {
+        return typeof themeManager !== "undefined" ? themeManager : null
+    }
+
+    function setThemePreference(pref) {
+        var mgr = getThemeManager()
+        if (mgr) {
+            mgr.themePreference = pref
+            console.log("[PreferencesView] Theme preference changed to:", pref)
+        }
+    }
+
     // Access helpers
     function getCacheManager() {
         return typeof cacheManager !== "undefined" ? cacheManager : null
@@ -53,8 +74,8 @@ Item {
     Rectangle {
         anchors.fill: parent
         gradient: Gradient {
-            GradientStop { position: 0.0; color: BlueTheme.gradientStart }
-            GradientStop { position: 1.0; color: BlueTheme.gradientEnd }
+            GradientStop { position: 0.0; color: tm ? tm.gradientStart : BlueTheme.gradientStart }
+            GradientStop { position: 1.0; color: tm ? tm.gradientEnd : BlueTheme.gradientEnd }
         }
     }
 
@@ -91,6 +112,50 @@ Item {
                     spacing: BlueTheme.spacingLarge
 
                     // ═══════════════════════════════════════════════════════════
+                    // SECTION: Apparence (Theme)
+                    // ═══════════════════════════════════════════════════════════
+                    PreferencesSection {
+                        Layout.fillWidth: true
+                        title: qsTr("Appearance")
+                        icon: "\uD83C\uDFA8"
+
+                        RowLayout {
+                            width: parent.width
+                            spacing: BlueTheme.spacingMedium
+
+                            Text {
+                                text: qsTr("Theme")
+                                font.family: BlueTheme.fontFamily
+                                font.pixelSize: 14
+                                color: preferencesRoot.tm ? preferencesRoot.tm.primaryText : BlueTheme.primaryText
+                                Layout.fillWidth: true
+                            }
+
+                            // Theme dropdown using BlueDropdown component
+                            BlueDropdown {
+                                id: themeDropdown
+                                Layout.preferredWidth: 140
+                                Layout.preferredHeight: 36
+                                model: [qsTr("Automatic"), qsTr("Light"), qsTr("Dark")]
+                                selectedValue: {
+                                    var pref = preferencesRoot.currentThemePreference
+                                    if (pref === "light") return qsTr("Light")
+                                    if (pref === "dark") return qsTr("Dark")
+                                    return qsTr("Automatic")
+                                }
+                                placeholder: qsTr("Theme")
+                                
+                                onValueSelected: function(value) {
+                                    var prefCode = "auto"
+                                    if (value === qsTr("Light")) prefCode = "light"
+                                    else if (value === qsTr("Dark")) prefCode = "dark"
+                                    preferencesRoot.setThemePreference(prefCode)
+                                }
+                            }
+                        }
+                    }
+
+                    // ═══════════════════════════════════════════════════════════
                     // SECTION: Lecture
                     // ═══════════════════════════════════════════════════════════
                     PreferencesSection {
@@ -106,7 +171,7 @@ Item {
                                 text: qsTr("Default quality")
                                 font.family: BlueTheme.fontFamily
                                 font.pixelSize: 14
-                                color: BlueTheme.primaryText
+                                color: preferencesRoot.tm ? preferencesRoot.tm.primaryText : BlueTheme.primaryText
                                 Layout.fillWidth: true
                             }
 
@@ -151,7 +216,7 @@ Item {
                                     text: qsTr("App language")
                                     font.family: BlueTheme.fontFamily
                                     font.pixelSize: 14
-                                    color: BlueTheme.primaryText
+                                    color: preferencesRoot.tm ? preferencesRoot.tm.primaryText : BlueTheme.primaryText
                                     Layout.fillWidth: true
                                 }
 
@@ -204,7 +269,8 @@ Item {
                                     color: {
                                         var service = getTwitchService()
                                         return service && service.authenticated ? 
-                                               BlueTheme.statusPositive : BlueTheme.statusNegative
+                                               (preferencesRoot.tm ? preferencesRoot.tm.statusPositive : BlueTheme.statusPositive) : 
+                                               (preferencesRoot.tm ? preferencesRoot.tm.statusNegative : BlueTheme.statusNegative)
                                     }
 
                                     // Pulse animation when connected
@@ -232,7 +298,7 @@ Item {
                                     }
                                     font.family: BlueTheme.fontFamily
                                     font.pixelSize: 14
-                                    color: BlueTheme.primaryText
+                                    color: preferencesRoot.tm ? preferencesRoot.tm.primaryText : BlueTheme.primaryText
                                     Layout.fillWidth: true
                                 }
                             }
@@ -254,11 +320,16 @@ Item {
                                     Layout.preferredWidth: twitchActionText.width + 32
                                     Layout.preferredHeight: 36
                                     radius: 18
-                                    color: twitchActionArea.containsMouse ? 
-                                           (isLoggedIn ? Qt.rgba(BlueTheme.statusNegative.r, BlueTheme.statusNegative.g, BlueTheme.statusNegative.b, 0.2) : 
-                                                        Qt.rgba(BlueTheme.accent.r, BlueTheme.accent.g, BlueTheme.accent.b, 0.2)) :
-                                           (isLoggedIn ? "transparent" : BlueTheme.accent)
-                                    border.color: isLoggedIn ? BlueTheme.statusNegative : BlueTheme.accent
+                                    color: {
+                                        var accentColor = preferencesRoot.tm ? preferencesRoot.tm.accent : BlueTheme.accent
+                                        var negativeColor = preferencesRoot.tm ? preferencesRoot.tm.statusNegative : BlueTheme.statusNegative
+                                        if (twitchActionArea.containsMouse) {
+                                            return isLoggedIn ? Qt.rgba(negativeColor.r, negativeColor.g, negativeColor.b, 0.2) : 
+                                                               Qt.rgba(accentColor.r, accentColor.g, accentColor.b, 0.2)
+                                        }
+                                        return isLoggedIn ? "transparent" : accentColor
+                                    }
+                                    border.color: isLoggedIn ? (preferencesRoot.tm ? preferencesRoot.tm.statusNegative : BlueTheme.statusNegative) : (preferencesRoot.tm ? preferencesRoot.tm.accent : BlueTheme.accent)
                                     border.width: isLoggedIn ? 1 : 0
 
                                     Behavior on color {
@@ -272,7 +343,7 @@ Item {
                                         font.family: BlueTheme.fontFamily
                                         font.pixelSize: 13
                                         font.weight: Font.Medium
-                                        color: twitchActionButton.isLoggedIn ? BlueTheme.statusNegative : "#FFFFFF"
+                                        color: twitchActionButton.isLoggedIn ? (preferencesRoot.tm ? preferencesRoot.tm.statusNegative : BlueTheme.statusNegative) : "#FFFFFF"
                                     }
 
                                     MouseArea {
@@ -323,7 +394,7 @@ Item {
                                 }
                                 font.family: BlueTheme.fontFamily
                                 font.pixelSize: 14
-                                color: BlueTheme.secondaryText
+                                color: preferencesRoot.tm ? preferencesRoot.tm.secondaryText : BlueTheme.secondaryText
                             }
 
                             // Progress bar with percentage
@@ -336,7 +407,7 @@ Item {
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: 8
                                     radius: 4
-                                    color: Qt.rgba(1, 1, 1, 0.1)
+                                    color: preferencesRoot.tm ? Qt.rgba(preferencesRoot.tm.divider.r, preferencesRoot.tm.divider.g, preferencesRoot.tm.divider.b, 0.5) : Qt.rgba(1, 1, 1, 0.1)
 
                                     Rectangle {
                                         id: cacheProgressBar
@@ -350,8 +421,8 @@ Item {
                                         width: parent.width * (percentage / 100)
                                         height: parent.height
                                         radius: 4
-                                        color: percentage > 90 ? BlueTheme.statusNegative :
-                                               percentage > 70 ? BlueTheme.statusWarning : BlueTheme.accent
+                                        color: percentage > 90 ? (preferencesRoot.tm ? preferencesRoot.tm.statusNegative : BlueTheme.statusNegative) :
+                                               percentage > 70 ? (preferencesRoot.tm ? preferencesRoot.tm.statusWarning : BlueTheme.statusWarning) : (preferencesRoot.tm ? preferencesRoot.tm.accent : BlueTheme.accent)
 
                                         Behavior on width {
                                             NumberAnimation { duration: BlueTheme.animCardDuration; easing.type: Easing.OutCubic }
@@ -373,7 +444,7 @@ Item {
                                     font.family: BlueTheme.fontFamily
                                     font.pixelSize: 12
                                     font.weight: Font.Medium
-                                    color: BlueTheme.secondaryText
+                                    color: preferencesRoot.tm ? preferencesRoot.tm.secondaryText : BlueTheme.secondaryText
                                     Layout.preferredWidth: 40
                                     horizontalAlignment: Text.AlignRight
                                 }
@@ -389,7 +460,7 @@ Item {
                                     text: qsTr("Maximum size")
                                     font.family: BlueTheme.fontFamily
                                     font.pixelSize: 14
-                                    color: BlueTheme.primaryText
+                                    color: preferencesRoot.tm ? preferencesRoot.tm.primaryText : BlueTheme.primaryText
                                 }
 
                                 Item { Layout.fillWidth: true }
@@ -399,8 +470,11 @@ Item {
                                     Layout.preferredWidth: 130
                                     Layout.preferredHeight: 36
                                     radius: 10
-                                    color: Qt.rgba(1, 1, 1, 0.05)
-                                    border.color: BlueTheme.divider
+                                    color: {
+                                        var surfaceColor = preferencesRoot.tm ? preferencesRoot.tm.surfaceSoft : BlueTheme.surfaceSoft
+                                        return Qt.rgba(surfaceColor.r, surfaceColor.g, surfaceColor.b, 0.5)
+                                    }
+                                    border.color: preferencesRoot.tm ? preferencesRoot.tm.divider : BlueTheme.divider
                                     border.width: 1
 
                                     RowLayout {
@@ -413,14 +487,14 @@ Item {
                                             Layout.preferredWidth: 32
                                             Layout.fillHeight: true
                                             radius: 7
-                                            color: minusArea.containsMouse ? Qt.rgba(1, 1, 1, 0.1) : "transparent"
+                                            color: minusArea.containsMouse ? (preferencesRoot.tm ? preferencesRoot.tm.cardHighlight : "#1a2230") : "transparent"
 
                                             Text {
                                                 anchors.centerIn: parent
                                                 text: "\u2212"
                                                 font.pixelSize: 16
                                                 font.weight: Font.Medium
-                                                color: BlueTheme.primaryText
+                                                color: preferencesRoot.tm ? preferencesRoot.tm.primaryText : BlueTheme.primaryText
                                             }
 
                                             MouseArea {
@@ -452,7 +526,7 @@ Item {
                                                 font.family: BlueTheme.fontFamily
                                                 font.pixelSize: 14
                                                 font.weight: Font.DemiBold
-                                                color: BlueTheme.primaryText
+                                                color: preferencesRoot.tm ? preferencesRoot.tm.primaryText : BlueTheme.primaryText
                                                 text: {
                                                     var cm = getCacheManager()
                                                     return cm ? Math.round(cm.maxCacheSize / (1024 * 1024 * 1024)).toString() : "10"
@@ -475,14 +549,14 @@ Item {
                                             Layout.preferredWidth: 32
                                             Layout.fillHeight: true
                                             radius: 7
-                                            color: plusArea.containsMouse ? Qt.rgba(1, 1, 1, 0.1) : "transparent"
+                                            color: plusArea.containsMouse ? (preferencesRoot.tm ? preferencesRoot.tm.cardHighlight : "#1a2230") : "transparent"
 
                                             Text {
                                                 anchors.centerIn: parent
                                                 text: "+"
                                                 font.pixelSize: 16
                                                 font.weight: Font.Medium
-                                                color: BlueTheme.primaryText
+                                                color: preferencesRoot.tm ? preferencesRoot.tm.primaryText : BlueTheme.primaryText
                                             }
 
                                             MouseArea {
@@ -508,7 +582,7 @@ Item {
                                     font.family: BlueTheme.fontFamily
                                     font.pixelSize: 14
                                     font.weight: Font.Medium
-                                    color: BlueTheme.secondaryText
+                                    color: preferencesRoot.tm ? preferencesRoot.tm.secondaryText : BlueTheme.secondaryText
                                 }
                             }
 
@@ -528,10 +602,11 @@ Item {
                                     Layout.preferredWidth: clearCacheText.width + 32
                                     Layout.preferredHeight: 36
                                     radius: 18
-                                    color: clearCacheArea.containsMouse ? 
-                                           Qt.rgba(BlueTheme.statusNegative.r, BlueTheme.statusNegative.g, BlueTheme.statusNegative.b, 0.15) : 
-                                           "transparent"
-                                    border.color: BlueTheme.statusNegative
+                                    color: {
+                                        var negativeColor = preferencesRoot.tm ? preferencesRoot.tm.statusNegative : BlueTheme.statusNegative
+                                        return clearCacheArea.containsMouse ? Qt.rgba(negativeColor.r, negativeColor.g, negativeColor.b, 0.15) : "transparent"
+                                    }
+                                    border.color: preferencesRoot.tm ? preferencesRoot.tm.statusNegative : BlueTheme.statusNegative
                                     border.width: 1
 
                                     Behavior on color {
@@ -545,7 +620,7 @@ Item {
                                         font.family: BlueTheme.fontFamily
                                         font.pixelSize: 13
                                         font.weight: Font.Medium
-                                        color: BlueTheme.statusNegative
+                                        color: preferencesRoot.tm ? preferencesRoot.tm.statusNegative : BlueTheme.statusNegative
                                     }
 
                                     MouseArea {
@@ -579,8 +654,11 @@ Item {
 
         background: Rectangle {
             radius: 20
-            color: Qt.rgba(BlueTheme.surface.r, BlueTheme.surface.g, BlueTheme.surface.b, 0.98)
-            border.color: BlueTheme.divider
+            color: {
+                var surfaceColor = preferencesRoot.tm ? preferencesRoot.tm.surface : BlueTheme.surface
+                return Qt.rgba(surfaceColor.r, surfaceColor.g, surfaceColor.b, 0.98)
+            }
+            border.color: preferencesRoot.tm ? preferencesRoot.tm.divider : BlueTheme.divider
             border.width: 1
 
             // Subtle shadow effect
@@ -613,7 +691,7 @@ Item {
                 font.family: BlueTheme.fontFamily
                 font.pixelSize: 18
                 font.weight: Font.DemiBold
-                color: BlueTheme.primaryText
+                color: preferencesRoot.tm ? preferencesRoot.tm.primaryText : BlueTheme.primaryText
                 Layout.alignment: Qt.AlignHCenter
             }
 
@@ -629,7 +707,7 @@ Item {
                 }
                 font.family: BlueTheme.fontFamily
                 font.pixelSize: 14
-                color: BlueTheme.secondaryText
+                color: preferencesRoot.tm ? preferencesRoot.tm.secondaryText : BlueTheme.secondaryText
                 horizontalAlignment: Text.AlignHCenter
                 Layout.fillWidth: true
             }
@@ -645,8 +723,8 @@ Item {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 44
                     radius: 22
-                    color: cancelArea.containsMouse ? Qt.rgba(1, 1, 1, 0.1) : "transparent"
-                    border.color: BlueTheme.divider
+                    color: cancelArea.containsMouse ? (preferencesRoot.tm ? preferencesRoot.tm.cardHighlight : Qt.rgba(1, 1, 1, 0.1)) : "transparent"
+                    border.color: preferencesRoot.tm ? preferencesRoot.tm.divider : BlueTheme.divider
                     border.width: 1
 
                     Behavior on color {
@@ -659,7 +737,7 @@ Item {
                         font.family: BlueTheme.fontFamily
                         font.pixelSize: 14
                         font.weight: Font.Medium
-                        color: BlueTheme.primaryText
+                        color: preferencesRoot.tm ? preferencesRoot.tm.primaryText : BlueTheme.primaryText
                     }
 
                     MouseArea {
@@ -676,8 +754,10 @@ Item {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 44
                     radius: 22
-                    color: confirmArea.containsMouse ? 
-                           Qt.darker(BlueTheme.statusNegative, 1.1) : BlueTheme.statusNegative
+                    color: {
+                        var negativeColor = preferencesRoot.tm ? preferencesRoot.tm.statusNegative : BlueTheme.statusNegative
+                        return confirmArea.containsMouse ? Qt.darker(negativeColor, 1.1) : negativeColor
+                    }
 
                     Behavior on color {
                         ColorAnimation { duration: BlueTheme.animHoverDuration; easing.type: Easing.OutCubic }
@@ -751,6 +831,18 @@ Item {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // Theme preference sync with backend
+    // ═══════════════════════════════════════════════════════════════════════════
+    Connections {
+        target: getThemeManager()
+        enabled: getThemeManager() !== null
+        function onThemePreferenceChanged(preference) {
+            // Force re-evaluation of currentThemePreference binding
+            preferencesRoot.currentThemePreference = preference
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // PreferencesSection Component (inline)
     // ═══════════════════════════════════════════════════════════════════════════
     component PreferencesSection: Rectangle {
@@ -762,8 +854,11 @@ Item {
 
         implicitHeight: sectionColumn.height + 2 * BlueTheme.spacingLarge
         radius: 16
-        color: Qt.rgba(BlueTheme.surface.r, BlueTheme.surface.g, BlueTheme.surface.b, 0.6)
-        border.color: BlueTheme.divider
+        color: {
+            var surfaceColor = preferencesRoot.tm ? preferencesRoot.tm.surface : BlueTheme.surface
+            return Qt.rgba(surfaceColor.r, surfaceColor.g, surfaceColor.b, 0.6)
+        }
+        border.color: preferencesRoot.tm ? preferencesRoot.tm.divider : BlueTheme.divider
         border.width: 1
 
         ColumnLayout {
@@ -790,7 +885,7 @@ Item {
                     font.family: BlueTheme.fontFamily
                     font.pixelSize: 16
                     font.weight: Font.DemiBold
-                    color: BlueTheme.primaryText
+                    color: preferencesRoot.tm ? preferencesRoot.tm.primaryText : BlueTheme.primaryText
                 }
 
                 Item { Layout.fillWidth: true }
@@ -800,7 +895,7 @@ Item {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 1
-                color: BlueTheme.divider
+                color: preferencesRoot.tm ? preferencesRoot.tm.divider : BlueTheme.divider
             }
 
             // Content

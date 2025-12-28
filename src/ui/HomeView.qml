@@ -11,6 +11,9 @@ import "components"
 Item {
   id: homeRoot
 
+  // Theme access
+  readonly property var tm: typeof themeManager !== "undefined" ? themeManager : null
+
   // Accès au service Twitch (disponible globalement)
   // Utiliser une fonction pour éviter les boucles de binding
   function getTwitchService() {
@@ -325,9 +328,15 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenter: parent.verticalCenter
         radius: 12
-        color: searchField.activeFocus ? "#161d28" : "#0d1117"
-        border.color: searchField.activeFocus ? BlueTheme.accent : "transparent"
-        border.width: searchField.activeFocus ? 1 : 0
+        color: {
+          var surfaceColor = homeRoot.tm ? homeRoot.tm.surfaceSoft : BlueTheme.surfaceSoft
+          if (searchField.activeFocus) {
+            return Qt.rgba(surfaceColor.r, surfaceColor.g, surfaceColor.b, 0.9)
+          }
+          return Qt.rgba(surfaceColor.r, surfaceColor.g, surfaceColor.b, 0.6)
+        }
+        border.color: searchField.activeFocus ? (homeRoot.tm ? homeRoot.tm.accent : BlueTheme.accent) : (homeRoot.tm ? homeRoot.tm.divider : BlueTheme.divider)
+        border.width: 1
 
         Behavior on color {
           ColorAnimation { duration: BlueTheme.animHoverDuration; easing.type: Easing.OutCubic }
@@ -347,7 +356,7 @@ Item {
             text: "\u2315"  // Loupe unicode
             font.pixelSize: 18
             font.weight: Font.Light
-            color: searchField.activeFocus ? BlueTheme.accent : BlueTheme.mutedText
+            color: searchField.activeFocus ? (homeRoot.tm ? homeRoot.tm.accent : BlueTheme.accent) : (homeRoot.tm ? homeRoot.tm.mutedText : BlueTheme.mutedText)
             Layout.alignment: Qt.AlignVCenter
             opacity: 0.7
             Behavior on color {
@@ -361,11 +370,11 @@ Item {
             Layout.fillHeight: true
             verticalAlignment: Text.AlignVCenter
             placeholderText: qsTr("Search...")
-            placeholderTextColor: BlueTheme.mutedText
+            placeholderTextColor: homeRoot.tm ? homeRoot.tm.mutedText : BlueTheme.mutedText
             font.family: BlueTheme.fontFamily
             font.pixelSize: 14
             font.weight: Font.Normal
-            color: BlueTheme.primaryText
+            color: homeRoot.tm ? homeRoot.tm.primaryText : BlueTheme.primaryText
             cursorVisible: activeFocus
             background: Item {}
             selectByMouse: true

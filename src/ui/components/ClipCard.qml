@@ -5,6 +5,9 @@ import "../themes/BlueTheme.js" as BlueTheme
 BaseCard {
   id: cardRoot
 
+  // Theme access
+  readonly property var tm: typeof themeManager !== "undefined" ? themeManager : null
+
   property string clipTitle: ""
   property string broadcasterName: ""
   property string viewCount: ""
@@ -24,8 +27,10 @@ BaseCard {
       Layout.fillWidth: true
       Layout.preferredHeight: 120
       radius: 8
-      color: cardRoot.isPlaceholder ? "#1a2230" : BlueTheme.surfaceSoft
-      border.color: BlueTheme.divider
+      color: cardRoot.isPlaceholder 
+             ? (tm ? tm.cardHighlight : "#1a2230")
+             : (tm ? tm.surfaceSoft : BlueTheme.surfaceSoft)
+      border.color: tm ? tm.divider : BlueTheme.divider
       border.width: 1
       clip: true
 
@@ -46,14 +51,16 @@ BaseCard {
 
       Rectangle {
         anchors.fill: parent
-        color: cardRoot.isPlaceholder ? "#1a2230" : BlueTheme.surfaceSoft
+        color: cardRoot.isPlaceholder 
+               ? (tm ? tm.cardHighlight : "#1a2230")
+               : (tm ? tm.surfaceSoft : BlueTheme.surfaceSoft)
         visible: thumbnailImage.status !== Image.Ready || cardRoot.isPlaceholder
 
         Text {
           anchors.centerIn: parent
           text: cardRoot.isPlaceholder ? "⋯" : (thumbnailImage.status === Image.Loading ? "⏳" : "🎬")
           font.pixelSize: 32
-          color: BlueTheme.mutedText
+          color: tm ? tm.mutedText : BlueTheme.mutedText
           opacity: 0.5
         }
       }
@@ -89,7 +96,7 @@ BaseCard {
         font.family: BlueTheme.fontFamily
         font.pixelSize: 12
         font.bold: true
-        color: BlueTheme.primaryText
+        color: tm ? tm.primaryText : BlueTheme.primaryText
         elide: Text.ElideRight
         wrapMode: Text.WordWrap
         maximumLineCount: 2
@@ -100,7 +107,7 @@ BaseCard {
         text: cardRoot.broadcasterName
         font.family: BlueTheme.fontFamily
         font.pixelSize: 11
-        color: BlueTheme.secondaryText
+        color: tm ? tm.secondaryText : BlueTheme.secondaryText
         elide: Text.ElideRight
         Layout.fillWidth: true
       }
@@ -109,7 +116,7 @@ BaseCard {
         text: cardRoot.viewCount !== "" ? cardRoot.viewCount + " vues" : ""
         font.family: BlueTheme.fontFamily
         font.pixelSize: 10
-        color: BlueTheme.accent
+        color: tm ? tm.accent : BlueTheme.accent
         Layout.fillWidth: true
       }
     }
