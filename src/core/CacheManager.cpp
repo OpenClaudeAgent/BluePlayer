@@ -26,6 +26,9 @@ CacheManager::CacheManager(QObject* parent) : QObject(parent) {
 
   // Charger les métadonnées existantes
   loadMetadata();
+  
+  // Initialiser le network manager pour les téléchargements asynchrones
+  m_networkManager = new QNetworkAccessManager(this);
 
   LOG_DEBUG(Core, "CacheManager created, cache directory: " + m_cacheDirectory);
 }
@@ -639,15 +642,8 @@ QString CacheManager::downloadThumbnail(const QString& url, const QString& filen
     return localPath;
   }
 
-  // Remplacer les placeholders Twitch {width} et {height} par des dimensions raisonnables
-  QString processedUrl = url;
-  processedUrl.replace(QStringLiteral("{width}"), QStringLiteral("440"));
-  processedUrl.replace(QStringLiteral("{height}"), QStringLiteral("248"));
-  // Certaines URLs utilisent %{width} et %{height}
-  processedUrl.replace(QStringLiteral("%{width}"), QStringLiteral("440"));
-  processedUrl.replace(QStringLiteral("%{height}"), QStringLiteral("248"));
-
-  LOG_INFO(Core, QString("Downloading thumbnail from: %1").arg(processedUrl));
+  QString processedUrl = processThumbnailUrl(url);
+  LOG_INFO(Core, QString("Downloading thumbnail (sync) from: %1").arg(processedUrl));
 
   QNetworkAccessManager manager;
   QUrl requestUrl{processedUrl};
@@ -707,6 +703,92 @@ QString CacheManager::downloadThumbnail(const QString& url, const QString& filen
   return localPath;
 }
 
+QString CacheManager::processThumbnailUrl(const QString& url) const {
+  // Remplacer les placeholders Twitch {width} et {height} par des dimensions raisonnables
+  QString processedUrl = url;
+  processedUrl.replace(QStringLiteral("{width}"), QStringLiteral("440"));
+  processedUrl.replace(QStringLiteral("{height}"), QStringLiteral("248"));
+  // Certaines URLs utilisent %{width} et %{height}
+  processedUrl.replace(QStringLiteral("%{width}"), QStringLiteral("440"));
+  processedUrl.replace(QStringLiteral("%{height}"), QStringLiteral("248"));
+  return processedUrl;
+}
+
+void CacheManager::downloadThumbnailAsync(const QString& url, const QString& filename) {
+  if (url.isEmpty() || filename.isEmpty()) {
+    LOG_WARNING(Core, "downloadThumbnailAsync: empty url or filename");
+    emit thumbnailDownloadFailed(filename, QStringLiteral("Empty URL or filename"));
+    return;
+  }
+
+  ensureCacheDirectoryExists();
+  
+  QString localPath = m_cacheDirectory + QStringLiteral("/") + filename;
+  
+  // Vérifier si le fichier existe déjà
+  if (QFile::exists(localPath)) {
+    LOG_DEBUG(Core, QString("Thumbnail already exists: %1").arg(localPath));
+    emit thumbnailDownloaded(localPath, filename);
+    return;
+  }
+
+  QString processedUrl = processThumbnailUrl(url);
+  LOG_INFO(Core, QString("Downloading thumbnail async from: %1").arg(processedUrl));
+
+  QUrl requestUrl{processedUrl};
+  QNetworkRequest request{requestUrl};
+  request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                       QNetworkRequest::NoLessSafeRedirectPolicy);
+
+  QNetworkReply* reply = m_networkManager->get(request);
+  
+  // Connecter les signaux pour le traitement asynchrone
+  connect(reply, &QNetworkReply::finished, this, [this, reply, filename, localPath]() {
+    handleThumbnailReply(reply, filename, localPath);
+  });
+  
+  // Timeout de 10 secondes
+  QTimer::singleShot(10000, reply, [reply, filename]() {
+    if (reply->isRunning()) {
+      qWarning() << "[CacheManager] Thumbnail download timeout for:" << filename;
+      reply->abort();
+    }
+  });
+}
+
+void CacheManager::handleThumbnailReply(QNetworkReply* reply, const QString& filename, const QString& localPath) {
+  reply->deleteLater();
+  
+  if (reply->error() != QNetworkReply::NoError) {
+    QString errorMsg = reply->errorString();
+    LOG_WARNING(Core, QString("Thumbnail download failed: %1").arg(errorMsg));
+    emit thumbnailDownloadFailed(filename, errorMsg);
+    return;
+  }
+
+  QByteArray data = reply->readAll();
+  if (data.isEmpty()) {
+    LOG_WARNING(Core, "Thumbnail download returned empty data");
+    emit thumbnailDownloadFailed(filename, QStringLiteral("Empty response"));
+    return;
+  }
+
+  // Sauvegarder le fichier
+  QFile file(localPath);
+  if (!file.open(QIODevice::WriteOnly)) {
+    QString errorMsg = file.errorString();
+    LOG_ERROR(Core, QString("Failed to create thumbnail file: %1").arg(errorMsg));
+    emit thumbnailDownloadFailed(filename, errorMsg);
+    return;
+  }
+
+  file.write(data);
+  file.close();
+
+  LOG_INFO(Core, QString("Thumbnail saved async to: %1").arg(localPath));
+  emit thumbnailDownloaded(localPath, filename);
+}
+
 QVariantMap CacheManager::prepareRecording(const QString& streamerLogin, 
                                             const QString& thumbnailUrl) {
   QVariantMap result;
@@ -731,11 +813,16 @@ QVariantMap CacheManager::prepareRecording(const QString& streamerLogin,
   
   LOG_INFO(Core, QString("Prepared recording path: %1").arg(recordingPath));
   
-  // Download thumbnail if URL provided
+  // Download thumbnail asynchronously if URL provided
+  // The thumbnail path is returned immediately (expected path)
+  // The actual download happens in background
   if (!thumbnailUrl.isEmpty()) {
-    QString thumbPath = downloadThumbnail(thumbnailUrl, thumbFilename);
+    QString thumbPath = m_cacheDirectory + QStringLiteral("/") + thumbFilename;
     result[QStringLiteral("thumbnailPath")] = thumbPath;
-    LOG_DEBUG(Core, QString("Thumbnail path: %1").arg(thumbPath));
+    LOG_DEBUG(Core, QString("Thumbnail path (async): %1").arg(thumbPath));
+    
+    // Start async download - result will be available when finalizeRecording is called
+    downloadThumbnailAsync(thumbnailUrl, thumbFilename);
   }
   
   return result;
