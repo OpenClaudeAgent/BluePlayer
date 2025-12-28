@@ -62,6 +62,7 @@ target_link_libraries(test_e2e_infrastructure PRIVATE
   e2e_helpers
   e2e_servers
   ${E2E_TEST_LIBS}
+  blueplayer_core  # For TwitchApiClient integration tests
 )
 
 target_compile_definitions(test_e2e_infrastructure PRIVATE

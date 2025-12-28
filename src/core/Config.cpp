@@ -82,6 +82,40 @@ void Config::loadFromEnvironment() {
   m_logLevels["UI"] = getEnvVar("BLUEPLAYER_LOG_UI", "warning");
   m_logLevels["Core"] = getEnvVar("BLUEPLAYER_LOG_CORE", "info");
   m_logLevels["Network"] = getEnvVar("BLUEPLAYER_LOG_NETWORK", "info");
+
+  // Test Mode Configuration (E2E)
+  // SECURITY: Test mode only allows localhost URLs to prevent token theft
+  const QString testModeStr = getEnvVar("BLUEPLAYER_TEST_MODE");
+  m_testMode = (testModeStr == "1" || testModeStr.toLower() == "true");
+  
+  if (m_testMode) {
+    qWarning() << "[SECURITY] BluePlayer running in TEST MODE - API requests may be redirected";
+    
+    // Mock API URL (for E2E tests) - ONLY localhost allowed
+    const QString mockApiUrl = getEnvVar("BLUEPLAYER_MOCK_API_URL");
+    if (!mockApiUrl.isEmpty()) {
+      // SECURITY: Only allow localhost URLs to prevent credential theft
+      if (mockApiUrl.startsWith("http://localhost") || 
+          mockApiUrl.startsWith("http://127.0.0.1")) {
+        m_twitchApiBaseUrl = mockApiUrl;
+        qWarning() << "[SECURITY] Using mock API URL:" << mockApiUrl;
+      } else {
+        qCritical() << "[SECURITY] REJECTED mock API URL - only localhost allowed:" << mockApiUrl;
+        // Keep default production URL
+      }
+    }
+    
+    // Mock HLS Server URL (for E2E tests) - ONLY localhost allowed
+    const QString mockHlsUrl = getEnvVar("BLUEPLAYER_MOCK_HLS_URL");
+    if (!mockHlsUrl.isEmpty()) {
+      if (mockHlsUrl.startsWith("http://localhost") || 
+          mockHlsUrl.startsWith("http://127.0.0.1")) {
+        m_hlsServerBaseUrl = mockHlsUrl;
+      } else {
+        qCritical() << "[SECURITY] REJECTED mock HLS URL - only localhost allowed:" << mockHlsUrl;
+      }
+    }
+  }
 }
 
 void Config::loadFromFile(const QString& configPath) {
