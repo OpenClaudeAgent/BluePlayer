@@ -128,6 +128,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 23 | Auto-refresh Home | [plan-23](./plan-23-auto-refresh.md) | `feature/auto-refresh` | - | 🔴 En attente |
 | **24** | **Refactoring Profond** | [plan-24](./plan-24-deep-refactoring.md) | `refactor/deep-analysis` | v0.15.0 (Sprint 5) | 🟡 En cours |
 | **25** | **Audit UI/UX Design** | [plan-25](./plan-25-ui-design-audit.md) | `design/ui-audit` | - | 🔴 En attente |
+| 26 | Icône Application BluePlayer | [plan-26](./plan-26-app-icon.md) | `feature/app-icon` | - | 🔴 En attente |
 
 ### Plans spéciaux
 
@@ -186,3 +187,4 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 2025-12-27 | Plan 24 Sprint 3 terminé - Refactoring PlayerControlBar (ControlButton, SeekBar, VolumeControl) + signature code |
 | 2025-12-28 | Plan 24 Sprint 4 terminé - BaseCard créé, 5 cards refactorées (-239 lignes, -26%) |
 | 2025-12-28 | Plan 24 Sprint 5 terminé - TwitchService helper ensureTokenAndExecute() (-29 lignes, 9 duplications) |
+| 2025-12-28 | Ajout plan 26 - Icône Application BluePlayer (intégration icône "Blue Drop Play" validée) |
