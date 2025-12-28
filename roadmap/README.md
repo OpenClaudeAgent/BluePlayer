@@ -129,6 +129,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | **24** | **Refactoring Profond** | [plan-24](./plan-24-deep-refactoring.md) | `refactor/deep-analysis` | v0.16.0 (Sprint 6) | 🟡 En cours |
 | **25** | **Audit UI/UX Design** | [plan-25](./plan-25-ui-design-audit.md) | `design/ui-audit` | - | 🔴 En attente |
 | 26 | Icône Application BluePlayer | [plan-26](./plan-26-app-icon.md) | `feature/app-icon` | - | 🔴 En attente |
+| 27 | Suppression MpvFboItem (Legacy) | [plan-27](./plan-27-remove-mpvfboitem.md) | `refactor/remove-mpvfboitem` | - | 🔴 En attente |
 
 ### Plans spéciaux
 
@@ -138,6 +139,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 📝 Placeholder | Plan 20 | Design à définir dans une future session |
 | 🚨 Critique | Plan 24 | Refactoring technique issu d'analyse complète (25 sous-tâches) |
 | 🎨 Design | Plan 25 | Audit UI/UX & Design System (20 sous-tâches) |
+| 🧹 Cleanup | Plan 27 | Suppression code legacy (remplace tâche 24.20) |
 
 ### Légende des statuts
 
@@ -189,3 +191,4 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 2025-12-27 | Ajout plan 24 - Refactoring Technique (25 sous-tâches : sécurité, QML, C++, tests) |
 | 2025-12-27 | Ajout plan 25 - Audit UI/UX Design (20 sous-tâches : palette, typographie, composants) |
 | 2025-12-28 | Ajout plan 26 - Icône Application BluePlayer (intégration icône "Blue Drop Play" validée) |
+| 2025-12-28 | Ajout plan 27 - Suppression MpvFboItem (code legacy mort, remplace tâche 24.20) |
