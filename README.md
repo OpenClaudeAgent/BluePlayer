@@ -102,11 +102,11 @@ make test
 -   `scripts/` : Scripts utilitaires (ex: `load_env.sh`).
 -   `src/` : Code source principal de l'application.
     -   `api/` : Interfaces avec des services externes (ex: Twitch).
-    -   `core/` : Logique applicative principale.
-    -   `media/` : Gestion de la lecture multimédia avec FFmpeg.
-    -   `player/` : Composants du lecteur vidéo.
-    -   `streaming/` : Gestion du streaming.
-    -   `ui/` : Interface utilisateur QML.
+    -   `chat/` : Client IRC Twitch pour le chat en direct.
+    -   `core/` : Logique applicative principale et services.
+    -   `i18n/` : Fichiers de traduction (internationalisation).
+    -   `media/` : Intégration MPV et gestion de la lecture multimédia.
+    -   `ui/` : Interface utilisateur QML et ViewModels.
 -   `tests/` : Tests unitaires et d'intégration.
 
 ## Roadmap

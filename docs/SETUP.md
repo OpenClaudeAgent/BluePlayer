@@ -220,8 +220,6 @@ make validate
 
 Ce script vérifie qu'un seuil minimum de couverture (70%) est atteint.
 
-Voir `docs/TESTING.md` pour plus de détails sur la stratégie de test et les conventions.
-
 ## 9. Intégration Twitch
 
 1.  **Créer une application Twitch**  

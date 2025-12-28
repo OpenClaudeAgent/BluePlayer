@@ -23,7 +23,6 @@ src/
 ### 1. `api/twitch`
 - `TwitchAuthManager` : flux OAuth (PKCE), stockage sécurisé des tokens, serveur de callback local TLS (mkcert) pour les redirections HTTPS. Utilise `HttpClient` pour les requêtes réseau.
 - `TwitchApiClient` : accès aux endpoints (streams live, VOD, manifestes). Hérite de `ApiClientBase` pour la gestion réseau centralisée.
-- `docs/twitch-api.md` décrira les endpoints utilisés et les contraintes de quota.
 - `TwitchService` : service Qt exposant l'état d'authentification, la liste des streams et la sélection de VOD vers l'UI QML.
 
 ### 2. `core`
@@ -34,8 +33,9 @@ src/
 - `SecureStorage` : stockage sécurisé des données sensibles (tokens OAuth).
 - `NetworkCache` : cache réseau avec TTL configurable.
 - `CacheManager` : gestion du cache des VODs pour lecture hors-ligne.
-- `WatchHistory` : historique de visionnage persistant.
+- `WatchHistory` : historique de visionnage persistant avec positions de reprise.
 - `StateMachineLiveReplay` : machine d'état pour la gestion live/replay.
+- `LanguageManager` : gestion de l'internationalisation (i18n) avec changement à chaud.
 - `Application` : point d'entrée principal, orchestre les services.
 
 #### 2.1 `core/network` (Nouveau)
@@ -52,9 +52,8 @@ src/
 
 ### 4. `media`
 - `MpvQuickItem` : intégration du lecteur MPV dans Qt Quick via rendu OpenGL direct.
-- `MpvFboItem` : alternative utilisant QQuickFramebufferObject pour le rendu MPV (déprécié).
 - `HlsAdFilter` : filtrage des segments publicitaires dans les flux HLS Twitch.
-- `PlaybackSpeedLogic` : gestion de la vitesse de lecture (0.25x à 2x).
+- `PlaybackSpeedLogic` : gestion intelligente de la vitesse de lecture (0.25x à 2x) avec auto-reset au live.
 
 ### 5. `ui`
 - `main.qml` : point d'entrée QML, navigation entre vues.
@@ -91,14 +90,8 @@ src/
 - Scripts utilitaires dans `scripts/` (`build.sh`, `run.sh`, `format.sh`).
 - Guide d'installation détaillé : `docs/SETUP.md`.
 
-## Roadmap Technique
-1. Initialiser le squelette CMake + configuration Qt. (✅ En cours/partiellement réalisé)
-2. Compiler/packager FFmpeg avec accélérations (VideoToolbox, NVDEC, VAAPI). (✅ Dépendances Homebrew trouvées)
-3. POC lecture fichier local -> pipeline complet (FFmpeg -> Qt Quick).
-4. Implémenter OAuth + client Twitch.
-5. Créer StreamFetcher + adaptation.
-6. Finaliser player + UI QML.
-7. Profilage, packaging multi-plateforme, automatisation QA.
-8. Intégrer Twitch Helix (authentification, streams, UI). (en cours/plié)
+## État du Projet
+
+Le projet est en développement actif. Consultez la [Roadmap](../roadmap/README.md) pour le suivi des fonctionnalités planifiées et livrées.
 
 
