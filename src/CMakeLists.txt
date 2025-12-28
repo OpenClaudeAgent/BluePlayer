@@ -135,6 +135,7 @@ qt_add_qml_module(BluePlayer
     ui/components/BaseCard.qml
     ui/components/BlueCard.qml
     ui/components/BlueButton.qml
+    ui/components/BlueDropdown.qml
     ui/components/CategoriesScroller.qml
     ui/components/CategoryCard.qml
     ui/components/ClipCard.qml
