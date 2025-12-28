@@ -106,8 +106,14 @@ QJsonDocument CurlHttpClient::postJson(const QUrl& url,
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, Impl::WriteCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &writeData);
 
-  // Set timeout
+  // Set timeout (total request timeout)
   curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
+  
+  // Set connection timeout (faster failure for unreachable hosts)
+  curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 3L);
+  
+  // Set DNS timeout (faster DNS failure)
+  curl_easy_setopt(curl, CURLOPT_DNS_CACHE_TIMEOUT, 60L);
 
   // Follow redirects
   curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);

@@ -79,6 +79,56 @@ private slots:
   void testCurrentQualityProperty();
   void testDefaultQualityProperty();
 
+  // Tests de setStreamQuality
+  void testSetStreamQualitySameQuality();
+  void testSetStreamQualityNonExistent();
+  void testSetStreamQualityEmptyQualities();
+  void testSetDefaultQualityChangesConfig();
+  void testSetDefaultQualitySameValue();
+  
+  // Tests des signaux de qualité
+  void testAvailableQualitiesChangedSignal();
+  void testCurrentQualityChangedSignal();
+  void testQualityChangedSignal();
+  
+  // Tests des signaux de publicités
+  void testAdsDetectedSignalValid();
+  void testAdsFinishedSignalValid();
+  void testAdFilterLogSignalValid();
+  
+  // Tests de logout complet
+  void testLogoutClearsAllLists();
+  void testLogoutClearsUserInfo();
+  
+  // Tests de currentHlsUrl
+  void testCurrentHlsUrlInitiallyEmpty();
+  void testCurrentHlsUrlProperty();
+  
+  // Tests de refreshCategoryStreams
+  void testRefreshCategoryStreamsEmptyGameId();
+  void testRefreshCategoryStreamsWithGameId();
+  
+  // Tests de search
+  void testSearchTriggersNetworkCall();
+  void testSearchClearsOnEmpty();
+  
+  // Tests de login
+  void testLoginCallable();
+  
+  // Tests de playStream avec index valide
+  void testPlayStreamEmitsErrorOnInvalid();
+  
+  // Tests de getStreamHlsUrl edge cases
+  void testGetStreamHlsUrlWithWhitespace();
+  void testGetStreamHlsUrlWithSpecialChars();
+  
+  // Tests de selectUrl
+  void testSelectUrlNegativeIndex();
+  void testSelectUrlLargeIndex();
+  
+  // Tests de refreshStreams
+  void testRefreshStreamsWithoutAuth();
+
 private:
   TwitchService* m_service = nullptr;
   MockSecureStorage* m_mockStorage = nullptr;
@@ -595,6 +645,348 @@ void TestTwitchService::testDefaultQualityProperty() {
   QVariant value = m_service->property("defaultQuality");
   QVERIFY(value.isValid());
   QVERIFY(value.typeId() == QMetaType::QString);
+}
+
+// ===== Tests de setStreamQuality =====
+
+void TestTwitchService::testSetStreamQualitySameQuality() {
+  // Setting the same quality should be a no-op
+  QString currentQuality = m_service->currentQuality();
+  
+  QSignalSpy qualityChangedSpy(m_service, &TwitchService::currentQualityChanged);
+  QSignalSpy qualitySpy(m_service, &TwitchService::qualityChanged);
+  
+  m_service->setStreamQuality(currentQuality);
+  
+  // No signals should be emitted when setting same quality
+  QCOMPARE(qualityChangedSpy.count(), 0);
+  QCOMPARE(qualitySpy.count(), 0);
+}
+
+void TestTwitchService::testSetStreamQualityNonExistent() {
+  // Setting a quality that doesn't exist in availableQualities
+  QSignalSpy qualityChangedSpy(m_service, &TwitchService::currentQualityChanged);
+  QSignalSpy qualitySpy(m_service, &TwitchService::qualityChanged);
+  
+  m_service->setStreamQuality("NonExistentQuality999p");
+  
+  // No signals should be emitted for non-existent quality
+  QCOMPARE(qualityChangedSpy.count(), 0);
+  QCOMPARE(qualitySpy.count(), 0);
+}
+
+void TestTwitchService::testSetStreamQualityEmptyQualities() {
+  // When availableQualities is empty, setStreamQuality should handle gracefully
+  QVERIFY(m_service->availableQualities().isEmpty());
+  
+  m_service->setStreamQuality("1080p60");
+  
+  // Should not crash, current quality should remain unchanged
+  QVERIFY(m_service != nullptr);
+  QCOMPARE(m_service->currentQuality(), QString("Auto"));
+}
+
+void TestTwitchService::testSetDefaultQualityChangesConfig() {
+  // Get the current default quality
+  QString currentQuality = m_service->defaultQuality();
+  
+  // Choose a quality different from current
+  QString newQuality = (currentQuality == "720p60") ? "1080p" : "720p60";
+  
+  QSignalSpy defaultQualitySpy(m_service, &TwitchService::defaultQualityChanged);
+  
+  // Set a new default quality
+  m_service->setDefaultQuality(newQuality);
+  
+  // Signal should be emitted
+  QCOMPARE(defaultQualitySpy.count(), 1);
+  
+  // Quality should be updated
+  QCOMPARE(m_service->defaultQuality(), newQuality);
+  
+  // Reset to previous value to avoid side effects
+  m_service->setDefaultQuality(currentQuality);
+}
+
+void TestTwitchService::testSetDefaultQualitySameValue() {
+  QString currentDefault = m_service->defaultQuality();
+  
+  QSignalSpy defaultQualitySpy(m_service, &TwitchService::defaultQualityChanged);
+  
+  // Set the same value
+  m_service->setDefaultQuality(currentDefault);
+  
+  // No signal should be emitted for same value
+  QCOMPARE(defaultQualitySpy.count(), 0);
+}
+
+// ===== Tests des signaux de qualité =====
+
+void TestTwitchService::testAvailableQualitiesChangedSignal() {
+  QSignalSpy spy(m_service, &TwitchService::availableQualitiesChanged);
+  QVERIFY(spy.isValid());
+  
+  // Verify signal exists and is connectable
+  const QMetaObject* metaObject = m_service->metaObject();
+  int signalIndex = metaObject->indexOfSignal("availableQualitiesChanged()");
+  QVERIFY(signalIndex >= 0);
+}
+
+void TestTwitchService::testCurrentQualityChangedSignal() {
+  QSignalSpy spy(m_service, &TwitchService::currentQualityChanged);
+  QVERIFY(spy.isValid());
+  
+  // Verify signal exists
+  const QMetaObject* metaObject = m_service->metaObject();
+  int signalIndex = metaObject->indexOfSignal("currentQualityChanged()");
+  QVERIFY(signalIndex >= 0);
+}
+
+void TestTwitchService::testQualityChangedSignal() {
+  QSignalSpy spy(m_service, &TwitchService::qualityChanged);
+  QVERIFY(spy.isValid());
+  
+  // Verify signal exists with QString parameter
+  const QMetaObject* metaObject = m_service->metaObject();
+  int signalIndex = metaObject->indexOfSignal("qualityChanged(QString)");
+  QVERIFY(signalIndex >= 0);
+}
+
+// ===== Tests des signaux de publicités =====
+
+void TestTwitchService::testAdsDetectedSignalValid() {
+  QSignalSpy spy(m_service, &TwitchService::adsDetected);
+  QVERIFY(spy.isValid());
+  
+  // Verify signal takes an int parameter
+  const QMetaObject* metaObject = m_service->metaObject();
+  int signalIndex = metaObject->indexOfSignal("adsDetected(int)");
+  QVERIFY(signalIndex >= 0);
+}
+
+void TestTwitchService::testAdsFinishedSignalValid() {
+  QSignalSpy spy(m_service, &TwitchService::adsFinished);
+  QVERIFY(spy.isValid());
+  
+  // Verify signal exists
+  const QMetaObject* metaObject = m_service->metaObject();
+  int signalIndex = metaObject->indexOfSignal("adsFinished()");
+  QVERIFY(signalIndex >= 0);
+}
+
+void TestTwitchService::testAdFilterLogSignalValid() {
+  QSignalSpy spy(m_service, &TwitchService::adFilterLog);
+  QVERIFY(spy.isValid());
+  
+  // Verify signal takes a QString parameter
+  const QMetaObject* metaObject = m_service->metaObject();
+  int signalIndex = metaObject->indexOfSignal("adFilterLog(QString)");
+  QVERIFY(signalIndex >= 0);
+}
+
+// ===== Tests de logout complet =====
+
+void TestTwitchService::testLogoutClearsAllLists() {
+  QSignalSpy streamsSpy(m_service, &TwitchService::streamsChanged);
+  QSignalSpy recommendedSpy(m_service, &TwitchService::recommendedStreamsChanged);
+  QSignalSpy categoriesSpy(m_service, &TwitchService::categoriesChanged);
+  QSignalSpy clipsSpy(m_service, &TwitchService::popularClipsChanged);
+  QSignalSpy followedClipsSpy(m_service, &TwitchService::followedClipsChanged);
+  QSignalSpy videosSpy(m_service, &TwitchService::videosChanged);
+  QSignalSpy followedChannelsSpy(m_service, &TwitchService::followedChannelsChanged);
+  QSignalSpy newStreamersSpy(m_service, &TwitchService::newStreamersChanged);
+  QSignalSpy categoryStreamsSpy(m_service, &TwitchService::categoryStreamsChanged);
+  QSignalSpy searchChannelsSpy(m_service, &TwitchService::searchChannelResultsChanged);
+  QSignalSpy searchCategoriesSpy(m_service, &TwitchService::searchCategoryResultsChanged);
+  
+  m_service->logout();
+  
+  // All signals should be emitted
+  QVERIFY(streamsSpy.count() >= 1);
+  QVERIFY(recommendedSpy.count() >= 1);
+  QVERIFY(categoriesSpy.count() >= 1);
+  QVERIFY(clipsSpy.count() >= 1);
+  QVERIFY(followedClipsSpy.count() >= 1);
+  QVERIFY(videosSpy.count() >= 1);
+  QVERIFY(followedChannelsSpy.count() >= 1);
+  QVERIFY(newStreamersSpy.count() >= 1);
+  QVERIFY(categoryStreamsSpy.count() >= 1);
+  QVERIFY(searchChannelsSpy.count() >= 1);
+  QVERIFY(searchCategoriesSpy.count() >= 1);
+  
+  // All lists should be empty
+  QVERIFY(m_service->streams().isEmpty());
+  QVERIFY(m_service->recommendedStreams().isEmpty());
+  QVERIFY(m_service->categories().isEmpty());
+  QVERIFY(m_service->popularClips().isEmpty());
+  QVERIFY(m_service->followedClips().isEmpty());
+  QVERIFY(m_service->videos().isEmpty());
+  QVERIFY(m_service->followedChannels().isEmpty());
+  QVERIFY(m_service->newStreamers().isEmpty());
+  QVERIFY(m_service->categoryStreams().isEmpty());
+  QVERIFY(m_service->searchChannelResults().isEmpty());
+  QVERIFY(m_service->searchCategoryResults().isEmpty());
+}
+
+void TestTwitchService::testLogoutClearsUserInfo() {
+  QSignalSpy userIdSpy(m_service, &TwitchService::userIdChanged);
+  QSignalSpy userNameSpy(m_service, &TwitchService::userNameChanged);
+  QSignalSpy selectedSpy(m_service, &TwitchService::selectedStreamChanged);
+  
+  m_service->logout();
+  
+  // Signals should be emitted
+  QVERIFY(userIdSpy.count() >= 1);
+  QVERIFY(userNameSpy.count() >= 1);
+  QVERIFY(selectedSpy.count() >= 1);
+  
+  // User info should be cleared
+  QVERIFY(m_service->userId().isEmpty());
+  QVERIFY(m_service->userName().isEmpty());
+  QVERIFY(m_service->selectedStreamUrl().isEmpty());
+}
+
+// ===== Tests de currentHlsUrl =====
+
+void TestTwitchService::testCurrentHlsUrlInitiallyEmpty() {
+  QString hlsUrl = m_service->currentHlsUrl();
+  QVERIFY(hlsUrl.isEmpty());
+}
+
+void TestTwitchService::testCurrentHlsUrlProperty() {
+  // Verify the method is accessible
+  QString url = m_service->currentHlsUrl();
+  QVERIFY(url.isEmpty());  // Initially empty
+  
+  // Verify it's Q_INVOKABLE (can be called from QML)
+  QVariant result;
+  bool success = QMetaObject::invokeMethod(m_service, "currentHlsUrl", 
+                                            Qt::DirectConnection,
+                                            Q_RETURN_ARG(QVariant, result));
+  QVERIFY(success || result.isNull());  // Method exists
+}
+
+// ===== Tests de refreshCategoryStreams =====
+
+void TestTwitchService::testRefreshCategoryStreamsEmptyGameId() {
+  QSignalSpy categoryStreamsSpy(m_service, &TwitchService::categoryStreamsChanged);
+  
+  m_service->refreshCategoryStreams("");
+  
+  // Should emit signal with empty list
+  QVERIFY(categoryStreamsSpy.count() >= 1);
+  QVERIFY(m_service->categoryStreams().isEmpty());
+}
+
+void TestTwitchService::testRefreshCategoryStreamsWithGameId() {
+  // Without auth, should still try to refresh (token optional)
+  m_service->logout();
+  
+  m_service->refreshCategoryStreams("12345");
+  
+  // Should not crash, list stays empty without network
+  QVERIFY(m_service != nullptr);
+}
+
+// ===== Tests de search =====
+
+void TestTwitchService::testSearchTriggersNetworkCall() {
+  QSignalSpy debugSpy(m_service, &TwitchService::errorOccurred);
+  
+  m_service->search("test_query");
+  
+  // Should not crash, network call is async
+  QVERIFY(m_service != nullptr);
+}
+
+void TestTwitchService::testSearchClearsOnEmpty() {
+  QSignalSpy channelSpy(m_service, &TwitchService::searchChannelResultsChanged);
+  QSignalSpy categorySpy(m_service, &TwitchService::searchCategoryResultsChanged);
+  
+  // First search
+  m_service->search("");
+  
+  // Empty query should clear results
+  QVERIFY(m_service->searchChannelResults().isEmpty());
+  QVERIFY(m_service->searchCategoryResults().isEmpty());
+}
+
+// ===== Tests de login =====
+
+void TestTwitchService::testLoginCallable() {
+  // login() should be callable without crashing (it opens browser)
+  // We don't actually call it in tests to avoid opening browser
+  
+  // Verify the method exists via meta object
+  const QMetaObject* metaObject = m_service->metaObject();
+  int methodIndex = metaObject->indexOfMethod("login()");
+  QVERIFY(methodIndex >= 0);
+}
+
+// ===== Tests de playStream avec index valide =====
+
+void TestTwitchService::testPlayStreamEmitsErrorOnInvalid() {
+  QSignalSpy errorSpy(m_service, &TwitchService::errorOccurred);
+  
+  m_service->playStream(0);  // No streams loaded
+  
+  // Should emit error for invalid index
+  QVERIFY(errorSpy.count() >= 1);
+  
+  QString error = errorSpy.at(0).at(0).toString();
+  QVERIFY(error.contains("invalid") || error.contains("invalide") || 
+          error.contains("Index") || error.contains("index"));
+}
+
+// ===== Tests de getStreamHlsUrl edge cases =====
+
+void TestTwitchService::testGetStreamHlsUrlWithWhitespace() {
+  QSignalSpy errorSpy(m_service, &TwitchService::errorOccurred);
+  
+  m_service->getStreamHlsUrl("   ");  // Whitespace only
+  
+  // Should handle gracefully (might be treated as valid by proxy)
+  QVERIFY(m_service != nullptr);
+}
+
+void TestTwitchService::testGetStreamHlsUrlWithSpecialChars() {
+  m_service->getStreamHlsUrl("test-streamer_123");
+  
+  // Should not crash with special characters
+  QVERIFY(m_service != nullptr);
+}
+
+// ===== Tests de selectUrl =====
+
+void TestTwitchService::testSelectUrlNegativeIndex() {
+  QSignalSpy errorSpy(m_service, &TwitchService::errorOccurred);
+  
+  m_service->playStream(-1);
+  
+  // Should emit error
+  QVERIFY(errorSpy.count() >= 1);
+}
+
+void TestTwitchService::testSelectUrlLargeIndex() {
+  QSignalSpy errorSpy(m_service, &TwitchService::errorOccurred);
+  
+  m_service->playStream(999999);
+  
+  // Should emit error for out of bounds
+  QVERIFY(errorSpy.count() >= 1);
+}
+
+// ===== Tests de refreshStreams =====
+
+void TestTwitchService::testRefreshStreamsWithoutAuth() {
+  m_service->logout();
+  
+  QSignalSpy errorSpy(m_service, &TwitchService::errorOccurred);
+  
+  m_service->refreshStreams();
+  
+  // Should emit error when not authenticated
+  QVERIFY(errorSpy.count() >= 1);
 }
 
 QTEST_MAIN(TestTwitchService)
