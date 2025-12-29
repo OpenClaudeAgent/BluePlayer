@@ -1,6 +1,6 @@
 # BluePlayer
 
-> **Note** : Ce projet est développé en mode *vibe-coding* avec Claude/OpenCode. C'est un projet expérimental qui sert également de terrain d'exploration pour le développement assisté par IA.
+> **Note** : Ce projet est entièrement *vibe-codé* avec [OpenCode](https://github.com/sst/opencode) ❤️ et Claude Opus 4.5.
 
 BluePlayer est une application native de lecture multimédia haute performance, développée en C++ avec le framework Qt et la bibliothèque FFmpeg. L'objectif est de fournir une expérience utilisateur fluide et riche, notamment pour la lecture de contenus vidéo.
 
