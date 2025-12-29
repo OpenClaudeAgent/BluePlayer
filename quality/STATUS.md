@@ -3,6 +3,7 @@
 | ID | Type | Date | Feature | Verdict |
 |----|------|------|---------|---------|
 | 01 | Code Review | 2025-12-28 | Plan 17 - Picture-in-Picture | VALIDE avec attention |
+| 02 | Code Review | 2025-12-29 | Plan 43 - E2E Refactoring | VALIDE |
 
 ## Legende
 
