@@ -22,9 +22,22 @@ public:
      * @brief Initialize the file logging system
      * 
      * Creates a new log file and installs the Qt message handler.
+     * Also performs automatic cleanup of old log files.
      * Should be called once at application startup after QApplication is created.
      */
     static void initialize();
+
+    /**
+     * @brief Cleanup old log files
+     * 
+     * Removes log files older than maxAgeDays and keeps only maxFiles most recent files.
+     * Called automatically during initialize().
+     * 
+     * @param maxAgeDays Maximum age in days (default: 7)
+     * @param maxFiles Maximum number of files to keep (default: 20)
+     * @return Number of files deleted
+     */
+    static int cleanupOldLogs(int maxAgeDays = 7, int maxFiles = 20);
 
     /**
      * @brief Shutdown the file logging system

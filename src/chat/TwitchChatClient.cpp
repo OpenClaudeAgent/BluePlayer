@@ -65,12 +65,10 @@ void TwitchChatClient::setCredentials(const QString& token, const QString& usern
     m_oauthToken = token;
     m_username = username.toLower();
     emit canSendMessagesChanged();
-    qDebug() << "[TwitchChatClient] Credentials set for user:" << m_username;
 }
 
 void TwitchChatClient::sendMessage(const QString& message) {
     if (!canSendMessages()) {
-        qWarning() << "[TwitchChatClient] Cannot send message - not authenticated or not connected";
         return;
     }
     
@@ -87,14 +85,12 @@ void TwitchChatClient::sendMessage(const QString& message) {
     // Validate message length (Twitch limit is 500 characters)
     constexpr int kMaxMessageLength = 500;
     if (sanitized.isEmpty() || sanitized.length() > kMaxMessageLength) {
-        qWarning() << "[TwitchChatClient] Message rejected - empty or exceeds" << kMaxMessageLength << "chars";
         return;
     }
     
     QString cmd = QStringLiteral("PRIVMSG #%1 :%2").arg(m_channel, sanitized);
-    qDebug() << "[TwitchChatClient] Sending PRIVMSG:" << cmd;
     sendRaw(cmd);
-    qDebug() << "[TwitchChatClient] Sent message to" << m_channel;
+    qInfo() << "[Chat] Message sent to channel:" << m_channel;
     
     // Emit local echo immediately (Twitch doesn't send back our own messages)
     ChatMessage localMsg;
@@ -109,7 +105,6 @@ void TwitchChatClient::sendMessage(const QString& message) {
 
 void TwitchChatClient::connectToChannel(const QString& channelName) {
     if (channelName.isEmpty()) {
-        qWarning() << "[TwitchChatClient] Cannot connect to empty channel";
         return;
     }
 
@@ -122,7 +117,6 @@ void TwitchChatClient::connectToChannel(const QString& channelName) {
     m_reconnectAttempts = 0;
     setConnectionState(ConnectionState::Connecting);
 
-    qDebug() << "[TwitchChatClient] Connecting to channel:" << m_channel;
     m_socket->open(QUrl(QString::fromLatin1(TWITCH_IRC_URL)));
 }
 
@@ -143,19 +137,17 @@ void TwitchChatClient::disconnect() {
 }
 
 void TwitchChatClient::onConnected() {
-    qDebug() << "[TwitchChatClient] WebSocket connected, authenticating...";
+    qInfo() << "[Chat] Connected to channel:" << m_channel;
 
     // Request capabilities for tags (badges, emotes, colors)
     sendRaw(QStringLiteral("CAP REQ :twitch.tv/tags twitch.tv/commands"));
 
     // Use OAuth if credentials are available, otherwise anonymous (read-only)
     if (!m_oauthToken.isEmpty() && !m_username.isEmpty()) {
-        qDebug() << "[TwitchChatClient] Authenticating with OAuth as:" << m_username;
         sendRaw(QStringLiteral("PASS oauth:%1").arg(m_oauthToken));
         sendRaw(QStringLiteral("NICK %1").arg(m_username));
     } else {
         QString anonUser = generateAnonUsername();
-        qDebug() << "[TwitchChatClient] Authenticating anonymously as:" << anonUser;
         sendRaw(QStringLiteral("PASS oauth:anonymous"));
         sendRaw(QStringLiteral("NICK %1").arg(anonUser));
     }
@@ -165,11 +157,10 @@ void TwitchChatClient::onConnected() {
 
     setConnectionState(ConnectionState::Connected);
     m_reconnectAttempts = 0;
-    qDebug() << "[TwitchChatClient] Joined channel:" << m_channel;
 }
 
 void TwitchChatClient::onDisconnected() {
-    qDebug() << "[TwitchChatClient] Disconnected";
+    qInfo() << "[Chat] Disconnected from channel:" << m_channel;
 
     if (m_state == ConnectionState::Connected && !m_channel.isEmpty()) {
         // Unexpected disconnect - try to reconnect
@@ -202,7 +193,8 @@ void TwitchChatClient::onTextMessageReceived(const QString& message) {
 }
 
 void TwitchChatClient::onError(QAbstractSocket::SocketError error) {
-    qWarning() << "[TwitchChatClient] Socket error:" << error << m_socket->errorString();
+    Q_UNUSED(error)
+    qWarning() << "[Chat] Connection error:" << m_socket->errorString();
     setConnectionState(ConnectionState::Error);
     emit errorOccurred(m_socket->errorString());
 }
@@ -217,8 +209,7 @@ void TwitchChatClient::onReconnectTimer() {
 }
 
 void TwitchChatClient::parseIrcMessage(const QString& rawMessage) {
-    // Log all raw messages for debugging
-    qDebug() << "[TwitchChatClient] RAW:" << rawMessage;
+    // RAW message logging removed - was generating 59% of log volume
 
     // Twitch IRC format with tags:
     // @tags :user!user@user.tmi.twitch.tv COMMAND #channel :message
@@ -258,7 +249,7 @@ void TwitchChatClient::parseIrcMessage(const QString& rawMessage) {
 
     // Handle NOTICE (errors and info from Twitch)
     if (command == QStringLiteral("NOTICE")) {
-        qWarning() << "[TwitchChatClient] NOTICE from Twitch:" << trailing;
+        qWarning() << "[Chat] NOTICE from Twitch:" << trailing;
         // Check for auth failure
         if (trailing.contains(QStringLiteral("Login authentication failed")) ||
             trailing.contains(QStringLiteral("Improperly formatted auth"))) {

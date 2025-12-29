@@ -18,8 +18,7 @@ BaseCard {
   property string gameName: ""
 
   onCardClicked: {
-    console.log("Clicked on channel:", channelName)
-    // TODO: Navigate to channel
+    // TODO: Navigate to channel - will log when implemented
   }
 
   ColumnLayout {

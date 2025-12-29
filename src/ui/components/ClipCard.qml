@@ -15,8 +15,7 @@ BaseCard {
   property string thumbnailUrl: ""
 
   onCardClicked: {
-    console.log("Clicked on clip:", clipTitle)
-    // TODO: Play clip
+    // TODO: Play clip - will log when implemented
   }
 
   ColumnLayout {

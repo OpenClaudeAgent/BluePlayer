@@ -9,6 +9,9 @@
 #include <QRegularExpression>
 #include <QUuid>
 
+#include <filesystem>
+#include <chrono>
+
 #include "core/FileLogger.hpp"
 
 using namespace blueplayer::core;
@@ -70,9 +73,23 @@ private slots:
   void testInitializeWithInvalidPath();
   void testLoggingAfterShutdown();
 
+  // ===== cleanupOldLogs() tests =====
+  void testCleanupOldLogs_EmptyDirectory();
+  void testCleanupOldLogs_DirectoryDoesNotExist();
+  void testCleanupOldLogs_AllFilesRecent();
+  void testCleanupOldLogs_DeletesFilesOlderThanMaxAge();
+  void testCleanupOldLogs_LimitsToMaxFiles();
+  void testCleanupOldLogs_CombinesAgeAndCountLimits();
+  void testCleanupOldLogs_ReturnsCorrectDeletedCount();
+  void testCleanupOldLogs_IgnoresNonLogFiles();
+
 private:
   QString readLogFileContent();
   void waitForLogFlush();
+  QString getLogDirectory();
+  void createTestLogFile(const QString& filename, int daysOld = 0);
+  void clearLogDirectory();
+  int countLogFiles();
   
   QString m_originalAppName;
   QString m_testCacheDir;
@@ -629,6 +646,211 @@ void TestFileLogger::waitForLogFlush() {
   // Give some time for the log to be flushed
   QThread::msleep(5);
   QCoreApplication::processEvents();
+}
+
+QString TestFileLogger::getLogDirectory() {
+  QString cacheDir = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
+  return cacheDir + "/logs";
+}
+
+void TestFileLogger::createTestLogFile(const QString& filename, int daysOld) {
+  QString logDir = getLogDirectory();
+  QDir().mkpath(logDir);
+  
+  QString filePath = logDir + "/" + filename;
+  QFile file(filePath);
+  if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+    file.write("Test log content\n");
+    file.close();
+    
+    // Set file modification time to daysOld days ago
+    if (daysOld > 0) {
+      namespace fs = std::filesystem;
+      auto now = fs::file_time_type::clock::now();
+      auto oldTime = now - std::chrono::hours(24 * daysOld);
+      fs::last_write_time(filePath.toStdString(), oldTime);
+    }
+  }
+}
+
+void TestFileLogger::clearLogDirectory() {
+  QString logDir = getLogDirectory();
+  QDir dir(logDir);
+  if (dir.exists()) {
+    // Remove all blueplayer_*.log files
+    QStringList filters;
+    filters << "blueplayer_*.log";
+    for (const QString& file : dir.entryList(filters, QDir::Files)) {
+      dir.remove(file);
+    }
+  }
+}
+
+int TestFileLogger::countLogFiles() {
+  QString logDir = getLogDirectory();
+  QDir dir(logDir);
+  if (!dir.exists()) {
+    return 0;
+  }
+  QStringList filters;
+  filters << "blueplayer_*.log";
+  return dir.entryList(filters, QDir::Files).count();
+}
+
+// ===== cleanupOldLogs() tests =====
+
+void TestFileLogger::testCleanupOldLogs_EmptyDirectory() {
+  // Arrange: Ensure log directory exists but is empty
+  clearLogDirectory();
+  QString logDir = getLogDirectory();
+  QDir().mkpath(logDir);
+  QCOMPARE(countLogFiles(), 0);
+  
+  // Act
+  int deletedCount = FileLogger::cleanupOldLogs(7, 20);
+  
+  // Assert
+  QCOMPARE(deletedCount, 0);
+}
+
+void TestFileLogger::testCleanupOldLogs_DirectoryDoesNotExist() {
+  // Arrange: Remove the log directory completely
+  QString logDir = getLogDirectory();
+  QDir dir(logDir);
+  if (dir.exists()) {
+    dir.removeRecursively();
+  }
+  QVERIFY(!dir.exists());
+  
+  // Act: Should not crash and return 0
+  int deletedCount = FileLogger::cleanupOldLogs(7, 20);
+  
+  // Assert
+  QCOMPARE(deletedCount, 0);
+}
+
+void TestFileLogger::testCleanupOldLogs_AllFilesRecent() {
+  // Arrange: Create recent log files (less than maxAgeDays old)
+  clearLogDirectory();
+  createTestLogFile("blueplayer_2024-01-01_12-00-00.log", 0);  // Today
+  createTestLogFile("blueplayer_2024-01-02_12-00-00.log", 1);  // 1 day old
+  createTestLogFile("blueplayer_2024-01-03_12-00-00.log", 2);  // 2 days old
+  QCOMPARE(countLogFiles(), 3);
+  
+  // Act: maxAgeDays=7, so nothing should be deleted
+  int deletedCount = FileLogger::cleanupOldLogs(7, 20);
+  
+  // Assert: All files should remain
+  QCOMPARE(deletedCount, 0);
+  QCOMPARE(countLogFiles(), 3);
+}
+
+void TestFileLogger::testCleanupOldLogs_DeletesFilesOlderThanMaxAge() {
+  // Arrange: Create mix of old and recent files
+  clearLogDirectory();
+  createTestLogFile("blueplayer_2024-01-01_12-00-00.log", 0);   // Today - keep
+  createTestLogFile("blueplayer_2024-01-02_12-00-00.log", 5);   // 5 days - keep
+  createTestLogFile("blueplayer_2024-01-03_12-00-00.log", 8);   // 8 days - delete
+  createTestLogFile("blueplayer_2024-01-04_12-00-00.log", 10);  // 10 days - delete
+  createTestLogFile("blueplayer_2024-01-05_12-00-00.log", 30);  // 30 days - delete
+  QCOMPARE(countLogFiles(), 5);
+  
+  // Act: maxAgeDays=7
+  int deletedCount = FileLogger::cleanupOldLogs(7, 100);  // maxFiles=100 to not trigger count limit
+  
+  // Assert: 3 old files deleted, 2 remain
+  QCOMPARE(deletedCount, 3);
+  QCOMPARE(countLogFiles(), 2);
+}
+
+void TestFileLogger::testCleanupOldLogs_LimitsToMaxFiles() {
+  // Arrange: Create more files than maxFiles, all recent
+  clearLogDirectory();
+  for (int i = 0; i < 25; ++i) {
+    QString filename = QString("blueplayer_2024-01-%1_12-00-00.log").arg(i + 1, 2, 10, QChar('0'));
+    createTestLogFile(filename, i % 3);  // 0-2 days old (all recent)
+  }
+  QCOMPARE(countLogFiles(), 25);
+  
+  // Act: maxFiles=20, all files are recent so only count limit applies
+  int deletedCount = FileLogger::cleanupOldLogs(30, 20);  // maxAgeDays=30 to not trigger age limit
+  
+  // Assert: 5 oldest files deleted, 20 remain
+  QCOMPARE(deletedCount, 5);
+  QCOMPARE(countLogFiles(), 20);
+}
+
+void TestFileLogger::testCleanupOldLogs_CombinesAgeAndCountLimits() {
+  // Arrange: Create files that will trigger both limits
+  clearLogDirectory();
+  // 3 old files (> 7 days)
+  createTestLogFile("blueplayer_old_01.log", 10);
+  createTestLogFile("blueplayer_old_02.log", 15);
+  createTestLogFile("blueplayer_old_03.log", 20);
+  // 7 recent files (but we want max 5)
+  createTestLogFile("blueplayer_recent_01.log", 0);
+  createTestLogFile("blueplayer_recent_02.log", 1);
+  createTestLogFile("blueplayer_recent_03.log", 2);
+  createTestLogFile("blueplayer_recent_04.log", 3);
+  createTestLogFile("blueplayer_recent_05.log", 4);
+  createTestLogFile("blueplayer_recent_06.log", 5);
+  createTestLogFile("blueplayer_recent_07.log", 6);
+  QCOMPARE(countLogFiles(), 10);
+  
+  // Act: maxAgeDays=7, maxFiles=5
+  int deletedCount = FileLogger::cleanupOldLogs(7, 5);
+  
+  // Assert: 3 old + 2 excess = 5 deleted, 5 remain
+  QCOMPARE(deletedCount, 5);
+  QCOMPARE(countLogFiles(), 5);
+}
+
+void TestFileLogger::testCleanupOldLogs_ReturnsCorrectDeletedCount() {
+  // Arrange
+  clearLogDirectory();
+  createTestLogFile("blueplayer_test_01.log", 15);  // Will be deleted (old)
+  createTestLogFile("blueplayer_test_02.log", 10);  // Will be deleted (old)
+  createTestLogFile("blueplayer_test_03.log", 2);   // Keep (recent)
+  
+  // Act
+  int deletedCount = FileLogger::cleanupOldLogs(7, 20);
+  
+  // Assert: Return value matches actual deletions
+  QCOMPARE(deletedCount, 2);
+  QCOMPARE(countLogFiles(), 1);
+}
+
+void TestFileLogger::testCleanupOldLogs_IgnoresNonLogFiles() {
+  // Arrange: Create log files and non-log files
+  clearLogDirectory();
+  createTestLogFile("blueplayer_2024-01-01.log", 15);  // Delete (old)
+  createTestLogFile("blueplayer_2024-01-02.log", 0);   // Keep (recent)
+  
+  // Create non-log files in the same directory
+  QString logDir = getLogDirectory();
+  QFile otherFile(logDir + "/other_file.txt");
+  if (otherFile.open(QIODevice::WriteOnly)) {
+    otherFile.write("other content");
+    otherFile.close();
+  }
+  QFile readmeFile(logDir + "/readme.md");
+  if (readmeFile.open(QIODevice::WriteOnly)) {
+    readmeFile.write("readme content");
+    readmeFile.close();
+  }
+  
+  // Act
+  int deletedCount = FileLogger::cleanupOldLogs(7, 20);
+  
+  // Assert: Only log file deleted, non-log files remain
+  QCOMPARE(deletedCount, 1);
+  QCOMPARE(countLogFiles(), 1);
+  QVERIFY(QFile::exists(logDir + "/other_file.txt"));
+  QVERIFY(QFile::exists(logDir + "/readme.md"));
+  
+  // Cleanup non-log files
+  QFile::remove(logDir + "/other_file.txt");
+  QFile::remove(logDir + "/readme.md");
 }
 
 QTEST_MAIN(TestFileLogger)

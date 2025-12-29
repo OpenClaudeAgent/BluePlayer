@@ -17,8 +17,7 @@ BaseCard {
   property int watchPosition: 0
 
   onCardClicked: {
-    console.log("Clicked on video:", videoTitle)
-    // TODO: Play video
+    // TODO: Play video - will log when implemented
   }
 
   ColumnLayout {

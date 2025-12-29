@@ -110,6 +110,7 @@ Rectangle {
     // Connect when channel changes
     onChannelNameChanged: {
         if (channelName && chatClient) {
+            console.info("[Chat] Connecting to:", channelName)
             messageModel.clear()
             chatClient.connectToChannel(channelName)
         }
@@ -189,7 +190,10 @@ Rectangle {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: chatPanel.closeRequested()
+                        onClicked: {
+                            console.info("[Chat] Panel closed")
+                            chatPanel.closeRequested()
+                        }
                     }
                 }
             }

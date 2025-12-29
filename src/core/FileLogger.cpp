@@ -4,9 +4,12 @@
 #include <QDateTime>
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QMutex>
 #include <QStandardPaths>
 #include <QTextStream>
+
+#include <algorithm>
 
 namespace blueplayer::core {
 
@@ -50,10 +53,18 @@ static void fileMessageHandler(QtMsgType type, const QMessageLogContext& /*conte
 }
 
 void FileLogger::initialize() {
+    // Guard against double initialization
+    if (g_logFile) {
+        return;
+    }
+    
     // Store logs in system cache directory (e.g., ~/Library/Caches/BluePlayer/logs)
     QString cacheDir = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
     QString logDir = cacheDir + "/logs";
     QDir().mkpath(logDir);
+    
+    // Cleanup old log files before creating new one
+    int deletedCount = cleanupOldLogs();
     
     // Create log file with timestamp in name
     QString timestamp = QDateTime::currentDateTime().toString("yyyy-MM-dd_hh-mm-ss");
@@ -72,7 +83,10 @@ void FileLogger::initialize() {
         // Install custom message handler
         qInstallMessageHandler(fileMessageHandler);
         
-        qInfo() << "FileLogger initialized:" << g_logPath;
+        qInfo() << "[Core] FileLogger initialized:" << g_logPath;
+        if (deletedCount > 0) {
+            qInfo() << "[Core] Log cleanup: removed" << deletedCount << "old log files";
+        }
     } else {
         fprintf(stderr, "[FileLogger] Warning: Could not create log file at %s\n", 
                 g_logPath.toLocal8Bit().constData());
@@ -80,12 +94,57 @@ void FileLogger::initialize() {
     }
 }
 
+int FileLogger::cleanupOldLogs(int maxAgeDays, int maxFiles) {
+    QString cacheDir = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
+    QString logDir = cacheDir + "/logs";
+    QDir dir(logDir);
+    
+    if (!dir.exists()) {
+        return 0;
+    }
+    
+    int deletedCount = 0;
+    QDateTime now = QDateTime::currentDateTime();
+    QDateTime cutoffDate = now.addDays(-maxAgeDays);
+    
+    // Get all log files sorted by modification time (oldest first)
+    QFileInfoList logFiles = dir.entryInfoList(
+        QStringList() << "blueplayer_*.log",
+        QDir::Files,
+        QDir::Time | QDir::Reversed  // Oldest first
+    );
+    
+    // First pass: delete files older than maxAgeDays
+    QFileInfoList remainingFiles;
+    for (const QFileInfo& fileInfo : logFiles) {
+        if (fileInfo.lastModified() < cutoffDate) {
+            if (QFile::remove(fileInfo.absoluteFilePath())) {
+                deletedCount++;
+            }
+        } else {
+            remainingFiles.append(fileInfo);
+        }
+    }
+    
+    // Second pass: keep only maxFiles most recent files
+    // remainingFiles is sorted oldest first, so we delete from the beginning
+    while (remainingFiles.size() > maxFiles) {
+        const QFileInfo& oldest = remainingFiles.first();
+        if (QFile::remove(oldest.absoluteFilePath())) {
+            deletedCount++;
+        }
+        remainingFiles.removeFirst();
+    }
+    
+    return deletedCount;
+}
+
 void FileLogger::shutdown() {
     if (!g_logFile) {
         return;
     }
 
-    qInfo() << "FileLogger shutting down";
+    qInfo() << "[Core] FileLogger shutting down";
     
     // Restore default message handler
     qInstallMessageHandler(nullptr);

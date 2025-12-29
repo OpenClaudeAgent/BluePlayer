@@ -76,10 +76,8 @@ Item {
     // ========================================================================
     
     Component.onCompleted: {
-        if (manager) {
-            console.log("[ThemeProvider] Connected to ThemeManager - theme:", currentTheme)
-        } else {
-            console.warn("[ThemeProvider] ThemeManager not available, using defaults")
+        if (!manager) {
+            console.warn("[Theme] ThemeManager not available, using defaults")
         }
     }
 }

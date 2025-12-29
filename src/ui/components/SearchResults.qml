@@ -211,6 +211,7 @@ Rectangle {
             cursorShape: Qt.PointingHandCursor
             onClicked: {
               if (channelDelegate.channelInfo) {
+                console.info("[Search] Channel selected:", channelDelegate.channelInfo.display_name || channelDelegate.channelInfo.broadcaster_login, "(live)")
                 searchResultsRoot.channelClicked(
                   channelDelegate.channelInfo.broadcaster_login || "",
                   channelDelegate.channelInfo.display_name || "",
@@ -376,6 +377,7 @@ Rectangle {
             cursorShape: Qt.PointingHandCursor
             onClicked: {
               if (cacheDelegate.vodInfo) {
+                console.info("[Search] Cached VOD selected:", cacheDelegate.vodInfo.streamerName || "Unknown")
                 searchResultsRoot.cacheVodClicked(
                   cacheDelegate.vodInfo.id || "",
                   cacheDelegate.vodInfo.filePath || "",
