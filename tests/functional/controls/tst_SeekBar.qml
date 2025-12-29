@@ -221,7 +221,7 @@ Item {
             seekBar.currentPosition = 30
             
             compare(seekBar.isLiveMode, false, "isLiveMode is false")
-            tryCompare(seekBar, "value", 30, 100, "Slider follows currentPosition in VOD mode")
+            compare(seekBar.value, 30, "Slider follows currentPosition in VOD mode")
         }
         
         function test_vodMode_positionUpdates() {
@@ -230,13 +230,13 @@ Item {
             seekBar.duration = 100
             
             seekBar.currentPosition = 10
-            tryCompare(seekBar, "value", 10, 100, "Position at 10")
+            compare(seekBar.value, 10, "Position at 10")
             
             seekBar.currentPosition = 50
-            tryCompare(seekBar, "value", 50, 100, "Position at 50")
+            compare(seekBar.value, 50, "Position at 50")
             
             seekBar.currentPosition = 90
-            tryCompare(seekBar, "value", 90, 100, "Position at 90")
+            compare(seekBar.value, 90, "Position at 90")
         }
         
         function test_vodMode_atLiveEdge_nearEnd() {
@@ -264,7 +264,7 @@ Item {
             seekBar.currentPosition = 30
             
             compare(seekBar.isLiveMode, false, "isLiveMode is false when isReplayMode is true")
-            tryCompare(seekBar, "value", 30, 100, "Replay mode follows position like VOD")
+            compare(seekBar.value, 30, "Replay mode follows position like VOD")
         }
         
         // =====================================================================
@@ -337,7 +337,7 @@ Item {
             seekBar.liveMode = false
             seekBar.currentPosition = 30
             
-            tryCompare(seekBar, "value", 30, 100, "Follows position after switch to VOD")
+            compare(seekBar.value, 30, "Follows position after switch to VOD")
         }
         
         function test_modeTransition_vodToLive() {
@@ -345,7 +345,7 @@ Item {
             seekBar.liveMode = false
             seekBar.duration = 100
             seekBar.currentPosition = 30
-            tryCompare(seekBar, "value", 30, 100, "At position in VOD mode")
+            compare(seekBar.value, 30, "At position in VOD mode")
             
             seekBar.liveMode = true
             // waitForRendering removed for perf
@@ -399,7 +399,7 @@ Item {
             seekBar.duration = 100
             seekBar.currentPosition = 25
             
-            tryCompare(seekBar, "value", 25, 100, "Value at 25")
+            compare(seekBar.value, 25, "Value at 25")
             
             // Drag and release
             mousePress(seekBar, seekBar.width / 2, seekBar.height / 2)
@@ -410,7 +410,7 @@ Item {
             // Now update position - binding should still work
             seekBar.currentPosition = 75
             
-            tryCompare(seekBar, "value", 75, 100, "Value follows position after drag")
+            compare(seekBar.value, 75, "Value follows position after drag")
         }
         
         // =====================================================================
