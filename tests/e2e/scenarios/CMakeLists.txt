@@ -27,6 +27,7 @@ add_subdirectory(open-stream)
 add_subdirectory(search-stream)
 add_subdirectory(quality-switch)
 add_subdirectory(chat-open-close)
+add_subdirectory(audio-only-mode)
 
 # Unauthenticated scenarios (no login required)
 add_subdirectory(login-view)

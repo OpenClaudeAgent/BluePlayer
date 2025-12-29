@@ -462,6 +462,7 @@ Item {
     // Audio-Only Placeholder Overlay
     Rectangle {
       id: audioOnlyPlaceholder
+      objectName: "audioOnlyPlaceholder"
       anchors.fill: parent
       visible: playerRoot.isAudioOnly && playerRoot.playing
       color: BlueTheme.windowBackground

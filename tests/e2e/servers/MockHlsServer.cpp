@@ -142,6 +142,8 @@ QByteArray MockHlsServer::handleMasterPlaylist(const QString& channel)
         "%1/playlist/%2_720p.m3u8\n"
         "#EXT-X-STREAM-INF:BANDWIDTH=1500000,RESOLUTION=854x480,CODECS=\"avc1.4d401e,mp4a.40.2\",VIDEO=\"480p\"\n"
         "%1/playlist/%2_480p.m3u8\n"
+        "#EXT-X-STREAM-INF:BANDWIDTH=160000,CODECS=\"mp4a.40.2\",VIDEO=\"audio_only\"\n"
+        "%1/playlist/%2_audio_only.m3u8\n"
     ).arg(baseUrl(), channel);
 
     return makeResponse(200, "OK", playlist.toUtf8(), "application/vnd.apple.mpegurl");

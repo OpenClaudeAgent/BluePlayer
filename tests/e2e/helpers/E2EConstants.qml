@@ -48,6 +48,7 @@ QtObject {
     readonly property string qualityOptionPrefix: "qualityOption_"
     readonly property string qualityButtonText: "qualityButtonText"
     readonly property string qualityToast: "qualityToast"
+    readonly property string audioOnlyPlaceholder: "audioOnlyPlaceholder"
 
     // Chat components
     readonly property string chatMessageList: "chatMessageList"
