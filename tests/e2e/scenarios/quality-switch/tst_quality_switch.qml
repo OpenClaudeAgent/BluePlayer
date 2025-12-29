@@ -25,15 +25,7 @@ E2EScenarioTemplate {
         // Store initial quality for comparison
         property string initialQuality: ""
 
-        function initTestCase() {
-            console.log("=== E2E Quality Switch Tests ===")
-            mainWindow = root.app
-            verify(mainWindow !== null, "Main window should load")
-        }
-
-        function cleanupTestCase() {
-            console.log("=== E2E Quality Switch Tests Complete ===")
-        }
+        // Uses default initTestCase() and cleanupTestCase() from E2ETestCase base
 
         // =====================================================================
         // Test 1: Navigate to player view
@@ -45,7 +37,7 @@ E2EScenarioTemplate {
             // Wait for home to fully initialize (API calls, rendering, etc.)
             wait(E2EConstants.timeoutMedium)
             
-            var streamCard = findChildByPrefix(mainWindow, "streamCard_")
+            var streamCard = findChildByPrefix(mainWindow, E2EConstants.streamCardPrefix)
             verify(streamCard !== null, "Stream card should exist on home")
             
             console.log("  Clicking stream card: " + streamCard.objectName)
@@ -73,11 +65,11 @@ E2EScenarioTemplate {
             
             // Wait for quality button to appear (player fully loaded)
             tryVerify(function() {
-                var btn = findChild(mainWindow, "qualityButton")
+                var btn = findChild(mainWindow, E2EConstants.qualityButton)
                 return btn !== null && btn.visible
             }, 3000, "Quality button should appear")
             
-            var qualityButton = findChild(mainWindow, "qualityButton")
+            var qualityButton = findChild(mainWindow, E2EConstants.qualityButton)
             verify(qualityButton !== null, "Quality button should exist")
             
             console.log("  Quality button found, visible: " + qualityButton.visible)
@@ -96,14 +88,14 @@ E2EScenarioTemplate {
                 return
             }
             
-            var qualityButton = findChild(mainWindow, "qualityButton")
+            var qualityButton = findChild(mainWindow, E2EConstants.qualityButton)
             if (!qualityButton) {
                 skip("Quality button not found")
                 return
             }
             
             // Get quality control to check popup state
-            var qualityControl = findChild(mainWindow, "qualityControl")
+            var qualityControl = findChild(mainWindow, E2EConstants.qualityControl)
             verify(qualityControl !== null, "Quality control should exist")
             
             console.log("  Initial popup state: " + qualityControl.showPopup)
@@ -122,7 +114,7 @@ E2EScenarioTemplate {
             verify(qualityControl.showPopup, "Quality popup should be open after click")
             
             // Check that quality options exist
-            var qualityOption0 = findChild(mainWindow, "qualityOption_0")
+            var qualityOption0 = findChild(mainWindow, E2EConstants.qualityOptionName(0))
             console.log("  Quality option 0 found: " + (qualityOption0 !== null))
             verify(qualityOption0 !== null, "Should have at least one quality option")
             
@@ -141,7 +133,7 @@ E2EScenarioTemplate {
                 return
             }
             
-            var qualityControl = findChild(mainWindow, "qualityControl")
+            var qualityControl = findChild(mainWindow, E2EConstants.qualityControl)
             if (!qualityControl) {
                 skip("Quality control not found")
                 return
@@ -149,7 +141,7 @@ E2EScenarioTemplate {
             
             // Make sure popup is open
             if (!qualityControl.showPopup) {
-                var qualityButton = findChild(mainWindow, "qualityButton")
+                var qualityButton = findChild(mainWindow, E2EConstants.qualityButton)
                 if (qualityButton) {
                     console.log("  Re-opening popup...")
                     mouseClick(qualityButton)
@@ -172,15 +164,15 @@ E2EScenarioTemplate {
             
             // Wait for quality option to be fully visible and ready
             tryVerify(function() {
-                var opt = findChild(mainWindow, "qualityOption_2")
+                var opt = findChild(mainWindow, E2EConstants.qualityOptionName(2))
                 return opt !== null && opt.visible && opt.width > 0 && opt.height > 0
             }, 2000, "Quality option 2 should be visible and sized")
             
             // Click on 480p (index 2) to get SD button
-            var qualityOption2 = findChild(mainWindow, "qualityOption_2")
+            var qualityOption2 = findChild(mainWindow, E2EConstants.qualityOptionName(2))
             if (!qualityOption2) {
                 console.log("  qualityOption_2 not found, trying option 1")
-                qualityOption2 = findChild(mainWindow, "qualityOption_1")
+                qualityOption2 = findChild(mainWindow, E2EConstants.qualityOptionName(1))
             }
             
             if (!qualityOption2) {
@@ -210,12 +202,25 @@ E2EScenarioTemplate {
             verify(qualityControl.currentQuality === "480p", "Quality should be 480p")
             
             // Verify button shows SD (480p is SD quality)
-            var qualityButtonText = findChild(mainWindow, "qualityButtonText")
+            var qualityButtonText = findChild(mainWindow, E2EConstants.qualityButtonText)
             verify(qualityButtonText !== null, "Quality button text should exist")
             console.log("  Button text: " + qualityButtonText.text)
             verify(qualityButtonText.text === "SD", "Button should show SD for 480p")
             
-            console.log("OK Quality switched to 480p (SD)")
+            // Verify toast appears with quality change message
+            var qualityToast = findChild(mainWindow, E2EConstants.qualityToast)
+            verify(qualityToast !== null, "Quality toast should exist")
+            
+            // Toast should be visible (opacity > 0) after quality change
+            tryVerify(function() {
+                return qualityToast.opacity > 0
+            }, 2000, "Quality toast should appear")
+            
+            console.log("  Toast visible: " + qualityToast.visible + ", opacity: " + qualityToast.opacity)
+            console.log("  Toast text: " + qualityToast.text)
+            verify(qualityToast.text.indexOf("Quality") !== -1, "Toast should show quality message")
+            
+            console.log("OK Quality switched to 480p (SD) with toast confirmation")
         }
 
         // =====================================================================

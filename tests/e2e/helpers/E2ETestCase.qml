@@ -10,10 +10,17 @@ import QtTest
  * - Wait utilities for async conditions
  * - Standard setup/cleanup hooks
  * 
+ * Screenshot Strategy:
+ *   Screenshots are automatically taken after EACH test function via baseCleanup().
+ *   This provides consistent visual documentation without cluttering test code.
+ *   - Set screenshotsEnabled = false to disable automatic screenshots
+ *   - Call takeScreenshot("suffix") explicitly only for additional mid-test captures
+ *   - Screenshots are saved to E2E_SCREENSHOT_DIR with pattern: TestName_timestamp.png
+ * 
  * Usage:
  *   E2ETestCase {
  *       name: "MyTest"
- *       function test_something() { ... }
+ *       function test_something() { ... }  // Screenshot auto-taken after this
  *   }
  */
 TestCase {
@@ -40,6 +47,22 @@ TestCase {
     // =========================================================================
 
     /**
+     * Called once before all test functions.
+     * Override in subclass, but call e2eTestCase.baseInitTestCase() first.
+     */
+    function initTestCase() {
+        baseInitTestCase()
+    }
+
+    /**
+     * Called once after all test functions.
+     * Override in subclass, but call e2eTestCase.baseCleanupTestCase() last.
+     */
+    function cleanupTestCase() {
+        baseCleanupTestCase()
+    }
+
+    /**
      * Called before each test function.
      * Override in subclass, but call e2eTestCase.baseInit() first.
      */
@@ -53,6 +76,26 @@ TestCase {
      */
     function cleanup() {
         baseCleanup()
+    }
+
+    /**
+     * Base initialization for test case - sets up mainWindow.
+     * Override initTestCase() in subclass to add custom logging.
+     */
+    function baseInitTestCase() {
+        console.log("=== E2E " + name + " Tests ===")
+        // Get mainWindow from the scenario template's app property
+        if (e2eTestCase.parent && e2eTestCase.parent.app) {
+            mainWindow = e2eTestCase.parent.app
+        }
+        verify(mainWindow !== null, "Main window should load")
+    }
+
+    /**
+     * Base cleanup for test case.
+     */
+    function baseCleanupTestCase() {
+        console.log("=== E2E " + name + " Tests Complete ===")
     }
 
     /**
@@ -128,6 +171,56 @@ TestCase {
     // =========================================================================
 
     /**
+     * Internal: Traverses the QML tree and applies a callback to each node.
+     * Searches through children, contentItem, Loader.item, and data.
+     * @param node The node to start traversal from
+     * @param callback Function(node) => object|null. Return non-null to stop traversal.
+     * @returns The callback's return value if it stopped traversal, null otherwise
+     */
+    function _traverseTree(node, callback) {
+        if (!node) return null
+
+        // Apply callback to current node
+        var result = callback(node)
+        if (result !== null && result !== undefined) {
+            return result
+        }
+
+        // Search in children array
+        if (node.children) {
+            for (var i = 0; i < node.children.length; i++) {
+                result = _traverseTree(node.children[i], callback)
+                if (result !== null && result !== undefined) return result
+            }
+        }
+
+        // Search in contentItem (for ScrollView, ApplicationWindow, etc.)
+        if (node.contentItem && node.contentItem !== node) {
+            result = _traverseTree(node.contentItem, callback)
+            if (result !== null && result !== undefined) return result
+        }
+
+        // Search in Loader's item
+        if (node.item && node.item !== node) {
+            result = _traverseTree(node.item, callback)
+            if (result !== null && result !== undefined) return result
+        }
+
+        // Search in data property (for non-visual children)
+        if (node.data) {
+            for (var i = 0; i < node.data.length; i++) {
+                var dataItem = node.data[i]
+                if (dataItem && dataItem !== node) {
+                    result = _traverseTree(dataItem, callback)
+                    if (result !== null && result !== undefined) return result
+                }
+            }
+        }
+
+        return null
+    }
+
+    /**
      * Recursively finds a child element by objectName.
      * Searches through children, contentItem, Loader.item, and data.
      * @param parent The parent element to search from (null = root)
@@ -135,50 +228,12 @@ TestCase {
      * @returns The found element or null
      */
     function findChild(parent, objectName) {
-        // If no parent specified, start from the test root
-        var searchRoot = parent
-        if (!searchRoot) {
-            // Try to find from test case parent or mainWindow
-            searchRoot = mainWindow || e2eTestCase.parent
-            if (!searchRoot) return null
-        }
+        var searchRoot = parent || mainWindow || e2eTestCase.parent
+        if (!searchRoot) return null
 
-        if (searchRoot.objectName === objectName) {
-            return searchRoot
-        }
-
-        // Search in children array
-        if (searchRoot.children) {
-            for (var i = 0; i < searchRoot.children.length; i++) {
-                var found = findChild(searchRoot.children[i], objectName)
-                if (found) return found
-            }
-        }
-
-        // Search in contentItem (for ScrollView, ApplicationWindow, etc.)
-        if (searchRoot.contentItem && searchRoot.contentItem !== searchRoot) {
-            var found = findChild(searchRoot.contentItem, objectName)
-            if (found) return found
-        }
-
-        // Search in Loader's item
-        if (searchRoot.item && searchRoot.item !== searchRoot) {
-            var found = findChild(searchRoot.item, objectName)
-            if (found) return found
-        }
-
-        // Search in data property (for non-visual children)
-        if (searchRoot.data) {
-            for (var i = 0; i < searchRoot.data.length; i++) {
-                var dataItem = searchRoot.data[i]
-                if (dataItem && dataItem !== searchRoot) {
-                    var found = findChild(dataItem, objectName)
-                    if (found) return found
-                }
-            }
-        }
-
-        return null
+        return _traverseTree(searchRoot, function(node) {
+            return node.objectName === objectName ? node : null
+        })
     }
 
     /**
@@ -192,38 +247,9 @@ TestCase {
         var searchRoot = parent || mainWindow || e2eTestCase.parent
         if (!searchRoot) return null
 
-        if (searchRoot.objectName && searchRoot.objectName.indexOf(prefix) === 0) {
-            return searchRoot
-        }
-
-        if (searchRoot.children) {
-            for (var i = 0; i < searchRoot.children.length; i++) {
-                var found = findChildByPrefix(searchRoot.children[i], prefix)
-                if (found) return found
-            }
-        }
-
-        if (searchRoot.contentItem && searchRoot.contentItem !== searchRoot) {
-            var found = findChildByPrefix(searchRoot.contentItem, prefix)
-            if (found) return found
-        }
-
-        if (searchRoot.item && searchRoot.item !== searchRoot) {
-            var found = findChildByPrefix(searchRoot.item, prefix)
-            if (found) return found
-        }
-
-        if (searchRoot.data) {
-            for (var i = 0; i < searchRoot.data.length; i++) {
-                var dataItem = searchRoot.data[i]
-                if (dataItem && dataItem !== searchRoot) {
-                    var found = findChildByPrefix(dataItem, prefix)
-                    if (found) return found
-                }
-            }
-        }
-
-        return null
+        return _traverseTree(searchRoot, function(node) {
+            return (node.objectName && node.objectName.indexOf(prefix) === 0) ? node : null
+        })
     }
 
     /**
@@ -233,40 +259,17 @@ TestCase {
      * @returns Array of matching elements
      */
     function findAllChildrenByPrefix(parent, prefix) {
+        var searchRoot = parent || mainWindow || e2eTestCase.parent
+        if (!searchRoot) return []
+
         var results = []
-        findAllChildrenByPrefixRecursive(parent || e2eTestCase.parent, prefix, results)
+        _traverseTree(searchRoot, function(node) {
+            if (node.objectName && node.objectName.indexOf(prefix) === 0) {
+                results.push(node)
+            }
+            return null  // Continue traversal
+        })
         return results
-    }
-
-    function findAllChildrenByPrefixRecursive(node, prefix, results) {
-        if (!node) return
-
-        if (node.objectName && node.objectName.indexOf(prefix) === 0) {
-            results.push(node)
-        }
-
-        if (node.children) {
-            for (var i = 0; i < node.children.length; i++) {
-                findAllChildrenByPrefixRecursive(node.children[i], prefix, results)
-            }
-        }
-
-        if (node.contentItem && node.contentItem !== node) {
-            findAllChildrenByPrefixRecursive(node.contentItem, prefix, results)
-        }
-
-        if (node.item && node.item !== node) {
-            findAllChildrenByPrefixRecursive(node.item, prefix, results)
-        }
-
-        if (node.data) {
-            for (var i = 0; i < node.data.length; i++) {
-                var dataItem = node.data[i]
-                if (dataItem && dataItem !== node) {
-                    findAllChildrenByPrefixRecursive(dataItem, prefix, results)
-                }
-            }
-        }
     }
 
     // =========================================================================

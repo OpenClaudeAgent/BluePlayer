@@ -27,6 +27,7 @@ QtObject {
     readonly property string fullscreenButton: "fullscreenButton"
     readonly property string volumeButton: "volumeButton"
     readonly property string chatButton: "chatButton"
+    readonly property string chatToggleButton: "chatToggleButton"
     readonly property string qualityButton: "qualityButton"
     readonly property string pipButton: "pipButton"
 
@@ -34,11 +35,27 @@ QtObject {
     readonly property string streamCardPrefix: "streamCard_"
     readonly property string vodCardPrefix: "vodCard_"
     readonly property string categoryCardPrefix: "categoryCard_"
+    readonly property string searchResultPrefix: "searchResult_"
 
     // Panels
     readonly property string preferencesPanel: "preferencesPanel"
     readonly property string cacheManagerPanel: "cacheManagerPanel"
     readonly property string chatPanel: "chatPanel"
+
+    // Quality selector
+    readonly property string qualityControl: "qualityControl"
+    readonly property string qualityPopup: "qualityPopup"
+    readonly property string qualityOptionPrefix: "qualityOption_"
+    readonly property string qualityButtonText: "qualityButtonText"
+    readonly property string qualityToast: "qualityToast"
+
+    // Chat components
+    readonly property string chatMessageList: "chatMessageList"
+    readonly property string chatMessageInput: "chatMessageInput"
+
+    // Search components
+    readonly property string searchField: "searchField"
+    readonly property string searchResultsPopup: "searchResultsPopup"
 
     // Controls
     readonly property string seekBar: "seekBar"
@@ -95,5 +112,23 @@ QtObject {
      */
     function vodCardName(index: int): string {
         return vodCardPrefix + index
+    }
+
+    /**
+     * Build a search result objectName from index.
+     * @param index The search result index
+     * @return objectName like "searchResult_0"
+     */
+    function searchResultName(index: int): string {
+        return searchResultPrefix + index
+    }
+
+    /**
+     * Build a quality option objectName from index.
+     * @param index The quality option index
+     * @return objectName like "qualityOption_0"
+     */
+    function qualityOptionName(index: int): string {
+        return qualityOptionPrefix + index
     }
 }

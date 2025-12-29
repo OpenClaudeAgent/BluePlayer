@@ -4,7 +4,7 @@
 #include <QUuid>
 #include <QDateTime>
 
-namespace E2E {
+namespace blueplayer::test::e2e {
 
 MockIrcServer::MockIrcServer(QObject* parent)
     : QObject(parent)
@@ -280,4 +280,4 @@ QString MockIrcServer::buildPrivmsg(const QString& username,
     return result;
 }
 
-} // namespace E2E
+} // namespace blueplayer::test::e2e

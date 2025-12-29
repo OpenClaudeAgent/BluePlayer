@@ -841,6 +841,7 @@ Item {
     // Toast pour toggles rapides - Design moderne avec taille dynamique
     Rectangle {
       id: toast
+      objectName: "qualityToast"
       anchors.horizontalCenter: parent.horizontalCenter
       anchors.bottom: playerControlBar.top
       anchors.bottomMargin: BlueTheme.spacingMedium

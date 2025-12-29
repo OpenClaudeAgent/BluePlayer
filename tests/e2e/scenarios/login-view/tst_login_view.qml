@@ -25,15 +25,7 @@ E2EScenarioTemplate {
         // Test-specific properties
         property var loginView: null
 
-        function initTestCase() {
-            console.log("=== E2E Login View Tests ===")
-            mainWindow = root.app
-            verify(mainWindow !== null, "Main window should load")
-        }
-
-        function cleanupTestCase() {
-            console.log("=== E2E Login View Tests Complete ===")
-        }
+        // Uses default initTestCase() and cleanupTestCase() from E2ETestCase base
 
         // =====================================================================
         // Test 1: App shows login view for unauthenticated user

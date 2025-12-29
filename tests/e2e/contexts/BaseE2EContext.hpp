@@ -97,7 +97,7 @@ protected:
     // Accessors for derived classes
     MockTwitchServer* twitchServer() const { return m_twitchServer.get(); }
     MockHlsServer* hlsServer() const { return m_hlsServer.get(); }
-    E2E::MockIrcServer* ircServer() const { return m_ircServer.get(); }
+    MockIrcServer* ircServer() const { return m_ircServer.get(); }
     FixtureLoader* fixtureLoader() const { return m_fixtureLoader.get(); }
     blueplayer::core::Application* application() const { return m_coreApp.get(); }
 
@@ -117,7 +117,7 @@ private:
     // Mock servers
     std::unique_ptr<MockTwitchServer> m_twitchServer;
     std::unique_ptr<MockHlsServer> m_hlsServer;
-    std::unique_ptr<E2E::MockIrcServer> m_ircServer;
+    std::unique_ptr<MockIrcServer> m_ircServer;
     int m_twitchPort = 0;
     int m_hlsPort = 0;
 

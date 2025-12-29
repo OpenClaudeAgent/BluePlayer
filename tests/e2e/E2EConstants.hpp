@@ -23,6 +23,7 @@ constexpr const char* PAUSE_BUTTON = "pauseButton";
 constexpr const char* FULLSCREEN_BUTTON = "fullscreenButton";
 constexpr const char* VOLUME_BUTTON = "volumeButton";
 constexpr const char* CHAT_BUTTON = "chatButton";
+constexpr const char* CHAT_TOGGLE_BUTTON = "chatToggleButton";
 constexpr const char* QUALITY_BUTTON = "qualityButton";
 constexpr const char* PIP_BUTTON = "pipButton";
 
@@ -30,11 +31,26 @@ constexpr const char* PIP_BUTTON = "pipButton";
 constexpr const char* STREAM_CARD_PREFIX = "streamCard_";
 constexpr const char* VOD_CARD_PREFIX = "vodCard_";
 constexpr const char* CATEGORY_CARD_PREFIX = "categoryCard_";
+constexpr const char* SEARCH_RESULT_PREFIX = "searchResult_";
 
 // Panels
 constexpr const char* PREFERENCES_PANEL = "preferencesPanel";
 constexpr const char* CACHE_MANAGER_PANEL = "cacheManagerPanel";
 constexpr const char* CHAT_PANEL = "chatPanel";
+
+// Quality selector
+constexpr const char* QUALITY_CONTROL = "qualityControl";
+constexpr const char* QUALITY_POPUP = "qualityPopup";
+constexpr const char* QUALITY_OPTION_PREFIX = "qualityOption_";
+constexpr const char* QUALITY_BUTTON_TEXT = "qualityButtonText";
+
+// Chat components
+constexpr const char* CHAT_MESSAGE_LIST = "chatMessageList";
+constexpr const char* CHAT_MESSAGE_INPUT = "chatMessageInput";
+
+// Search components
+constexpr const char* SEARCH_FIELD = "searchField";
+constexpr const char* SEARCH_RESULTS_POPUP = "searchResultsPopup";
 
 // Controls
 constexpr const char* SEEK_BAR = "seekBar";
@@ -118,6 +134,26 @@ inline QString streamCardName(int index)
 inline QString vodCardName(int index)
 {
     return QString(VOD_CARD_PREFIX) + QString::number(index);
+}
+
+/**
+ * @brief Build a search result objectName from index.
+ * @param index The search result index
+ * @return objectName like "searchResult_0"
+ */
+inline QString searchResultName(int index)
+{
+    return QString(SEARCH_RESULT_PREFIX) + QString::number(index);
+}
+
+/**
+ * @brief Build a quality option objectName from index.
+ * @param index The quality option index
+ * @return objectName like "qualityOption_0"
+ */
+inline QString qualityOptionName(int index)
+{
+    return QString(QUALITY_OPTION_PREFIX) + QString::number(index);
 }
 
 } // namespace blueplayer::test::e2e::constants

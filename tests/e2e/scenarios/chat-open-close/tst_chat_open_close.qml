@@ -23,15 +23,7 @@ E2EScenarioTemplate {
         // Track received message count for verification
         property int initialMessageCount: 0
 
-        function initTestCase() {
-            console.log("=== E2E Chat Open/Close Tests ===")
-            mainWindow = root.app
-            verify(mainWindow !== null, "Main window should load")
-        }
-
-        function cleanupTestCase() {
-            console.log("=== E2E Chat Open/Close Tests Complete ===")
-        }
+        // Uses default initTestCase() and cleanupTestCase() from E2ETestCase base
 
         function test_01_navigate_to_player() {
             console.log("Testing: Navigate to player")
@@ -39,7 +31,7 @@ E2EScenarioTemplate {
             // Wait for home to fully initialize (API calls, rendering, etc.)
             wait(E2EConstants.timeoutMedium)
             
-            var streamCard = findChildByPrefix(mainWindow, "streamCard_")
+            var streamCard = findChildByPrefix(mainWindow, E2EConstants.streamCardPrefix)
             verify(streamCard !== null, "Stream card should exist")
             
             console.log("  Clicking stream card: " + streamCard.objectName)
@@ -51,7 +43,7 @@ E2EScenarioTemplate {
             
             verify(navigated, "Should navigate to player view")
             console.log("OK Player view opened")
-            takeScreenshot()
+            // Screenshot taken automatically by baseCleanup()
         }
 
         function test_02_chat_button_exists() {
@@ -64,16 +56,15 @@ E2EScenarioTemplate {
             
             // Wait for controls to be ready
             tryVerify(function() {
-                var btn = findChild(mainWindow, "chatToggleButton")
+                var btn = findChild(mainWindow, E2EConstants.chatToggleButton)
                 return btn !== null && btn.visible
             }, 3000, "Chat toggle button should be visible")
             
-            var chatButton = findChild(mainWindow, "chatToggleButton")
+            var chatButton = findChild(mainWindow, E2EConstants.chatToggleButton)
             verify(chatButton !== null, "Chat toggle button should exist")
             verify(chatButton.visible, "Chat toggle button should be visible")
             
             console.log("OK Chat toggle button found")
-            takeScreenshot()
         }
 
         function test_03_open_chat_panel() {
@@ -84,7 +75,7 @@ E2EScenarioTemplate {
                 return
             }
             
-            var chatButton = findChild(mainWindow, "chatToggleButton")
+            var chatButton = findChild(mainWindow, E2EConstants.chatToggleButton)
             verify(chatButton !== null, "Chat toggle button should exist")
             
             // Get player view to check chatVisible state
@@ -103,12 +94,11 @@ E2EScenarioTemplate {
             
             // Verify chat panel element exists
             tryVerify(function() {
-                var panel = findChild(mainWindow, "chatPanel")
+                var panel = findChild(mainWindow, E2EConstants.chatPanel)
                 return panel !== null && panel.visible
             }, 2000, "Chat panel should be visible")
             
             console.log("OK Chat panel opened")
-            takeScreenshot()
         }
 
         function test_04_chat_connects() {
@@ -135,7 +125,6 @@ E2EScenarioTemplate {
             verify(joinedChannel.length > 0, "Should have joined a channel")
             
             console.log("OK Chat connected to MockIrcServer")
-            takeScreenshot()
         }
 
         function test_05_receive_chat_messages() {
@@ -151,7 +140,7 @@ E2EScenarioTemplate {
                 return
             }
             
-            var messageList = findChild(mainWindow, "chatMessageList")
+            var messageList = findChild(mainWindow, E2EConstants.chatMessageList)
             verify(messageList !== null, "Message list should exist")
             
             initialMessageCount = messageList.count
@@ -170,7 +159,6 @@ E2EScenarioTemplate {
             
             console.log("  Final message count:", messageList.count)
             console.log("OK Received", messageList.count - initialMessageCount, "messages")
-            takeScreenshot()
         }
 
         function test_06_send_chat_message() {
@@ -186,10 +174,10 @@ E2EScenarioTemplate {
                 return
             }
             
-            var messageInput = findChild(mainWindow, "chatMessageInput")
+            var messageInput = findChild(mainWindow, E2EConstants.chatMessageInput)
             verify(messageInput !== null, "Message input should exist")
             
-            var messageList = findChild(mainWindow, "chatMessageList")
+            var messageList = findChild(mainWindow, E2EConstants.chatMessageList)
             verify(messageList !== null, "Message list should exist")
             
             // Clear any previous client messages
@@ -235,7 +223,6 @@ E2EScenarioTemplate {
             verify(messageList.count > initialCount, "Message should be visible in chat list")
             
             console.log("OK Message sent and visible in UI")
-            takeScreenshot()
         }
 
         function test_07_close_chat_panel() {
@@ -254,7 +241,7 @@ E2EScenarioTemplate {
                 return
             }
             
-            var chatButton = findChild(mainWindow, "chatToggleButton")
+            var chatButton = findChild(mainWindow, E2EConstants.chatToggleButton)
             verify(chatButton !== null, "Chat toggle button should exist")
             
             // Click to close chat
@@ -266,7 +253,6 @@ E2EScenarioTemplate {
             }, 2000, "Chat should become hidden")
             
             console.log("OK Chat panel closed")
-            takeScreenshot()
         }
 
         function test_08_reopen_chat_reconnects() {
@@ -277,7 +263,7 @@ E2EScenarioTemplate {
                 return
             }
             
-            var chatButton = findChild(mainWindow, "chatToggleButton")
+            var chatButton = findChild(mainWindow, E2EConstants.chatToggleButton)
             var playerView = findChild(mainWindow, "playerView")
             
             verify(chatButton !== null, "Chat toggle button should exist")
@@ -296,7 +282,6 @@ E2EScenarioTemplate {
             }, 5000, "Should reconnect to MockIrcServer")
             
             console.log("OK Chat reconnected successfully")
-            takeScreenshot()
         }
     }
 }
