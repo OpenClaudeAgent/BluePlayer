@@ -221,6 +221,12 @@ void MockIrcServer::handleIrcCommand(QWebSocket* client, const QString& line) {
             m_clientMessages.append(messageContent);
             qDebug() << "MockIrcServer: Client sent message:" << messageContent;
             emit clientMessageReceived(messageContent);
+            
+            // Echo the message back to the client (like real Twitch IRC)
+            // This makes the message appear in the sender's chat UI
+            if (m_echoMessages) {
+                sendChatMessage(m_echoUsername, messageContent, m_echoColor);
+            }
         }
         return;
     }

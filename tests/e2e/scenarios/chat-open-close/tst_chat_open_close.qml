@@ -189,8 +189,18 @@ E2EScenarioTemplate {
             var messageInput = findChild(mainWindow, "chatMessageInput")
             verify(messageInput !== null, "Message input should exist")
             
+            var messageList = findChild(mainWindow, "chatMessageList")
+            verify(messageList !== null, "Message list should exist")
+            
             // Clear any previous client messages
             mockIrcServer.clearClientMessages()
+            
+            // Enable echo so the message appears in UI (like real Twitch IRC)
+            mockIrcServer.setEchoMessages(true, "E2ETestUser", "#FF6B6B")
+            
+            // Record initial message count
+            var initialCount = messageList.count
+            console.log("  Initial message count:", initialCount)
             
             // In offscreen mode, focus doesn't work properly
             // So we set the text programmatically
@@ -216,7 +226,15 @@ E2EScenarioTemplate {
             // Input should be cleared after sending
             verify(messageInput.text === "", "Input should be cleared after sending")
             
-            console.log("OK Message sent successfully")
+            // Wait for echoed message to appear in UI
+            tryVerify(function() {
+                return messageList.count > initialCount
+            }, 2000, "Message should appear in chat UI")
+            
+            console.log("  Final message count:", messageList.count)
+            verify(messageList.count > initialCount, "Message should be visible in chat list")
+            
+            console.log("OK Message sent and visible in UI")
             takeScreenshot()
         }
 

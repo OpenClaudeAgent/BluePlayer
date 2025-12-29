@@ -95,6 +95,20 @@ public:
      * @brief Get total number of requests handled
      */
     [[nodiscard]] int requestCount() const { return m_requestCount; }
+    
+    /**
+     * @brief Enable/disable echoing client messages back (like real Twitch IRC)
+     * @param enable Whether to echo messages
+     * @param username Username to show for echoed messages
+     * @param color Color for echoed messages
+     */
+    Q_INVOKABLE void setEchoMessages(bool enable, 
+                                     const QString& username = "TestSender",
+                                     const QString& color = "#9147FF") {
+        m_echoMessages = enable;
+        m_echoUsername = username;
+        m_echoColor = color;
+    }
 
 signals:
     /**
@@ -137,6 +151,11 @@ private:
     QList<QPair<QString, QString>> m_pendingMessages;
     QTimer m_messageTimer;
     int m_messageDelayMs{500};
+    
+    // For echoing client messages back
+    bool m_echoMessages{false};
+    QString m_echoUsername{"TestSender"};
+    QString m_echoColor{"#9147FF"};
 };
 
 } // namespace E2E
