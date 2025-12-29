@@ -29,6 +29,7 @@ add_subdirectory(quality-switch)
 add_subdirectory(chat-open-close)
 add_subdirectory(audio-only-mode)
 add_subdirectory(play-cached-vod)
+add_subdirectory(picture-in-picture)
 
 # Unauthenticated scenarios (no login required)
 add_subdirectory(login-view)

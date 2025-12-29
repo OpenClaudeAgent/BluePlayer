@@ -408,6 +408,7 @@ Rectangle {
             // Picture-in-Picture Button
             ControlButton {
                 id: pipButton
+                objectName: "pipButton"  // For E2E testing
                 width: chipHeight; height: chipHeight
                 active: controlBar.pipActive
                 enabled: controlBar.pipEnabled
