@@ -1,0 +1,4 @@
+module BluePlayer.E2E
+singleton E2EConstants 1.0 E2EConstants.qml
+E2ETestCase 1.0 E2ETestCase.qml
+E2EScenarioTemplate 1.0 E2EScenarioTemplate.qml

@@ -1,48 +1,33 @@
-#pragma once
+#ifndef BLUEPLAYER_TEST_E2E_UNAUTHENTICATEDSETUP_HPP
+#define BLUEPLAYER_TEST_E2E_UNAUTHENTICATEDSETUP_HPP
 
-#include "mocks/MockSecureStorage.hpp"
-#include "servers/MockHlsServer.hpp"
-#include "servers/MockTwitchServer.hpp"
-#include "core/Application.hpp"
-
-#include <QObject>
-#include <QQmlEngine>
-#include <memory>
+#include "../BaseE2EContext.hpp"
 
 namespace blueplayer::test::e2e {
 
 /**
- * @brief Setup context for unauthenticated user tests
- * 
- * This context:
- * 1. Starts mock servers (Twitch API + HLS)
- * 2. Does NOT inject credentials
- * 3. Initializes Application as unauthenticated user
- * 
+ * @brief Setup context for unauthenticated user tests.
+ *
+ * Inherits from BaseE2EContext and configures:
+ * - NO credentials injected
+ * - Application initialized as unauthenticated user
+ *
  * Use this context for flows that don't require authentication:
  * - Login view, onboarding, etc.
  */
-class UnauthenticatedSetup : public QObject
+class UnauthenticatedSetup : public BaseE2EContext
 {
     Q_OBJECT
 
 public:
-    UnauthenticatedSetup();
-    ~UnauthenticatedSetup();
+    explicit UnauthenticatedSetup(QObject* parent = nullptr);
+    ~UnauthenticatedSetup() override = default;
 
-public slots:
-    void applicationAvailable();
-    void qmlEngineAvailable(QQmlEngine* engine);
-    void cleanupTestCase();
-
-private:
-    std::unique_ptr<MockSecureStorage> m_mockStorage;
-    std::unique_ptr<MockTwitchServer> m_twitchServer;
-    std::unique_ptr<MockHlsServer> m_hlsServer;
-    std::unique_ptr<blueplayer::core::Application> m_coreApp;
-    
-    int m_twitchPort = 8082;  // Different ports to avoid conflicts
-    int m_hlsPort = 8083;
+protected:
+    QString contextName() const override { return "Unauthenticated"; }
+    bool shouldInjectCredentials() const override { return false; }
 };
 
 } // namespace blueplayer::test::e2e
+
+#endif // BLUEPLAYER_TEST_E2E_UNAUTHENTICATEDSETUP_HPP

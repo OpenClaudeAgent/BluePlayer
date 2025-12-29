@@ -3,6 +3,15 @@
 
 set(E2E_HELPER_QML_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/E2ETestCase.qml
+    ${CMAKE_CURRENT_SOURCE_DIR}/E2EConstants.qml
+    ${CMAKE_CURRENT_SOURCE_DIR}/E2EScenarioTemplate.qml
+)
+
+# Copy qmldir for singleton registration
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/qmldir
+    ${CMAKE_CURRENT_BINARY_DIR}/qmldir
+    COPYONLY
 )
 
 # Make helpers available to parent scope

@@ -1,6 +1,6 @@
 import QtQuick
 import QtTest
-import "." // Import E2ETestCase from current directory
+import "." // Import helpers from current directory
 
 /**
  * E2E Scenario: Open Stream
@@ -11,27 +11,20 @@ import "." // Import E2ETestCase from current directory
  * 3. User clicks on a stream card
  * 4. Player view opens
  * 5. Stream starts playing (not stuck in loading/buffering)
+ * 
+ * Uses: E2EScenarioTemplate, E2ETestCase, E2EConstants
  */
-Item {
+E2EScenarioTemplate {
     id: root
-    width: 1280
-    height: 720
-
-    Loader {
-        id: appLoader
-        anchors.fill: parent
-        source: "file://" + E2E_QML_PATH + "/main.qml"
-        asynchronous: false
-    }
 
     E2ETestCase {
         id: testCase
         name: "E2E_OpenStream"
-        when: windowShown && appLoader.status === Loader.Ready
+        when: windowShown && root.appReady
 
         function initTestCase() {
             console.log("=== E2E Open Stream Tests ===")
-            mainWindow = appLoader.item
+            mainWindow = root.app
             verify(mainWindow !== null, "Main window should load")
         }
 
@@ -46,7 +39,9 @@ Item {
         function test_01_home_view_displayed() {
             console.log("Testing: Home view displayed for authenticated user")
             
-            wait(1500)
+            // Use waitForAppReady helper with constant timeout
+            var ready = waitForAppReady(E2EConstants.timeoutAppReady)
+            verify(ready, "App should be ready")
             
             compare(mainWindow.currentView, "home", "Should show home view when authenticated")
             console.log("OK Home view is displayed")
@@ -59,10 +54,11 @@ Item {
         function test_02_streams_loaded() {
             console.log("Testing: Streams loaded from mock server")
             
-            wait(1500)
+            wait(E2EConstants.timeoutMedium)
             
-            var streamCard = findChildByPrefix(mainWindow, "streamCard_")
-            verify(streamCard !== null, "Stream cards should be displayed")
+            // Use verifyStreamCard helper
+            var streamCard = verifyStreamCard(0)
+            verify(streamCard !== null, "First stream card should exist")
             console.log("OK Stream cards are loaded")
         }
 
@@ -73,19 +69,18 @@ Item {
         function test_03_click_stream_opens_player() {
             console.log("Testing: Click on stream opens player")
             
-            wait(1000)
+            wait(E2EConstants.timeoutShort)
             
-            var streamCard = findChildByPrefix(mainWindow, "streamCard_")
+            var streamCard = findChildByPrefix(mainWindow, E2EConstants.streamCardPrefix)
             verify(streamCard !== null, "Stream card should exist")
-            verify(streamCard.visible, "Stream card should be visible")
             
-            // Click on the stream card
-            mouseClick(streamCard)
+            // Use clickAndWait helper with navigation condition
+            var navigated = clickAndWait(streamCard, function() {
+                return mainWindow.currentView === "player"
+            }, E2EConstants.timeoutMedium)
             
-            // Wait for navigation
-            wait(1500)
-            
-            compare(mainWindow.currentView, "player", "Should navigate to player view")
+            verify(navigated, "Should navigate to player view after click")
+            compare(mainWindow.currentView, "player", "Should be on player view")
             console.log("OK Player view opened")
         }
 
@@ -96,13 +91,12 @@ Item {
         function test_04_player_has_stream_info() {
             console.log("Testing: Player has correct stream info")
             
-            wait(500)
+            wait(E2EConstants.timeoutShort)
             
-            var playerView = findChild(mainWindow, "playerView")
-            verify(playerView !== null, "PlayerView should exist")
+            // Use verifyPlayerView helper
+            var playerView = verifyPlayerView()
             
             // Verify stream information
-            verify(!playerView.showError, "Player should not show error")
             compare(playerView.streamerLogin, "teststreamer", "Player should have correct streamer login")
             verify(playerView.hlsUrl.length > 0, "Player should have HLS URL")
             
@@ -118,34 +112,11 @@ Item {
         function test_05_stream_is_playing() {
             console.log("Testing: Stream is playing")
             
-            var playerView = findChild(mainWindow, "playerView")
+            var playerView = findChild(mainWindow, E2EConstants.playerView)
             verify(playerView !== null, "PlayerView should exist")
             
-            // Wait for stream to start playing
-            // The player should transition from buffering to playing
-            var maxWait = 10000  // 10 seconds max
-            var checkInterval = 500
-            var elapsed = 0
-            var isPlaying = false
-            
-            while (elapsed < maxWait && !isPlaying) {
-                // Check if playing or if we have a valid state
-                // Note: In mock mode, the HLS server provides minimal segments
-                // so we may not get full playback, but we should not be in error state
-                
-                if (playerView.playing) {
-                    isPlaying = true
-                    console.log("  - Stream is playing after " + elapsed + "ms")
-                } else if (playerView.showError) {
-                    console.log("  - Error detected: " + playerView.errorMessage)
-                    break
-                } else if (playerView.buffering) {
-                    console.log("  - Still buffering after " + elapsed + "ms...")
-                }
-                
-                wait(checkInterval)
-                elapsed += checkInterval
-            }
+            // Use waitForPlayback helper with constant timeout
+            var playbackValid = waitForPlayback(E2EConstants.timeoutPlayback)
             
             // Verify final state
             verify(!playerView.showError, "Player should not show error")
@@ -155,12 +126,7 @@ Item {
                        ", buffering=" + playerView.buffering +
                        ", paused=" + playerView.paused)
             
-            // Accept either playing state or at least no error with valid HLS
-            // (mock HLS segments may not fully decode in offscreen mode)
-            var validState = playerView.playing || 
-                            (!playerView.showError && playerView.hlsUrl.length > 0)
-            verify(validState, "Stream should be playing or have valid HLS URL without error")
-            
+            verify(playbackValid, "Stream should be playing or have valid HLS URL without error")
             console.log("OK Stream playback state is valid")
         }
     }

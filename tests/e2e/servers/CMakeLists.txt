@@ -2,6 +2,7 @@
 # Mock HTTP Servers for E2E Testing
 
 add_library(e2e_mock_servers STATIC
+    MockHttpServer.cpp
     MockTwitchServer.cpp
     MockHlsServer.cpp
 )

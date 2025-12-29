@@ -30,10 +30,25 @@ foreach(qml_file ${QML_TEST_FILES})
     configure_file(${qml_file} ${CMAKE_CURRENT_BINARY_DIR}/${qml_name} COPYONLY)
 endforeach()
 
-# Copy E2E helpers (E2ETestCase.qml)
+# Copy E2E helpers
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/../../helpers/E2ETestCase.qml
     ${CMAKE_CURRENT_BINARY_DIR}/E2ETestCase.qml
+    COPYONLY
+)
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../helpers/E2EScenarioTemplate.qml
+    ${CMAKE_CURRENT_BINARY_DIR}/E2EScenarioTemplate.qml
+    COPYONLY
+)
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../helpers/E2EConstants.qml
+    ${CMAKE_CURRENT_BINARY_DIR}/E2EConstants.qml
+    COPYONLY
+)
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../helpers/qmldir
+    ${CMAKE_CURRENT_BINARY_DIR}/qmldir
     COPYONLY
 )
 

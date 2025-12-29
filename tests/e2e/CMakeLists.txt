@@ -18,6 +18,9 @@ find_package(Qt6 6.5 COMPONENTS Core Network Quick QuickTest REQUIRED)
 # Sub-modules
 # ============================================================================
 
+# Fixture loading utilities
+add_subdirectory(fixtures)
+
 # Mock HTTP servers (Twitch API, HLS)
 add_subdirectory(servers)
 

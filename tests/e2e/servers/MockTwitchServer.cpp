@@ -1,233 +1,134 @@
 #include "MockTwitchServer.hpp"
 
 #include <QDebug>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QRegularExpression>
 
 namespace blueplayer::test::e2e {
 
 MockTwitchServer::MockTwitchServer(QObject* parent)
-    : QObject(parent)
+    : MockHttpServer(parent)
 {
-}
-
-MockTwitchServer::~MockTwitchServer()
-{
-  stop();
-}
-
-bool MockTwitchServer::start(quint16 port)
-{
-  if (m_server) {
-    qWarning() << "MockTwitchServer: Already running";
-    return false;
-  }
-
-  m_server = new QTcpServer(this);
-
-  connect(m_server, &QTcpServer::newConnection,
-          this, &MockTwitchServer::handleNewConnection);
-
-  if (!m_server->listen(QHostAddress::LocalHost, port)) {
-    qWarning() << "MockTwitchServer: Failed to listen:" << m_server->errorString();
-    delete m_server;
-    m_server = nullptr;
-    return false;
-  }
-
-  m_port = m_server->serverPort();
-  qDebug() << "MockTwitchServer: Listening on port" << m_port;
-  return true;
-}
-
-void MockTwitchServer::stop()
-{
-  if (m_server) {
-    m_server->close();
-    delete m_server;
-    m_server = nullptr;
-    m_port = 0;
-  }
-}
-
-QString MockTwitchServer::baseUrl() const
-{
-  return QString("http://localhost:%1").arg(m_port);
-}
-
-quint16 MockTwitchServer::port() const
-{
-  return m_port;
-}
-
-bool MockTwitchServer::isRunning() const
-{
-  return m_server && m_server->isListening();
 }
 
 void MockTwitchServer::setStreams(const QJsonArray& streams)
 {
-  m_streams = streams;
+    m_streams = streams;
 }
 
 void MockTwitchServer::setUsers(const QJsonArray& users)
 {
-  m_users = users;
+    m_users = users;
 }
 
 void MockTwitchServer::setChannels(const QJsonArray& channels)
 {
-  m_channels = channels;
+    m_channels = channels;
 }
 
 void MockTwitchServer::setValidToken(const QString& token)
 {
-  m_validToken = token;
+    m_validToken = token;
 }
 
 void MockTwitchServer::setHlsServerUrl(const QString& hlsServerUrl)
 {
-  m_hlsServerUrl = hlsServerUrl;
-}
-
-int MockTwitchServer::requestCount() const
-{
-  return m_requestLog.size();
-}
-
-QStringList MockTwitchServer::requestsTo(const QString& path) const
-{
-  QStringList result;
-  for (const QString& log : m_requestLog) {
-    if (log.contains(path)) {
-      result.append(log);
-    }
-  }
-  return result;
-}
-
-void MockTwitchServer::clearRequests()
-{
-  m_requestLog.clear();
+    m_hlsServerUrl = hlsServerUrl;
 }
 
 void MockTwitchServer::simulateError(const QString& path, int statusCode, const QString& message)
 {
-  m_simulatedErrors[path] = qMakePair(statusCode, message);
+    m_simulatedErrors[path] = qMakePair(statusCode, message);
 }
 
 void MockTwitchServer::clearErrors()
 {
-  m_simulatedErrors.clear();
-}
-
-void MockTwitchServer::handleNewConnection()
-{
-  while (m_server && m_server->hasPendingConnections()) {
-    QTcpSocket* socket = m_server->nextPendingConnection();
-    connect(socket, &QTcpSocket::readyRead,
-            this, &MockTwitchServer::handleClientData);
-    connect(socket, &QTcpSocket::disconnected,
-            this, &MockTwitchServer::handleClientDisconnected);
-  }
-}
-
-void MockTwitchServer::handleClientData()
-{
-  auto* socket = qobject_cast<QTcpSocket*>(sender());
-  if (!socket) return;
-
-  QByteArray data = socket->readAll();
-  HttpRequest request = parseRequest(data);
-
-  // Log the request
-  QString logEntry = QString("%1 %2").arg(request.method, request.path);
-  m_requestLog.append(logEntry);
-  Q_EMIT requestReceived(request.method, request.path);
-
-  // Handle the request
-  QByteArray response = handleRequest(request);
-  socket->write(response);
-  socket->flush();
-  socket->disconnectFromHost();
-}
-
-void MockTwitchServer::handleClientDisconnected()
-{
-  auto* socket = qobject_cast<QTcpSocket*>(sender());
-  if (socket) {
-    socket->deleteLater();
-  }
-}
-
-MockTwitchServer::HttpRequest MockTwitchServer::parseRequest(const QByteArray& data)
-{
-  HttpRequest request;
-  QString str = QString::fromUtf8(data);
-  QStringList lines = str.split("\r\n");
-
-  if (lines.isEmpty()) return request;
-
-  // Parse request line
-  QStringList requestLine = lines.first().split(' ');
-  if (requestLine.size() >= 3) {
-    request.method = requestLine[0];
-    request.path = requestLine[1];
-    request.version = requestLine[2];
-  }
-
-  // Parse headers
-  int bodyStart = -1;
-  for (int i = 1; i < lines.size(); ++i) {
-    if (lines[i].isEmpty()) {
-      bodyStart = i + 1;
-      break;
-    }
-    int colonPos = lines[i].indexOf(':');
-    if (colonPos > 0) {
-      QString key = lines[i].left(colonPos).trimmed();
-      QString value = lines[i].mid(colonPos + 1).trimmed();
-      request.headers[key] = value;
-    }
-  }
-
-  // Parse body
-  if (bodyStart > 0 && bodyStart < lines.size()) {
-    request.body = lines.mid(bodyStart).join("\r\n").toUtf8();
-  }
-
-  return request;
+    m_simulatedErrors.clear();
 }
 
 QByteArray MockTwitchServer::handleRequest(const HttpRequest& request)
 {
-  QString path = request.path.split('?').first(); // Remove query string
+    QString path = request.cleanPath();
 
-  // Check for simulated errors
-  if (m_simulatedErrors.contains(path)) {
-    auto error = m_simulatedErrors.take(path);
-    return makeTwitchError(error.first, error.second);
-  }
+    // Check for simulated errors
+    if (m_simulatedErrors.contains(path)) {
+        auto error = m_simulatedErrors.take(path);
+        return makeTwitchError(error.first, error.second);
+    }
 
-  // OAuth endpoints
-  if (path == "/oauth2/validate") {
-    // Check Authorization header
+    // OAuth endpoints
+    if (path == "/oauth2/validate") {
+        return handleOAuthValidate(request);
+    }
+    if (path == "/oauth2/token") {
+        return handleOAuthToken();
+    }
+
+    // Helix endpoints
+    if (path == "/helix/streams") {
+        return handleHelixStreams();
+    }
+    if (path == "/helix/streams/followed") {
+        return handleHelixStreamsFollowed();
+    }
+    if (path == "/helix/users") {
+        return handleHelixUsers(request);
+    }
+    if (path == "/helix/channels") {
+        return handleHelixChannels();
+    }
+    if (path == "/helix/search/channels") {
+        return handleHelixSearchChannels();
+    }
+    if (path == "/helix/games/top") {
+        return handleHelixGamesTop();
+    }
+    if (path == "/helix/videos") {
+        return handleHelixVideos();
+    }
+    if (path == "/helix/channels/followed") {
+        return handleHelixChannelsFollowed();
+    }
+    if (path == "/helix/clips") {
+        return handleHelixClips();
+    }
+
+    // HLS playlist endpoint (Usher-style)
+    static QRegularExpression hlsPattern("/api/channel/hls/(\\w+)\\.m3u8");
+    QRegularExpressionMatch match = hlsPattern.match(path);
+    if (match.hasMatch()) {
+        return handleHlsPlaylist(match.captured(1));
+    }
+
+    // Default: 404
+    return makeTwitchError(404, "Not Found");
+}
+
+// ============================================================================
+// OAuth Handlers
+// ============================================================================
+
+QByteArray MockTwitchServer::handleOAuthValidate(const HttpRequest& request)
+{
     QString auth = request.headers.value("Authorization");
     if (auth.startsWith("OAuth ") || auth.startsWith("Bearer ")) {
-      QString token = auth.section(' ', 1);
-      if (token == m_validToken) {
-        QJsonObject response;
-        response["client_id"] = "test_client_id";
-        response["login"] = "test_user";
-        response["scopes"] = QJsonArray({"user:read:email", "chat:read", "chat:edit"});
-        response["user_id"] = "12345";
-        response["expires_in"] = 14400;
-        return makeResponse(200, "OK", QJsonDocument(response).toJson());
-      }
+        QString token = auth.section(' ', 1);
+        if (token == m_validToken) {
+            QJsonObject response;
+            response["client_id"] = "test_client_id";
+            response["login"] = "test_user";
+            response["scopes"] = QJsonArray({"user:read:email", "chat:read", "chat:edit"});
+            response["user_id"] = "12345";
+            response["expires_in"] = 14400;
+            return makeResponse(200, "OK", QJsonDocument(response).toJson());
+        }
     }
     return makeTwitchError(401, "Invalid access token");
-  }
+}
 
-  if (path == "/oauth2/token") {
+QByteArray MockTwitchServer::handleOAuthToken()
+{
     QJsonObject response;
     response["access_token"] = m_validToken;
     response["refresh_token"] = "refresh_" + m_validToken;
@@ -235,123 +136,120 @@ QByteArray MockTwitchServer::handleRequest(const HttpRequest& request)
     response["scope"] = QJsonArray({"user:read:email", "chat:read", "chat:edit"});
     response["token_type"] = "bearer";
     return makeResponse(200, "OK", QJsonDocument(response).toJson());
-  }
+}
 
-  // Helix endpoints
-  if (path == "/helix/streams") {
+// ============================================================================
+// Helix Handlers
+// ============================================================================
+
+QByteArray MockTwitchServer::handleHelixStreams()
+{
     return makeTwitchResponse(m_streams);
-  }
+}
 
-  // Followed streams endpoint - returns streams from followed channels
-  if (path == "/helix/streams/followed") {
-    // Return the same streams as /helix/streams for testing
-    // In a real scenario, this would filter based on user_id parameter
+QByteArray MockTwitchServer::handleHelixStreamsFollowed()
+{
     return makeTwitchResponse(m_streams);
-  }
+}
 
-  if (path == "/helix/users") {
-    // Check if this is a request for the authenticated user (no id param)
-    // or a request for specific users
-    QString queryString = request.path.section('?', 1);
+QByteArray MockTwitchServer::handleHelixUsers(const HttpRequest& request)
+{
+    QString queryString = request.queryString();
     if (queryString.isEmpty() || !queryString.contains("id=")) {
-      // Request for authenticated user - return the test user
-      QJsonArray authUser;
-      for (const QJsonValue& userVal : m_users) {
-        QJsonObject user = userVal.toObject();
-        if (user["login"].toString() == "testuser" || 
-            user["id"].toString() == "99999") {
-          authUser.append(user);
-          break;
+        // Request for authenticated user
+        QJsonArray authUser;
+        for (const QJsonValue& userVal : m_users) {
+            QJsonObject user = userVal.toObject();
+            if (user["login"].toString() == "testuser" ||
+                user["id"].toString() == "99999") {
+                authUser.append(user);
+                break;
+            }
         }
-      }
-      if (!authUser.isEmpty()) {
-        return makeTwitchResponse(authUser);
-      }
+        if (!authUser.isEmpty()) {
+            return makeTwitchResponse(authUser);
+        }
     }
     return makeTwitchResponse(m_users);
-  }
+}
 
-  if (path == "/helix/channels") {
+QByteArray MockTwitchServer::handleHelixChannels()
+{
     return makeTwitchResponse(m_channels);
-  }
-  
-  // Search channels endpoint
-  if (path == "/helix/search/channels") {
-    // Return all users as search results for testing
+}
+
+QByteArray MockTwitchServer::handleHelixSearchChannels()
+{
     QJsonArray searchResults;
     for (const QJsonValue& userVal : m_users) {
-      QJsonObject user = userVal.toObject();
-      // Transform user format to search result format
-      QJsonObject result;
-      result["id"] = user["id"];
-      result["broadcaster_login"] = user["login"];
-      result["display_name"] = user["display_name"];
-      result["game_id"] = "";
-      result["game_name"] = "";
-      result["is_live"] = true;  // Mark all as live for testing
-      result["thumbnail_url"] = user["profile_image_url"];
-      searchResults.append(result);
+        QJsonObject user = userVal.toObject();
+        QJsonObject result;
+        result["id"] = user["id"];
+        result["broadcaster_login"] = user["login"];
+        result["display_name"] = user["display_name"];
+        result["game_id"] = "";
+        result["game_name"] = "";
+        result["is_live"] = true;
+        result["thumbnail_url"] = user["profile_image_url"];
+        searchResults.append(result);
     }
     return makeTwitchResponse(searchResults);
-  }
-  
-  // Top games/categories endpoint
-  if (path == "/helix/games/top") {
+}
+
+QByteArray MockTwitchServer::handleHelixGamesTop()
+{
     QJsonArray categories;
+
     QJsonObject cat1;
     cat1["id"] = "509658";
     cat1["name"] = "Just Chatting";
     cat1["box_art_url"] = "https://static-cdn.jtvnw.net/ttv-boxart/509658-{width}x{height}.jpg";
     categories.append(cat1);
-    
+
     QJsonObject cat2;
     cat2["id"] = "33214";
     cat2["name"] = "Fortnite";
     cat2["box_art_url"] = "https://static-cdn.jtvnw.net/ttv-boxart/33214-{width}x{height}.jpg";
     categories.append(cat2);
-    
+
     return makeTwitchResponse(categories);
-  }
-  
-  // Videos (VODs) endpoint
-  if (path == "/helix/videos") {
-    // Return empty array for now - user has no VODs
+}
+
+QByteArray MockTwitchServer::handleHelixVideos()
+{
     return makeTwitchResponse(QJsonArray());
-  }
-  
-  // Followed channels endpoint
-  if (path == "/helix/channels/followed") {
-    // Return the streamers as followed channels
+}
+
+QByteArray MockTwitchServer::handleHelixChannelsFollowed()
+{
     QJsonArray followedChannels;
     for (const QJsonValue& userVal : m_users) {
-      QJsonObject user = userVal.toObject();
-      // Skip the test user itself
-      if (user["login"].toString() == "testuser") continue;
-      
-      QJsonObject channel;
-      channel["broadcaster_id"] = user["id"];
-      channel["broadcaster_login"] = user["login"];
-      channel["broadcaster_name"] = user["display_name"];
-      channel["followed_at"] = "2024-01-01T00:00:00Z";
-      followedChannels.append(channel);
+        QJsonObject user = userVal.toObject();
+        if (user["login"].toString() == "testuser") {
+            continue;
+        }
+        QJsonObject channel;
+        channel["broadcaster_id"] = user["id"];
+        channel["broadcaster_login"] = user["login"];
+        channel["broadcaster_name"] = user["display_name"];
+        channel["followed_at"] = "2024-01-01T00:00:00Z";
+        followedChannels.append(channel);
     }
     return makeTwitchResponse(followedChannels);
-  }
-  
-  // Clips endpoint
-  if (path == "/helix/clips") {
-    // Return empty array for now - no clips
-    return makeTwitchResponse(QJsonArray());
-  }
+}
 
-  // HLS playlist endpoint (Usher-style)
-  static QRegularExpression hlsPattern("/api/channel/hls/(\\w+)\\.m3u8");
-  QRegularExpressionMatch match = hlsPattern.match(path);
-  if (match.hasMatch()) {
-    QString channel = match.captured(1);
-    if (!m_hlsServerUrl.isEmpty()) {
-      // Return a redirect or the HLS playlist
-      QString playlist = QString(
+QByteArray MockTwitchServer::handleHelixClips()
+{
+    return makeTwitchResponse(QJsonArray());
+}
+
+QByteArray MockTwitchServer::handleHlsPlaylist(const QString& channel)
+{
+    if (m_hlsServerUrl.isEmpty()) {
+        return makeTwitchError(404, "Channel not found");
+    }
+
+    QString playlist = QString(
         "#EXTM3U\n"
         "#EXT-X-TWITCH-INFO:NODE=\"video-edge\",MANIFEST-NODE-TYPE=\"weaver\"\n"
         "#EXT-X-MEDIA:TYPE=VIDEO,GROUP-ID=\"chunked\",NAME=\"1080p60\",AUTOSELECT=YES\n"
@@ -360,45 +258,9 @@ QByteArray MockTwitchServer::handleRequest(const HttpRequest& request)
         "#EXT-X-MEDIA:TYPE=VIDEO,GROUP-ID=\"720p\",NAME=\"720p\",AUTOSELECT=YES\n"
         "#EXT-X-STREAM-INF:BANDWIDTH=3000000,RESOLUTION=1280x720,VIDEO=\"720p\"\n"
         "%1/playlist/%2_720p.m3u8\n"
-      ).arg(m_hlsServerUrl, channel);
-      return makeResponse(200, "OK", playlist.toUtf8(), "application/vnd.apple.mpegurl");
-    }
-    return makeTwitchError(404, "Channel not found");
-  }
+    ).arg(m_hlsServerUrl, channel);
 
-  // Default: 404
-  return makeTwitchError(404, "Not Found");
-}
-
-QByteArray MockTwitchServer::makeResponse(int statusCode, const QString& statusText,
-                                           const QByteArray& body,
-                                           const QString& contentType)
-{
-  QByteArray response;
-  response.append(QString("HTTP/1.1 %1 %2\r\n").arg(statusCode).arg(statusText).toUtf8());
-  response.append(QString("Content-Type: %1\r\n").arg(contentType).toUtf8());
-  response.append(QString("Content-Length: %1\r\n").arg(body.size()).toUtf8());
-  response.append("Connection: close\r\n");
-  response.append("Access-Control-Allow-Origin: *\r\n");
-  response.append("\r\n");
-  response.append(body);
-  return response;
-}
-
-QByteArray MockTwitchServer::makeTwitchResponse(const QJsonArray& data)
-{
-  QJsonObject root;
-  root["data"] = data;
-  return makeResponse(200, "OK", QJsonDocument(root).toJson());
-}
-
-QByteArray MockTwitchServer::makeTwitchError(int statusCode, const QString& message)
-{
-  QJsonObject root;
-  root["error"] = message;
-  root["status"] = statusCode;
-  root["message"] = message;
-  return makeResponse(statusCode, message, QJsonDocument(root).toJson());
+    return makeResponse(200, "OK", playlist.toUtf8(), "application/vnd.apple.mpegurl");
 }
 
 } // namespace blueplayer::test::e2e

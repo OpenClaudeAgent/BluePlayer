@@ -164,7 +164,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | **40** | **Infrastructure Tests E2E** | [plan-40](./plan-40-e2e-testing-infrastructure.md) | `test/e2e-infrastructure` | v0.29.0 | 🟢 Terminé |
 | **41** | **Gestion et Nettoyage Logs** | [plan-41](./plan-41-log-management.md) | `feature/log-management` | v0.28.0 | 🟢 Terminé |
 | 42 | Fix TypeError ChatMessage.qml | [plan-42](./plan-42-fix-chatmessage-null.md) | `fix/chatmessage-null` | v0.27.1 | 🟢 Terminé |
-| **43** | **Refactoring Infrastructure E2E** | [plan-43](./plan-43-e2e-refactoring.md) | `refactor/e2e-infra` | - | 🔴 En attente |
+| **43** | **Refactoring Infrastructure E2E** | [plan-43](./plan-43-e2e-refactoring.md) | `feature/e2e-refactoring` | v0.30.0 | 🟢 Terminé |
 | **44** | **Scenarios E2E - Couverture Features** | [plan-44](./plan-44-e2e-scenarios.md) | `test/e2e-scenarios` | - | 🔴 En attente |
 
 ### Plans spéciaux
@@ -233,6 +233,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 2025-12-29 | Tâche 40 terminée - Infrastructure E2E complete (segment vidéo réel, fix mpv locale, 13 tests, validation lecture) |
 | 2025-12-29 | Tâche 42 terminée - Fix TypeError ChatMessage.qml (null-check emoteParts, -35% volume logs) |
 | 2025-12-29 | Tâche 41 terminée - Gestion Logs (rotation 7j/20 fichiers, audit global, 42 logs INFO standardisés) |
+| 2025-12-29 | Tâche 43 terminée - Refactoring E2E (BaseE2EContext -96%, MockHttpServer -38%, FixtureLoader, E2EConstants, E2EScenarioTemplate) |
 
 ---
 

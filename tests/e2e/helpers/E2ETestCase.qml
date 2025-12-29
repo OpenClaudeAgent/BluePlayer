@@ -36,23 +36,6 @@ TestCase {
     property string currentTestName: ""
 
     // =========================================================================
-    // Signals for async operations
-    // =========================================================================
-    
-    /** Emitted when a screenshot operation completes */
-    signal screenshotComplete()
-
-    // =========================================================================
-    // Internal: SignalSpy for waiting on screenshot completion
-    // =========================================================================
-    
-    SignalSpy {
-        id: screenshotSpy
-        target: e2eTestCase
-        signalName: "screenshotComplete"
-    }
-
-    // =========================================================================
     // Lifecycle Hooks
     // =========================================================================
 
@@ -102,7 +85,7 @@ TestCase {
 
     /**
      * Takes a screenshot and saves it to disk.
-     * Uses SignalSpy to wait for the async grabToImage to complete.
+     * This is a fire-and-forget operation that won't fail the test.
      * @param suffix Optional suffix to add to the filename
      * @param target Optional Item to capture (defaults to test's parent Item)
      */
@@ -121,10 +104,7 @@ TestCase {
         var timestamp = new Date().toISOString().replace(/[:.]/g, "-")
         var testName = name + "_" + (suffix || timestamp)
         
-        // Clear previous signals
-        screenshotSpy.clear()
-        
-        // Start async grab
+        // Start async grab (fire and forget - don't block test)
         var success = captureTarget.grabToImage(function(image) {
             var path = screenshotDir + "/" + testName + ".png"
             if (image.saveToFile(path)) {
@@ -132,8 +112,6 @@ TestCase {
             } else {
                 console.warn("Failed to save screenshot: " + path)
             }
-            // Emit signal to notify completion
-            e2eTestCase.screenshotComplete()
         })
         
         if (!success) {
@@ -141,10 +119,8 @@ TestCase {
             return
         }
         
-        // Wait for the signal (max 2 seconds) - don't fail test if timeout
-        if (!screenshotSpy.wait(2000)) {
-            console.warn("E2ETestCase: Screenshot timeout (non-fatal)")
-        }
+        // Brief wait to allow screenshot to complete (non-blocking)
+        wait(100)
     }
 
     // =========================================================================
@@ -375,5 +351,174 @@ TestCase {
     function verifyNavigation(expectedView, timeout) {
         var success = waitForProperty(mainWindow, "currentView", expectedView, timeout || 3000)
         verify(success, "Should navigate to '" + expectedView + "' view (current: " + mainWindow.currentView + ")")
+    }
+
+    // =========================================================================
+    // High-level E2E Helpers
+    // =========================================================================
+
+    /**
+     * Waits until the application is fully loaded and ready.
+     * Ensures mainWindow exists and the initial view is displayed.
+     * @param timeout Maximum time to wait (default: 3000ms)
+     * @returns true if app is ready, false if timeout
+     */
+    function waitForAppReady(timeout) {
+        var maxTime = timeout || 3000
+        
+        // First, ensure mainWindow is found
+        if (!mainWindow) {
+            var found = waitForCondition(function() {
+                mainWindow = findChild(null, "mainWindow")
+                return mainWindow !== null
+            }, maxTime)
+            
+            if (!found) {
+                console.warn("E2ETestCase: mainWindow not found within timeout")
+                return false
+            }
+        }
+        
+        // Then wait for a valid view to be set
+        var ready = waitForCondition(function() {
+            return mainWindow.currentView && mainWindow.currentView.length > 0
+        }, maxTime / 2)
+        
+        if (ready) {
+            console.log("E2ETestCase: App ready, currentView = " + mainWindow.currentView)
+        }
+        
+        return ready
+    }
+
+    /**
+     * Navigates to a specific view by setting currentView property.
+     * Use for programmatic navigation in tests.
+     * @param viewName The view to navigate to ("home", "player", "login")
+     * @param timeout Maximum time to wait for navigation (default: 1500ms)
+     * @returns true if navigation succeeded
+     */
+    function navigateTo(viewName, timeout) {
+        if (!mainWindow) {
+            console.warn("E2ETestCase: Cannot navigate - mainWindow not set")
+            return false
+        }
+        
+        // Set the view
+        mainWindow.currentView = viewName
+        
+        // Wait for the navigation to complete
+        var success = waitForProperty(mainWindow, "currentView", viewName, timeout || 1500)
+        
+        if (success) {
+            console.log("E2ETestCase: Navigated to " + viewName)
+        } else {
+            console.warn("E2ETestCase: Navigation to " + viewName + " failed (current: " + mainWindow.currentView + ")")
+        }
+        
+        return success
+    }
+
+    /**
+     * Clicks an element and waits for a condition to be met.
+     * Useful for click actions that trigger async operations.
+     * @param element The element to click
+     * @param condition Function that returns true when ready
+     * @param timeout Maximum time to wait after click (default: 1500ms)
+     * @returns true if condition was met after click
+     */
+    function clickAndWait(element, condition, timeout) {
+        if (!element) {
+            console.warn("E2ETestCase: Cannot click - element is null")
+            return false
+        }
+        
+        verify(element.visible, "Element should be visible before clicking")
+        
+        mouseClick(element)
+        
+        if (condition) {
+            return waitForCondition(condition, timeout || 1500)
+        }
+        
+        // If no condition, just wait a bit
+        wait(timeout || 500)
+        return true
+    }
+
+    /**
+     * Verifies that a stream card exists and is visible.
+     * @param index The stream card index (default: 0)
+     * @returns The stream card element if found and valid
+     */
+    function verifyStreamCard(index) {
+        var cardIndex = index || 0
+        var objectName = "streamCard_" + cardIndex
+        
+        var card = waitForElement(objectName, 3000)
+        verify(card !== null, "Stream card " + cardIndex + " should exist")
+        verify(card.visible, "Stream card " + cardIndex + " should be visible")
+        
+        console.log("E2ETestCase: Verified stream card " + cardIndex)
+        return card
+    }
+
+    /**
+     * Verifies that a VOD card exists and is visible.
+     * @param index The VOD card index (default: 0)
+     * @returns The VOD card element if found and valid
+     */
+    function verifyVodCard(index) {
+        var cardIndex = index || 0
+        var objectName = "vodCard_" + cardIndex
+        
+        var card = waitForElement(objectName, 3000)
+        verify(card !== null, "VOD card " + cardIndex + " should exist")
+        verify(card.visible, "VOD card " + cardIndex + " should be visible")
+        
+        console.log("E2ETestCase: Verified VOD card " + cardIndex)
+        return card
+    }
+
+    /**
+     * Verifies that the player view is showing and has valid stream info.
+     * @returns The player view element
+     */
+    function verifyPlayerView() {
+        var playerView = waitForElement("playerView", 3000)
+        verify(playerView !== null, "Player view should exist")
+        verify(!playerView.showError, "Player should not show error")
+        
+        console.log("E2ETestCase: Verified player view")
+        return playerView
+    }
+
+    /**
+     * Waits for video playback to start.
+     * @param timeout Maximum time to wait (default: 10000ms)
+     * @returns true if playback started
+     */
+    function waitForPlayback(timeout) {
+        var playerView = findChild(mainWindow, "playerView")
+        if (!playerView) {
+            console.warn("E2ETestCase: Cannot wait for playback - playerView not found")
+            return false
+        }
+        
+        var maxTime = timeout || 10000
+        
+        var success = waitForCondition(function() {
+            // Accept playing state or valid HLS URL without error
+            return playerView.playing || 
+                   (!playerView.showError && playerView.hlsUrl && playerView.hlsUrl.length > 0)
+        }, maxTime)
+        
+        if (success) {
+            console.log("E2ETestCase: Playback state valid (playing=" + playerView.playing + ")")
+        } else {
+            console.warn("E2ETestCase: Playback timeout or error (error=" + playerView.showError + ")")
+        }
+        
+        return success
     }
 }

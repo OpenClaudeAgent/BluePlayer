@@ -1,5 +1,6 @@
 # E2E Context: Unauthenticated
 # Provides setup for tests with no authentication
+# Inherits from BaseE2EContext for common setup logic
 
 set(CMAKE_AUTOMOC ON)
 
@@ -10,18 +11,14 @@ add_library(e2e_context_unauthenticated STATIC
 
 target_include_directories(e2e_context_unauthenticated PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/../..  # For mocks/, servers/
+    ${CMAKE_CURRENT_SOURCE_DIR}/..      # For BaseE2EContext
+    ${CMAKE_CURRENT_SOURCE_DIR}/../..   # For mocks/, servers/
     ${CMAKE_SOURCE_DIR}/src
 )
 
+# Link to base context - it brings all common dependencies
 target_link_libraries(e2e_context_unauthenticated PUBLIC
-    Qt6::Core
-    Qt6::Quick
-    Qt6::Qml
-    Qt6::QuickTest
-    blueplayer_core
-    blueplayer_media
-    e2e_mock_servers
+    e2e_context_base
 )
 
 target_link_directories(e2e_context_unauthenticated PUBLIC ${HOMEBREW_PREFIX}/lib)
