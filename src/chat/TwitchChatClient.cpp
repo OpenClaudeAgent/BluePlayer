@@ -117,7 +117,14 @@ void TwitchChatClient::connectToChannel(const QString& channelName) {
     m_reconnectAttempts = 0;
     setConnectionState(ConnectionState::Connecting);
 
-    m_socket->open(QUrl(QString::fromLatin1(TWITCH_IRC_URL)));
+    // Allow override via environment variable for E2E testing
+    QString ircUrl = QString::fromUtf8(qgetenv("BLUEPLAYER_IRC_URL"));
+    if (ircUrl.isEmpty()) {
+        ircUrl = QString::fromLatin1(TWITCH_IRC_URL);
+    } else {
+        qInfo() << "[Chat] Using IRC proxy:" << ircUrl;
+    }
+    m_socket->open(QUrl(ircUrl));
 }
 
 void TwitchChatClient::disconnect() {

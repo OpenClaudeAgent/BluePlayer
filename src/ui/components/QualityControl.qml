@@ -11,6 +11,7 @@ import "../themes/BlueTheme.js" as BlueTheme
  */
 Item {
     id: root
+    objectName: "qualityControl"  // For E2E testing
 
     // Properties
     property var qualities: []           // List of {name: "1080p60", url: "..."}
@@ -29,6 +30,7 @@ Item {
     // Quality Button (HD icon)
     Rectangle {
         id: qualityButton
+        objectName: "qualityButton"  // For E2E testing
         anchors.fill: parent
         radius: width / 2
         color: qualityMouseArea.containsMouse || root.showPopup ? "#33FFFFFF" : "#1AFFFFFF"
@@ -44,6 +46,8 @@ Item {
 
         // Quality Icon - HD/SD or Audio indicator
         Text {
+            id: qualityButtonText
+            objectName: "qualityButtonText"  // For E2E testing
             anchors.centerIn: parent
             text: {
                 if (BlueTheme.isAudioQuality(root.currentQuality)) {
@@ -83,6 +87,7 @@ Item {
     // Quality Selector Popup - positioned above the button
     Rectangle {
         id: qualityPopup
+        objectName: "qualityPopup"  // For E2E testing
         width: 180
         height: root.showPopup ? contentColumn.height + 24 : 0
         anchors.bottom: qualityButton.top
@@ -143,6 +148,7 @@ Item {
 
                 delegate: Rectangle {
                     id: qualityItem
+                    objectName: "qualityOption_" + index  // For E2E testing
                     width: contentColumn.width
                     height: 36
                     radius: 8

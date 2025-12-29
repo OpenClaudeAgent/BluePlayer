@@ -1,5 +1,6 @@
 #include "BaseE2EContext.hpp"
 #include "E2EContextHelpers.hpp"
+#include "../servers/MockIrcServer.hpp"
 
 #include <clocale>
 
@@ -82,6 +83,12 @@ void BaseE2EContext::cleanupTestCase()
         m_hlsServer.reset();
     }
 
+    if (m_ircServer) {
+        log(QString("MockIrcServer handled %1 requests").arg(m_ircServer->requestCount()));
+        m_ircServer->stop();
+        m_ircServer.reset();
+    }
+
     log("Cleanup complete");
 }
 
@@ -124,6 +131,14 @@ void BaseE2EContext::startMockServers()
     } else {
         warn("test_segment.ts not found, using minimal segment");
     }
+
+    // Start MockIrcServer for chat testing
+    m_ircServer = std::make_unique<E2E::MockIrcServer>();
+    if (!m_ircServer->start()) {
+        warn("Failed to start MockIrcServer");
+    } else {
+        log(QString("MockIrcServer on port %1").arg(m_ircServer->port()));
+    }
 }
 
 void BaseE2EContext::loadFixtures()
@@ -165,12 +180,31 @@ void BaseE2EContext::loadFixtures()
         m_twitchServer->setUsers(*users);
         log(QString("Loaded %1 users").arg(users->size()));
     }
+
+    // Load search_results.json (optional)
+    auto searchResults = m_fixtureLoader->loadJsonArray("search_results.json");
+    if (searchResults) {
+        m_twitchServer->setSearchResults(*searchResults);
+        log(QString("Loaded %1 search results").arg(searchResults->size()));
+    }
+
+    // Load videos.json (optional)
+    auto videos = m_fixtureLoader->loadJsonArray("videos.json");
+    if (videos) {
+        m_twitchServer->setVideos(*videos);
+        log(QString("Loaded %1 videos").arg(videos->size()));
+    }
 }
 
 void BaseE2EContext::configureEnvironment()
 {
     qputenv("BLUEPLAYER_API_URL", m_twitchServer->baseUrl().toUtf8());
     qputenv("BLUEPLAYER_HLS_PROXY_URL", m_hlsServer->baseUrl().toUtf8());
+    
+    // Set IRC mock server URL for chat testing
+    if (m_ircServer) {
+        qputenv("BLUEPLAYER_IRC_URL", m_ircServer->url().toUtf8());
+    }
 
     if (qgetenv("TWITCH_CLIENT_ID").isEmpty()) {
         qputenv("TWITCH_CLIENT_ID", "e2e_test_client_id");
@@ -238,6 +272,12 @@ void BaseE2EContext::exposeServices(QQmlEngine* engine)
             qobject_cast<QObject*>(m_coreApp->twitchService()));
         engine->rootContext()->setContextProperty("cacheManager",
             qobject_cast<QObject*>(m_coreApp->cacheManager()));
+    }
+    
+    // Expose mock IRC server for chat testing
+    if (m_ircServer) {
+        engine->rootContext()->setContextProperty("mockIrcServer",
+            qobject_cast<QObject*>(m_ircServer.get()));
     }
 }
 

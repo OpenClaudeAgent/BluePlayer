@@ -536,15 +536,19 @@ Créer une suite de scénarios E2E qui couvrent les flux utilisateur critiques d
 ## Checklist de validation
 
 ### Infrastructure
-- [ ] Fixtures JSON creees pour VOD, chat, recherche
-- [ ] MockTwitchServer supporte les endpoints supplementaires
-- [ ] Nouveaux contexts crees si necessaire
+- [x] Fixtures JSON creees pour VOD, chat, recherche
+- [x] MockTwitchServer supporte les endpoints supplementaires
+- [x] MockIrcServer cree pour tests chat
+- [x] MockHlsServer supporte VOD et multi-qualite
+- [x] Fonction CMake add_e2e_scenario() pour reduire duplication
+- [x] Labels e2e/e2e-extended pour profils de test
+- [x] Commandes make e2e / make e2e-extended
 
-### Scenarios Priorite 1 (Sprint 1)
-- [ ] A.1 - search-stream implementé et passant
-- [ ] A.2 - play-cached-vod implementé et passant
-- [ ] A.3 - quality-switch implementé et passant
-- [ ] B.1 - chat-open-close implementé et passant
+### Scenarios Priorite 1 (Sprint 1) - COMPLETE
+- [x] A.1 - search-stream implementé et passant
+- [ ] A.2 - play-cached-vod (reporte Sprint 2)
+- [x] A.3 - quality-switch implementé et passant
+- [x] B.1 - chat-open-close implementé et passant (avec reception/envoi messages)
 
 ### Scenarios Priorite 2 (Sprint 2)
 - [ ] A.4 - resume-playback implementé et passant
@@ -566,9 +570,10 @@ Créer une suite de scénarios E2E qui couvrent les flux utilisateur critiques d
 - [ ] E.2 - animations implementé et passant
 
 ### Integration CI
-- [ ] Tous les scenarios s'executent via `make e2e`
-- [ ] Screenshots captures pour chaque test
-- [ ] Pas de test flaky apres 3 executions consecutives
+- [x] Tous les scenarios s'executent via `make e2e`
+- [x] Screenshots captures pour chaque test
+- [x] wait() hardcodes remplaces par tryVerify()/clickAndWait()
+- [ ] Pas de test flaky apres 3 executions consecutives (parallelisme a resoudre - voir Plan 45)
 
 ---
 

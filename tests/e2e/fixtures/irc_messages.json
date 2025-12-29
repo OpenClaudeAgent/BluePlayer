@@ -1,0 +1,40 @@
+{
+  "messages": [
+    {
+      "raw": "@badge-info=subscriber/12;badges=subscriber/12,premium/1;color=#FF4500;display-name=TestUser1;emotes=;id=msg-001;mod=0;room-id=12345;subscriber=1;tmi-sent-ts=1703851200000;turbo=0;user-id=11111;user-type= :testuser1!testuser1@testuser1.tmi.twitch.tv PRIVMSG #teststreamer :Hello everyone!",
+      "username": "TestUser1",
+      "displayName": "TestUser1",
+      "color": "#FF4500",
+      "message": "Hello everyone!",
+      "badges": ["subscriber/12", "premium/1"],
+      "emotes": []
+    },
+    {
+      "raw": "@badge-info=;badges=moderator/1,subscriber/24;color=#00FF00;display-name=ModUser;emotes=;id=msg-002;mod=1;room-id=12345;subscriber=1;tmi-sent-ts=1703851201000;turbo=0;user-id=22222;user-type=mod :moduser!moduser@moduser.tmi.twitch.tv PRIVMSG #teststreamer :Welcome to the stream!",
+      "username": "ModUser",
+      "displayName": "ModUser",
+      "color": "#00FF00",
+      "message": "Welcome to the stream!",
+      "badges": ["moderator/1", "subscriber/24"],
+      "emotes": []
+    },
+    {
+      "raw": "@badge-info=subscriber/1;badges=subscriber/0;color=#9146FF;display-name=NewSub;emotes=25:0-4;id=msg-003;mod=0;room-id=12345;subscriber=1;tmi-sent-ts=1703851202000;turbo=0;user-id=33333;user-type= :newsub!newsub@newsub.tmi.twitch.tv PRIVMSG #teststreamer :Kappa This stream is great!",
+      "username": "NewSub",
+      "displayName": "NewSub",
+      "color": "#9146FF",
+      "message": "Kappa This stream is great!",
+      "badges": ["subscriber/0"],
+      "emotes": [{"id": "25", "name": "Kappa", "positions": [[0, 4]]}]
+    },
+    {
+      "raw": "@badge-info=;badges=vip/1;color=#E91E63;display-name=VIPViewer;emotes=;id=msg-004;mod=0;room-id=12345;subscriber=0;tmi-sent-ts=1703851203000;turbo=0;user-id=44444;user-type= :vipviewer!vipviewer@vipviewer.tmi.twitch.tv PRIVMSG #teststreamer :VIP in the house!",
+      "username": "VIPViewer",
+      "displayName": "VIPViewer",
+      "color": "#E91E63",
+      "message": "VIP in the house!",
+      "badges": ["vip/1"],
+      "emotes": []
+    }
+  ]
+}

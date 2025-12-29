@@ -117,6 +117,7 @@ Consultez la [Roadmap](roadmap/README.md) pour le suivi des tâches planifiées 
 
 | Version | Date | Description |
 |---------|------|-------------|
+| v0.31.0 | 2025-12-29 | Scenarios E2E Sprint 1 (search-stream, quality-switch, chat-open-close, MockIrcServer, macro CMake) |
 | v0.30.0 | 2025-12-29 | Refactoring E2E (BaseE2EContext -96%, MockHttpServer -38%, FixtureLoader, E2EConstants, E2EScenarioTemplate) |
 | v0.29.0 | 2025-12-29 | Infrastructure E2E complete (segment video reel, fix mpv locale, 13 tests, validation lecture) |
 | v0.28.0 | 2025-12-29 | Gestion Logs (rotation 7j/20 fichiers, audit global, 42 logs INFO standardisés, 8 tests) |

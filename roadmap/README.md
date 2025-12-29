@@ -87,7 +87,8 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 29 (Qualité défaut) | 11 (Qualité) ✅, 12 (Préférences) ✅ | Persistance et intégration de l'UI créée en Plan 12 |
 | **40 (E2E Testing)** | Aucune | Infrastructure technique, peut démarrer immédiatement |
 | **43 (Refactoring E2E)** | 40 (E2E Testing) ✅ | Améliore l'infrastructure créée en Plan 40 |
-| **44 (Scénarios E2E)** | 43 (Refactoring E2E) | Recommandé : les helpers simplifiés facilitent la création de scénarios |
+| **44 (Scénarios E2E)** | 43 (Refactoring E2E) ✅ | Recommandé : les helpers simplifiés facilitent la création de scénarios |
+| **45 (Parallelisme E2E)** | 43 (Refactoring E2E) ✅ | Isolation ports pour exécution parallèle des tests |
 
 ---
 
@@ -165,7 +166,8 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | **41** | **Gestion et Nettoyage Logs** | [plan-41](./plan-41-log-management.md) | `feature/log-management` | v0.28.0 | 🟢 Terminé |
 | 42 | Fix TypeError ChatMessage.qml | [plan-42](./plan-42-fix-chatmessage-null.md) | `fix/chatmessage-null` | v0.27.1 | 🟢 Terminé |
 | **43** | **Refactoring Infrastructure E2E** | [plan-43](./plan-43-e2e-refactoring.md) | `feature/e2e-refactoring` | v0.30.0 | 🟢 Terminé |
-| **44** | **Scenarios E2E - Couverture Features** | [plan-44](./plan-44-e2e-scenarios.md) | `test/e2e-scenarios` | - | 🔴 En attente |
+| **44** | **Scenarios E2E - Sprint 1** | [plan-44](./plan-44-e2e-scenarios.md) | `feature/e2e-scenarios` | v0.31.0 | 🟢 Terminé |
+| **45** | **Parallelisme Tests E2E** | [plan-45](./plan-45-e2e-parallelism.md) | `test/e2e-parallelism` | - | 🔴 En attente |
 
 ### Plans spéciaux
 
@@ -181,6 +183,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 🧹 Maintenance | Plan 41 | **Gestion Logs** - Rotation automatique, audit logs excessifs |
 | 🔧 Refactoring | Plan 43 | **Refactoring E2E** - BaseE2EContext, MockHttpServer, FixtureLoader |
 | 🧪 Testing | Plan 44 | **Scenarios E2E** - 17 nouveaux scenarios couvrant features v0.1.0-v0.29.0 |
+| 🧪 Testing | Plan 45 | **Parallelisme E2E** - Isolation ports pour execution parallele des tests |
 
 > **Note Plan 21 vs Plan 24** :
 > - **Plan 21** est un template récurrent définissant la méthodologie d'audit qualité
@@ -234,6 +237,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 2025-12-29 | Tâche 42 terminée - Fix TypeError ChatMessage.qml (null-check emoteParts, -35% volume logs) |
 | 2025-12-29 | Tâche 41 terminée - Gestion Logs (rotation 7j/20 fichiers, audit global, 42 logs INFO standardisés) |
 | 2025-12-29 | Tâche 43 terminée - Refactoring E2E (BaseE2EContext -96%, MockHttpServer -38%, FixtureLoader, E2EConstants, E2EScenarioTemplate) |
+| 2025-12-29 | Tâche 44 Sprint 1 terminée - Scenarios E2E (search-stream, quality-switch, chat-open-close + MockIrcServer + macro CMake) |
 
 ---
 
@@ -265,3 +269,4 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 2025-12-29 | Ajout plan 42 - Fix TypeError ChatMessage.qml (null check sur emoteParts) |
 | 2025-12-29 | Ajout plan 43 - Refactoring Infrastructure E2E (BaseE2EContext, MockHttpServer, FixtureLoader) |
 | 2025-12-29 | Ajout plan 44 - Scenarios E2E (17 scenarios couvrant 23 plans termines, 4 sprints) |
+| 2025-12-29 | Ajout plan 45 - Parallelisme E2E (isolation ports pour execution parallele) |

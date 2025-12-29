@@ -4,6 +4,7 @@ import "../themes/BlueTheme.js" as BlueTheme
 
 Rectangle {
   id: searchResultsRoot
+  objectName: "searchResultsPopup"  // For E2E testing
   
   // Theme access
   readonly property var tm: typeof themeManager !== "undefined" ? themeManager : null
@@ -96,6 +97,7 @@ Rectangle {
         
         delegate: Rectangle {
           id: channelDelegate
+          objectName: "searchResult_" + index  // For E2E testing
           width: contentColumn.width
           height: {
             var info = channelDelegate.channelInfo

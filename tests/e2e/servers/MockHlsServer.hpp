@@ -40,12 +40,27 @@ public:
     // =========================================================================
 
     /**
-     * @brief Add a channel that the server will serve HLS for.
+     * @brief Add a live channel that the server will serve HLS for.
      * @param channelName Name of the channel
      * @param segmentCount Number of segments in the playlist
      * @param segmentDuration Duration of each segment in seconds
+     *
+     * Live channels have rolling playlists (mediaSequence increments).
      */
     void addChannel(const QString& channelName, int segmentCount = 2, int segmentDuration = 1);
+
+    /**
+     * @brief Add a VOD channel with a complete playlist.
+     * @param channelName Name of the channel
+     * @param totalDurationSec Total duration in seconds (e.g., 60 for 1 minute)
+     * @param segmentDuration Duration of each segment in seconds
+     *
+     * VOD channels have complete playlists with #EXT-X-ENDLIST.
+     * Use this for cache/resume playback testing.
+     *
+     * Example: addVodChannel("vod123", 60, 2) creates 30 segments of 2 seconds.
+     */
+    void addVodChannel(const QString& channelName, int totalDurationSec = 60, int segmentDuration = 2);
 
     /**
      * @brief Remove a channel.
@@ -108,6 +123,7 @@ private:
         int segmentCount = 3;
         int segmentDuration = 2;
         int mediaSequence = 0;
+        bool isVod = false;  // VOD channels have complete playlists with #EXT-X-ENDLIST
     };
 
     // Endpoint handlers

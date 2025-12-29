@@ -65,6 +65,16 @@ public:
      */
     void setHlsServerUrl(const QString& hlsServerUrl);
 
+    /**
+     * @brief Set the search results to return from /helix/search/channels.
+     */
+    void setSearchResults(const QJsonArray& searchResults);
+
+    /**
+     * @brief Set the videos to return from /helix/videos.
+     */
+    void setVideos(const QJsonArray& videos);
+
     // =========================================================================
     // Error Simulation
     // =========================================================================
@@ -105,6 +115,8 @@ private:
     QJsonArray m_streams;
     QJsonArray m_users;
     QJsonArray m_channels;
+    QJsonArray m_searchResults;
+    QJsonArray m_videos;
     QString m_validToken = "test_token_12345";
     QString m_hlsServerUrl;
     QMap<QString, QPair<int, QString>> m_simulatedErrors;
