@@ -30,11 +30,17 @@ foreach(qml_file ${QML_TEST_FILES})
     configure_file(${qml_file} ${CMAKE_CURRENT_BINARY_DIR}/${qml_name} COPYONLY)
 endforeach()
 
+# Copy E2E helpers (E2ETestCase.qml)
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../helpers/E2ETestCase.qml
+    ${CMAKE_CURRENT_BINARY_DIR}/E2ETestCase.qml
+    COPYONLY
+)
+
 # Register as CTest
 add_test(
     NAME e2e_open_stream
     COMMAND ${CMAKE_COMMAND} -E env
-        QT_QPA_PLATFORM=offscreen
         QML_IMPORT_PATH=${CMAKE_SOURCE_DIR}/src/ui
         $<TARGET_FILE:e2e_open_stream>
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}

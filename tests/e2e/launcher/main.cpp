@@ -25,8 +25,9 @@
 #include "ui/CacheManagerViewModel.hpp"
 #include "ui/HomeViewModel.hpp"
 
-#include <QGuiApplication>
+#include <QApplication>
 #include <QQmlApplicationEngine>
+#include <QWidget>
 #include <QQmlContext>
 #include <QDir>
 #include <QFile>
@@ -35,11 +36,19 @@
 #include <QJsonObject>
 #include <qqml.h>
 
+#include <clocale>
 #include <memory>
 
 int main(int argc, char *argv[])
 {
-    QGuiApplication app(argc, argv);
+    // Required for mpv to work correctly - must be set before AND after QApplication
+    std::setlocale(LC_NUMERIC, "C");
+
+    QApplication app(argc, argv);
+    
+    // Re-set locale after QApplication (Qt may reset it)
+    std::setlocale(LC_NUMERIC, "C");
+    
     app.setApplicationName("BluePlayer E2E");
     app.setOrganizationName("BluePlayer");
 
@@ -79,6 +88,15 @@ int main(int argc, char *argv[])
     qInfo() << "[E2E Launcher] MockHlsServer on port" << hlsServer->port();
 
     twitchServer->setHlsServerUrl(hlsServer->baseUrl());
+
+    // Load test video segment
+    QString segmentPath = fixturesPath + "/test_segment.ts";
+    if (QFile::exists(segmentPath)) {
+        hlsServer->loadSegmentFromFile(segmentPath);
+        qInfo() << "[E2E Launcher] Video segment loaded";
+    } else {
+        qWarning() << "[E2E Launcher] test_segment.ts not found, using minimal segment";
+    }
 
     // ========================================================================
     // STEP 3: Load fixtures

@@ -130,13 +130,12 @@ E2E_ALL_SCENARIOS := $(shell find $(E2E_SRC_SCENARIOS_DIR) -mindepth 1 -maxdepth
 #   make e2e SCENARIO=open-stream # Run only open-stream
 .PHONY: e2e
 e2e: build
-	@mkdir -p /tmp/e2e_screenshots
 ifdef SCENARIO
 	@echo "== Building E2E scenario: $(SCENARIO) =="
 	@cd $(BUILD_DIR) && $(CMAKE_EXECUTABLE) --build . --target e2e_$(subst -,_,$(SCENARIO)) --parallel
 	@echo ""
 	@echo "== Running E2E scenario: $(SCENARIO) =="
-	@cd $(E2E_SCENARIOS_DIR)/$(SCENARIO) && QT_QPA_PLATFORM=offscreen ./e2e_$(subst -,_,$(SCENARIO))
+	@cd $(E2E_SCENARIOS_DIR)/$(SCENARIO) && ./e2e_$(subst -,_,$(SCENARIO))
 else
 	@echo "== Building all E2E scenarios =="
 	@cd $(BUILD_DIR) && $(CMAKE_EXECUTABLE) --build . --target $(foreach s,$(E2E_ALL_SCENARIOS),e2e_$(subst -,_,$s)) --parallel
@@ -145,12 +144,12 @@ else
 	@for scenario in $(E2E_ALL_SCENARIOS); do \
 		echo ""; \
 		echo "--- $$scenario ---"; \
-		cd $(E2E_SCENARIOS_DIR)/$$scenario && QT_QPA_PLATFORM=offscreen ./e2e_$$(echo $$scenario | tr '-' '_') || true; \
+		cd $(E2E_SCENARIOS_DIR)/$$scenario && ./e2e_$$(echo $$scenario | tr '-' '_') || true; \
 	done
 	@echo ""
 	@echo "== E2E tests completed =="
 endif
-	@echo "Screenshots: /tmp/e2e_screenshots/"
+	@echo "Screenshots: $(BUILD_DIR)/tests/e2e/scenarios/*/e2e_screenshots/"
 
 # Launch app with mock servers (interactive)
 .PHONY: e2e-launcher

@@ -21,6 +21,9 @@ find_package(Qt6 6.5 COMPONENTS Core Network Quick QuickTest REQUIRED)
 # Mock HTTP servers (Twitch API, HLS)
 add_subdirectory(servers)
 
+# QML test helpers (E2ETestCase base class)
+add_subdirectory(helpers)
+
 # Reusable contexts (setups)
 add_subdirectory(contexts)
 

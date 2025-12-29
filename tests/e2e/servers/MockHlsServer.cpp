@@ -1,6 +1,7 @@
 #include "MockHlsServer.hpp"
 
 #include <QDebug>
+#include <QFile>
 #include <QRegularExpression>
 #include <QThread>
 
@@ -110,6 +111,21 @@ void MockHlsServer::simulateStall(bool stall)
   m_stalled = stall;
 }
 
+bool MockHlsServer::loadSegmentFromFile(const QString& filePath)
+{
+  QFile file(filePath);
+  if (!file.open(QIODevice::ReadOnly)) {
+    qWarning() << "MockHlsServer: Failed to load segment from" << filePath;
+    return false;
+  }
+  
+  m_segmentData = file.readAll();
+  file.close();
+  
+  qDebug() << "MockHlsServer: Loaded segment" << m_segmentData.size() << "bytes from" << filePath;
+  return true;
+}
+
 void MockHlsServer::handleNewConnection()
 {
   while (m_server && m_server->hasPendingConnections()) {
@@ -166,9 +182,24 @@ void MockHlsServer::handleClientDisconnected()
 
 QByteArray MockHlsServer::handleRequest(const QString& path)
 {
+  // Extract path without query string
+  QString cleanPath = path.split('?').first();
+
+  // Live stream endpoint: /live/{channel} (redirects to master playlist)
+  static QRegularExpression livePattern("/live/(\\w+)");
+  QRegularExpressionMatch liveMatch = livePattern.match(cleanPath);
+  if (liveMatch.hasMatch()) {
+    QString channel = liveMatch.captured(1);
+    if (m_channels.contains(channel)) {
+      Q_EMIT playlistRequested(channel, "master");
+      return makeMasterPlaylist(channel);
+    }
+    return makeResponse(404, "Not Found", "Channel not found", "text/plain");
+  }
+
   // Master playlist: /playlist/{channel}_master.m3u8
   static QRegularExpression masterPattern("/playlist/(\\w+)_master\\.m3u8");
-  QRegularExpressionMatch masterMatch = masterPattern.match(path);
+  QRegularExpressionMatch masterMatch = masterPattern.match(cleanPath);
   if (masterMatch.hasMatch()) {
     QString channel = masterMatch.captured(1);
     if (m_channels.contains(channel)) {
@@ -180,7 +211,7 @@ QByteArray MockHlsServer::handleRequest(const QString& path)
 
   // Media playlist: /playlist/{channel}_{quality}.m3u8
   static QRegularExpression mediaPattern("/playlist/(\\w+)_(\\w+)\\.m3u8");
-  QRegularExpressionMatch mediaMatch = mediaPattern.match(path);
+  QRegularExpressionMatch mediaMatch = mediaPattern.match(cleanPath);
   if (mediaMatch.hasMatch()) {
     QString channel = mediaMatch.captured(1);
     QString quality = mediaMatch.captured(2);
@@ -193,7 +224,7 @@ QByteArray MockHlsServer::handleRequest(const QString& path)
 
   // Segment: /segments/{channel}_{quality}_{number}.ts
   static QRegularExpression segmentPattern("/segments/(\\w+)_(\\w+)_(\\d+)\\.ts");
-  QRegularExpressionMatch segmentMatch = segmentPattern.match(path);
+  QRegularExpressionMatch segmentMatch = segmentPattern.match(cleanPath);
   if (segmentMatch.hasMatch()) {
     QString channel = segmentMatch.captured(1);
     int segmentNumber = segmentMatch.captured(3).toInt();
@@ -239,9 +270,10 @@ QByteArray MockHlsServer::makeMediaPlaylist(const QString& channel, const QStrin
 
   QString playlist = QString(
     "#EXTM3U\n"
-    "#EXT-X-VERSION:3\n"
+    "#EXT-X-VERSION:6\n"
     "#EXT-X-TARGETDURATION:%1\n"
     "#EXT-X-MEDIA-SEQUENCE:%2\n"
+    "#EXT-X-PLAYLIST-TYPE:EVENT\n"
   ).arg(duration).arg(config.mediaSequence);
 
   // Add segments
@@ -261,12 +293,14 @@ QByteArray MockHlsServer::makeMediaPlaylist(const QString& channel, const QStrin
 
 QByteArray MockHlsServer::makeMinimalSegment()
 {
-  // Create a minimal valid MPEG-TS segment
+  // If we have loaded a real segment, use it
+  if (!m_segmentData.isEmpty()) {
+    return m_segmentData;
+  }
+
+  // Fallback: Create a minimal valid MPEG-TS segment
   // This is a minimal PAT + PMT + PES with empty audio/video
   // Just enough to not cause parsing errors
-
-  // For testing purposes, we return a small dummy segment
-  // In a real scenario, this would be actual encoded video data
 
   static const unsigned char minimalTs[] = {
     // Sync byte + minimal TS packet (188 bytes total)

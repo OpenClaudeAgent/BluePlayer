@@ -10,6 +10,7 @@ target_link_libraries(e2e_launcher PRIVATE
     Qt6::Quick
     Qt6::Qml
     Qt6::Gui
+    Qt6::Widgets
     e2e_mock_servers
     blueplayer_core
     blueplayer_media

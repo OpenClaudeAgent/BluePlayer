@@ -1,4 +1,7 @@
 #include "UnauthenticatedSetup.hpp"
+#include "contexts/E2EContextHelpers.hpp"
+
+#include <clocale>
 
 #include "api/twitch/TwitchService.hpp"
 #include "chat/TwitchChatClient.hpp"
@@ -11,6 +14,7 @@
 #include <QCoreApplication>
 #include <QDebug>
 #include <QDir>
+#include <QFile>
 #include <QQmlContext>
 #include <qqml.h>
 
@@ -21,7 +25,19 @@ UnauthenticatedSetup::~UnauthenticatedSetup() = default;
 
 void UnauthenticatedSetup::applicationAvailable()
 {
+    // Required for mpv to work correctly
+    std::setlocale(LC_NUMERIC, "C");
+
     qInfo() << "[E2E Context: Unauthenticated] Initializing...";
+
+    // Find fixtures path
+    QString fixturesPath = QDir::currentPath() + "/tests/e2e/fixtures";
+    if (!QDir(fixturesPath).exists()) {
+        fixturesPath = QCoreApplication::applicationDirPath() + "/../../../../../tests/e2e/fixtures";
+    }
+    if (!QDir(fixturesPath).exists()) {
+        fixturesPath = QCoreApplication::applicationDirPath() + "/../../fixtures";
+    }
 
     // ========================================================================
     // STEP 1: Start mock servers
@@ -44,6 +60,12 @@ void UnauthenticatedSetup::applicationAvailable()
     qInfo() << "[E2E Context: Unauthenticated] MockHlsServer on port" << m_hlsPort;
 
     m_twitchServer->setHlsServerUrl(m_hlsServer->baseUrl());
+
+    // Load test video segment
+    QString segmentPath = fixturesPath + "/test_segment.ts";
+    if (QFile::exists(segmentPath)) {
+        m_hlsServer->loadSegmentFromFile(segmentPath);
+    }
 
     // ========================================================================
     // STEP 2: Configure environment
@@ -109,10 +131,7 @@ void UnauthenticatedSetup::qmlEngineAvailable(QQmlEngine* engine)
 
     // Context properties
     engine->rootContext()->setContextProperty("E2E_QML_PATH", uiPath);
-
-    QString screenshotsPath = appDir + "/screenshots";
-    QDir().mkpath(screenshotsPath);
-    engine->rootContext()->setContextProperty("E2E_SCREENSHOTS_PATH", screenshotsPath);
+    E2EContextHelpers::registerCommonContextProperties(engine);
 
     // Expose services
     if (m_coreApp) {

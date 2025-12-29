@@ -1,4 +1,7 @@
 #include "AuthenticatedSetup.hpp"
+#include "contexts/E2EContextHelpers.hpp"
+
+#include <clocale>
 
 #include "api/twitch/TwitchService.hpp"
 #include "chat/TwitchChatClient.hpp"
@@ -25,6 +28,9 @@ AuthenticatedSetup::~AuthenticatedSetup() = default;
 
 void AuthenticatedSetup::applicationAvailable()
 {
+    // Required for mpv to work correctly
+    std::setlocale(LC_NUMERIC, "C");
+
     qInfo() << "[E2E Context: Authenticated] Initializing...";
     
     // Find fixtures path
@@ -60,6 +66,14 @@ void AuthenticatedSetup::applicationAvailable()
     qInfo() << "[E2E Context: Authenticated] MockHlsServer on port" << m_hlsPort;
 
     m_twitchServer->setHlsServerUrl(m_hlsServer->baseUrl());
+
+    // Load test video segment
+    QString segmentPath = fixturesPath + "/test_segment.ts";
+    if (QFile::exists(segmentPath)) {
+        m_hlsServer->loadSegmentFromFile(segmentPath);
+    } else {
+        qWarning() << "[E2E Context: Authenticated] test_segment.ts not found, using minimal segment";
+    }
 
     // ========================================================================
     // STEP 2: Load fixtures
@@ -197,10 +211,7 @@ void AuthenticatedSetup::qmlEngineAvailable(QQmlEngine* engine)
 
     // Context properties
     engine->rootContext()->setContextProperty("E2E_QML_PATH", uiPath);
-
-    QString screenshotsPath = appDir + "/screenshots";
-    QDir().mkpath(screenshotsPath);
-    engine->rootContext()->setContextProperty("E2E_SCREENSHOTS_PATH", screenshotsPath);
+    E2EContextHelpers::registerCommonContextProperties(engine);
 
     // Expose services
     if (m_coreApp) {
