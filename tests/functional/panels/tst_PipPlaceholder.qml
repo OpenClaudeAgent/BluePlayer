@@ -216,7 +216,7 @@ Item {
                 signalName: "returnRequested"
             })
             
-            waitForRendering(placeholder)
+            // waitForRendering removed for perf
         }
 
         function cleanup() {

@@ -347,7 +347,7 @@ Item {
                 target: pipWindow, signalName: "playPauseRequested"
             })
             
-            waitForRendering(pipWindow)
+            // waitForRendering removed for perf
         }
 
         function cleanup() {
@@ -421,7 +421,7 @@ Item {
             
             // Act
             pipWindow.controlsVisible = false
-            waitForRendering(pipWindow)
+            // waitForRendering removed for perf
             
             // Assert
             compare(button.opacity, 0.0, "Close button should be hidden")
@@ -525,7 +525,7 @@ Item {
             
             // Act
             pipWindow.streamerName = "TestStreamer"
-            waitForRendering(pipWindow)
+            // waitForRendering removed for perf
             
             // Assert
             compare(badge.opacity, 1.0, "Badge should be visible")
@@ -537,7 +537,7 @@ Item {
             
             // Act
             pipWindow.streamerName = "xQc"
-            waitForRendering(pipWindow)
+            // waitForRendering removed for perf
             
             // Assert
             compare(label.text, "xQc", "Label should show streamer name")
@@ -660,7 +660,7 @@ Item {
             
             // Act
             pipWindow.controlsVisible = false
-            waitForRendering(pipWindow)
+            // waitForRendering removed for perf
             
             // Assert
             compare(controls.opacity, 0.0, "Bottom controls should be hidden")

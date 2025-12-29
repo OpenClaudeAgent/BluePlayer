@@ -172,7 +172,7 @@ Item {
             cardClickedSpy.clear()
             // Move mouse away from component to reset hover state
             mouseMove(root, 1, 1)
-            waitForRendering(baseCard)
+            // waitForRendering removed for perf
         }
 
         function cleanup() {
@@ -260,7 +260,7 @@ Item {
             
             // Act
             mouseMove(mouseArea, mouseArea.width / 2, mouseArea.height / 2)
-            waitForRendering(baseCard)
+            // waitForRendering removed for perf
             
             // Assert
             tryCompare(baseCard, "hovered", true, 100, "hovered should be true when mouse is over")
@@ -270,12 +270,12 @@ Item {
             // Arrange
             var mouseArea = findChild(baseCard, "mouseArea")
             mouseMove(mouseArea, mouseArea.width / 2, mouseArea.height / 2)
-            waitForRendering(baseCard)
+            // waitForRendering removed for perf
             tryCompare(baseCard, "hovered", true, 100, "Should be hovered initially")
             
             // Act
             mouseMove(root, 1, 1)
-            waitForRendering(baseCard)
+            // waitForRendering removed for perf
             
             // Assert
             tryCompare(baseCard, "hovered", false, 100, "hovered should be false after mouse leaves")
@@ -292,7 +292,7 @@ Item {
             
             // Act
             mouseMove(mouseArea, mouseArea.width / 2, mouseArea.height / 2)
-            waitForRendering(baseCard)
+            // waitForRendering removed for perf
             
             // Assert - hover state works but click doesn't
             tryCompare(baseCard, "hovered", true, 100, "Placeholder should still show hover state")
@@ -324,7 +324,7 @@ Item {
             
             // Act
             mouseMove(mouseArea, mouseArea.width / 2, mouseArea.height / 2)
-            waitForRendering(baseCard)
+            // waitForRendering removed for perf
             
             // Assert
             tryCompare(cardBackground, "state", "hovered", 100, "State should be 'hovered' when mouse over")
@@ -333,7 +333,7 @@ Item {
         function test_defaultState_isEmpty() {
             // Arrange - ensure no hover
             mouseMove(root, 1, 1)
-            waitForRendering(baseCard)
+            // waitForRendering removed for perf
             
             // Assert
             var cardBackground = findChild(baseCard, "cardBackground")

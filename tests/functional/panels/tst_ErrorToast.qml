@@ -144,7 +144,7 @@ Item {
             showErrorChangedSpy = createTemporaryObject(signalSpyComponent, root, {target: errorToast, signalName: "showErrorChanged"})
             messageChangedSpy = createTemporaryObject(signalSpyComponent, root, {target: errorToast, signalName: "messageChanged"})
             
-            waitForRendering(errorToast)
+            // waitForRendering removed for perf
         }
         
         function cleanup() {
@@ -181,18 +181,18 @@ Item {
         function test_showError_setsOpacityToOne() {
             // Ensure toast is hidden and wait for any animation to complete
             errorToast.showError = false
-            waitForRendering(errorToast)
+            // waitForRendering removed for perf
             verify(errorToast.opacity < 0.1, "Initially low opacity")
             
             errorToast.showError = true
-            waitForRendering(errorToast)
+            // waitForRendering removed for perf
             
             tryCompare(errorToast, "opacity", 1.0, 100, "Toast opacity becomes 1.0 when shown")
         }
         
         function test_hideError_makesToastInvisible() {
             errorToast.showError = true
-            waitForRendering(errorToast)
+            // waitForRendering removed for perf
             compare(errorToast.visible, true, "Toast is visible")
             
             errorToast.showError = false
@@ -202,11 +202,11 @@ Item {
         
         function test_hideError_setsOpacityToZero() {
             errorToast.showError = true
-            waitForRendering(errorToast)
+            // waitForRendering removed for perf
             tryCompare(errorToast, "opacity", 1.0, 100, "Toast has full opacity")
             
             errorToast.showError = false
-            waitForRendering(errorToast)
+            // waitForRendering removed for perf
             
             tryCompare(errorToast, "opacity", 0.0, 100, "Toast opacity becomes 0 when hidden")
         }
@@ -348,7 +348,7 @@ Item {
         function test_autoHideTimer_disabled_staysVisible() {
             errorToast.autoHideDuration = 0
             errorToast.showError = true
-            waitForRendering(errorToast)
+            // waitForRendering removed for perf
             
             compare(errorToast.showError, true, "Toast stays visible with zero duration")
         }
@@ -424,7 +424,7 @@ Item {
             
             // 2. Show error
             errorToast.show("Connection lost")
-            waitForRendering(errorToast)
+            // waitForRendering removed for perf
             
             compare(errorToast.visible, true, "Now visible")
             tryCompare(errorToast, "opacity", 1.0, 100, "Now opaque")
@@ -432,7 +432,7 @@ Item {
             
             // 3. Hide error
             errorToast.hide()
-            waitForRendering(errorToast)
+            // waitForRendering removed for perf
             
             compare(errorToast.visible, false, "Hidden again")
             tryCompare(errorToast, "opacity", 0.0, 100, "Transparent again")
@@ -456,7 +456,7 @@ Item {
             errorToast.show("Will hide manually")
             
             // Hide before timer
-            waitForRendering(errorToast)
+            // waitForRendering removed for perf
             errorToast.hide()
             
             // Toast should stay hidden

@@ -145,7 +145,7 @@ Item {
             seekDragEndedSpy = createTemporaryObject(signalSpyComponent, root, {target: seekBar, signalName: "seekDragEnded"})
             seekPreviewedSpy = createTemporaryObject(signalSpyComponent, root, {target: seekBar, signalName: "seekPreviewed"})
             
-            waitForRendering(seekBar)
+            // waitForRendering removed for perf
         }
         
         function cleanup() {
@@ -194,7 +194,7 @@ Item {
             seekBar.liveMode = true
             seekBar.isReplayMode = false
             seekBar.duration = 100
-            waitForRendering(seekBar)
+            // waitForRendering removed for perf
             
             compare(seekBar.isLiveMode, true, "isLiveMode is true")
             compare(seekBar.value, seekBar.to, "Slider at live edge in live mode")
@@ -276,7 +276,7 @@ Item {
             seekBar.duration = 100
             seekBar.liveMode = false
             seekBar.currentPosition = 50
-            waitForRendering(seekBar)
+            // waitForRendering removed for perf
             
             compare(seekBar.userDragging, false, "Initially not dragging")
             
@@ -294,7 +294,7 @@ Item {
             seekBar.duration = 100
             seekBar.liveMode = false
             seekBar.currentPosition = 50
-            waitForRendering(seekBar)
+            // waitForRendering removed for perf
             
             // Press and release
             mousePress(seekBar, seekBar.width / 2, seekBar.height / 2)
@@ -310,13 +310,13 @@ Item {
             if (root.isOffscreen) { skip("Mouse events not supported in offscreen mode"); return }
             seekBar.duration = 100
             seekBar.liveMode = false
-            waitForRendering(seekBar)
+            // waitForRendering removed for perf
             
             // Simulate drag
             mousePress(seekBar, 10, seekBar.height / 2)
             tryCompare(seekBar, "pressed", true, 100)
             mouseMove(seekBar, seekBar.width / 2, seekBar.height / 2)
-            waitForRendering(seekBar)
+            // waitForRendering removed for perf
             
             verify(seekPreviewedSpy.count >= 1, "seekPreviewed emitted during drag")
             
@@ -331,7 +331,7 @@ Item {
             if (!requiresSlider()) return
             seekBar.liveMode = true
             seekBar.duration = 100
-            waitForRendering(seekBar)
+            // waitForRendering removed for perf
             compare(seekBar.value, 100, "At edge in live mode")
             
             seekBar.liveMode = false
@@ -348,7 +348,7 @@ Item {
             tryCompare(seekBar, "value", 30, 100, "At position in VOD mode")
             
             seekBar.liveMode = true
-            waitForRendering(seekBar)
+            // waitForRendering removed for perf
             
             compare(seekBar.value, 100, "At edge after switch to live")
         }
@@ -362,7 +362,7 @@ Item {
             seekBar.duration = 100
             seekBar.liveMode = false
             seekBar.currentPosition = 50
-            waitForRendering(seekBar)
+            // waitForRendering removed for perf
             
             compare(seekRequestedSpy.count, 0, "No seekRequested without interaction")
             compare(seekDragStartedSpy.count, 0, "No seekDragStarted without interaction")
@@ -374,7 +374,7 @@ Item {
             if (root.isOffscreen) { skip("Mouse events not supported in offscreen mode"); return }
             seekBar.duration = 100
             seekBar.liveMode = false
-            waitForRendering(seekBar)
+            // waitForRendering removed for perf
             
             // Press
             mousePress(seekBar, seekBar.width / 2, seekBar.height / 2)

@@ -534,7 +534,7 @@ Item {
             
             mockChatClient.reset()
             mouseMove(root, 1, 1)
-            waitForRendering(chatPanel)
+            // Skip waitForRendering in init - tests will wait if needed
         }
 
         function cleanup() {
@@ -586,7 +586,7 @@ Item {
         function test_header_channelNameWithHash() {
             // Arrange
             chatPanel.channelName = "streamer123"
-            waitForRendering(chatPanel)
+            // waitForRendering removed for perf
             
             // Assert
             var nameText = findChild(chatPanel, "channelNameText")
@@ -615,7 +615,7 @@ Item {
             // Arrange
             chatPanel.chatClient = mockChatClient
             mockChatClient.connectionStatus = "connected"
-            waitForRendering(chatPanel)
+            // waitForRendering removed for perf
             
             // Assert
             var statusBar = findChild(chatPanel, "statusBar")
@@ -631,7 +631,7 @@ Item {
             // Arrange
             chatPanel.chatClient = mockChatClient
             mockChatClient.connectionStatus = "connecting"
-            waitForRendering(chatPanel)
+            // waitForRendering removed for perf
             
             // Assert
             var statusText = findChild(chatPanel, "statusText")
@@ -690,11 +690,11 @@ Item {
         function test_messageList_receivesMessages() {
             // Arrange
             chatPanel.chatClient = mockChatClient
-            waitForRendering(chatPanel)
+            // waitForRendering removed for perf
             
             // Act
             mockChatClient.simulateMessage("testUser", "Hello world!")
-            waitForRendering(chatPanel)
+            // waitForRendering removed for perf
             
             // Assert
             var listView = findChild(chatPanel, "messageListView")
@@ -704,13 +704,13 @@ Item {
         function test_messageList_multipleMessages() {
             // Arrange
             chatPanel.chatClient = mockChatClient
-            waitForRendering(chatPanel)
+            // waitForRendering removed for perf
             
             // Act
             mockChatClient.simulateMessage("user1", "Message 1")
             mockChatClient.simulateMessage("user2", "Message 2")
             mockChatClient.simulateMessage("user3", "Message 3")
-            waitForRendering(chatPanel)
+            // waitForRendering removed for perf
             
             // Assert
             var listView = findChild(chatPanel, "messageListView")
@@ -721,13 +721,13 @@ Item {
             // Arrange
             chatPanel.chatClient = mockChatClient
             chatPanel.maxMessages = 5
-            waitForRendering(chatPanel)
+            // waitForRendering removed for perf
             
             // Act - send more than maxMessages
             for (var i = 0; i < 8; i++) {
                 mockChatClient.simulateMessage("user" + i, "Message " + i)
             }
-            waitForRendering(chatPanel)
+            // waitForRendering removed for perf
             
             // Assert
             var listView = findChild(chatPanel, "messageListView")
@@ -738,13 +738,13 @@ Item {
             // Arrange
             chatPanel.chatClient = mockChatClient
             mockChatClient.simulateMessage("user", "Test message")
-            waitForRendering(chatPanel)
+            // waitForRendering removed for perf
             var listView = findChild(chatPanel, "messageListView")
             tryCompare(listView, "count", 1, 100, "Should have a message first")
             
             // Act
             chatPanel.clear()
-            waitForRendering(chatPanel)
+            // waitForRendering removed for perf
             
             // Assert
             compare(listView.count, 0, "clear() should remove all messages")
@@ -763,7 +763,7 @@ Item {
             // Arrange
             chatPanel.chatClient = mockChatClient
             mockChatClient.connectionStatus = "connected"
-            waitForRendering(chatPanel)
+            // waitForRendering removed for perf
             
             // Assert
             var emptyText = findChild(chatPanel, "emptyStateText")
@@ -803,7 +803,7 @@ Item {
             var sendBtn = findChild(chatPanel, "sendButton")
             var input = findChild(chatPanel, "messageInput")
             input.text = ""
-            waitForRendering(chatPanel)
+            // waitForRendering removed for perf
             
             compare(sendBtn.opacity, 0.5, "Send button should have low opacity when input empty")
         }
@@ -812,7 +812,7 @@ Item {
             var sendBtn = findChild(chatPanel, "sendButton")
             var input = findChild(chatPanel, "messageInput")
             input.text = "Hello"
-            waitForRendering(chatPanel)
+            // waitForRendering removed for perf
             
             compare(sendBtn.opacity, 1.0, "Send button should have full opacity with text")
         }
@@ -823,11 +823,11 @@ Item {
             var input = findChild(chatPanel, "messageInput")
             var sendMouseArea = findChild(chatPanel, "sendMouseArea")
             input.text = "Test message"
-            waitForRendering(chatPanel)
+            // waitForRendering removed for perf
             
             // Act
             mouseClick(sendMouseArea)
-            waitForRendering(chatPanel)
+            // waitForRendering removed for perf
             
             // Assert
             compare(input.text, "", "Input should be cleared after sending")
@@ -840,11 +840,11 @@ Item {
             var input = findChild(chatPanel, "messageInput")
             var sendMouseArea = findChild(chatPanel, "sendMouseArea")
             input.text = ""
-            waitForRendering(chatPanel)
+            // waitForRendering removed for perf
             
             // Act
             mouseClick(sendMouseArea)
-            waitForRendering(chatPanel)
+            // waitForRendering removed for perf
             
             // Assert
             compare(messageReceivedSpy.count, 0, "Should not send empty message")
@@ -871,11 +871,11 @@ Item {
         function test_channelChange_connectsToChannel() {
             // Arrange
             chatPanel.chatClient = mockChatClient
-            waitForRendering(chatPanel)
+            // waitForRendering removed for perf
             
             // Act
             chatPanel.channelName = "newchannel"
-            waitForRendering(chatPanel)
+            // waitForRendering removed for perf
             
             // Assert
             compare(mockChatClient.currentChannel, "newchannel", "Should connect to new channel")
@@ -886,13 +886,13 @@ Item {
             // Arrange
             chatPanel.chatClient = mockChatClient
             mockChatClient.simulateMessage("user", "Old message")
-            waitForRendering(chatPanel)
+            // waitForRendering removed for perf
             var listView = findChild(chatPanel, "messageListView")
             tryCompare(listView, "count", 1, 100, "Should have a message first")
             
             // Act
             chatPanel.channelName = "newchannel"
-            waitForRendering(chatPanel)
+            // waitForRendering removed for perf
             
             // Assert
             compare(listView.count, 0, "Messages should be cleared on channel change")
@@ -910,7 +910,7 @@ Item {
         function test_scrollToBottomButton_hiddenWhenNoMessages() {
             // Arrange
             chatPanel.autoScroll = false
-            waitForRendering(chatPanel)
+            // waitForRendering removed for perf
             
             // Assert
             var btn = findChild(chatPanel, "scrollToBottomButton")
@@ -922,7 +922,7 @@ Item {
             chatPanel.chatClient = mockChatClient
             chatPanel.autoScroll = false
             mockChatClient.simulateMessage("user", "Test message")
-            waitForRendering(chatPanel)
+            // waitForRendering removed for perf
             
             // Assert
             var btn = findChild(chatPanel, "scrollToBottomButton")
@@ -934,12 +934,12 @@ Item {
             chatPanel.chatClient = mockChatClient
             chatPanel.autoScroll = false
             mockChatClient.simulateMessage("user", "Test message")
-            waitForRendering(chatPanel)
+            // waitForRendering removed for perf
             
             // Act
             var scrollMouseArea = findChild(chatPanel, "scrollButtonMouseArea")
             mouseClick(scrollMouseArea)
-            waitForRendering(chatPanel)
+            // waitForRendering removed for perf
             
             // Assert
             compare(chatPanel.autoScroll, true, "autoScroll should be re-enabled")

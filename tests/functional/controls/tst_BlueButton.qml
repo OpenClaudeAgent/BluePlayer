@@ -126,7 +126,7 @@ Item {
             
             // Move mouse away from component to reset hover state
             mouseMove(root, 1, 1)
-            waitForRendering(blueButton)
+            // waitForRendering removed for perf
         }
 
         function cleanup() {
@@ -180,7 +180,7 @@ Item {
         function test_disabledButton_noClickSignal() {
             // Arrange
             blueButton.enabled = false
-            waitForRendering(blueButton)
+            // waitForRendering removed for perf
             
             // Act
             mouseClick(blueButton)
@@ -251,7 +251,7 @@ Item {
         function test_text_displaysCorrectly() {
             // Arrange
             blueButton.text = "Click Me"
-            waitForRendering(blueButton)
+            // waitForRendering removed for perf
             
             // Assert
             var label = findChild(blueButton, "buttonLabel")
@@ -267,11 +267,11 @@ Item {
         function test_text_canBeChanged() {
             // Arrange
             blueButton.text = "First"
-            waitForRendering(blueButton)
+            // waitForRendering removed for perf
             
             // Act
             blueButton.text = "Second"
-            waitForRendering(blueButton)
+            // waitForRendering removed for perf
             
             // Assert
             var label = findChild(blueButton, "buttonLabel")

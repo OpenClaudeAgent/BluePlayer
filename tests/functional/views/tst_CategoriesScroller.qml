@@ -185,7 +185,7 @@ Item {
 
         function init() {
             categoriesScroller.reset()
-            waitForRendering(categoriesScroller)
+            // Skip waitForRendering in init - each test will wait if needed
         }
 
         // =====================================================================
@@ -215,7 +215,7 @@ Item {
         function test_sectionTitle_displayed() {
             // Arrange
             categoriesScroller.sectionTitle = "Top Categories"
-            waitForRendering(categoriesScroller)
+            // waitForRendering removed for perf
 
             // Assert
             var titleText = findChild(categoriesScroller, "titleText")
@@ -230,7 +230,7 @@ Item {
         function test_sectionSubtitle_displayed() {
             // Arrange
             categoriesScroller.sectionSubtitle = "Browse by game"
-            waitForRendering(categoriesScroller)
+            // waitForRendering removed for perf
 
             // Assert
             var subtitleText = findChild(categoriesScroller, "subtitleText")
@@ -255,7 +255,7 @@ Item {
         function test_flickable_contentWidthWithEmptyModel() {
             // Arrange
             categoriesScroller.cardsModel = emptyModel
-            waitForRendering(categoriesScroller)
+            // waitForRendering removed for perf
 
             // Assert
             var flickable = findChild(categoriesScroller, "flickable")
@@ -265,7 +265,7 @@ Item {
         function test_flickable_contentWidthWithMultipleItems() {
             // Arrange
             categoriesScroller.cardsModel = multipleItemsModel
-            waitForRendering(categoriesScroller)
+            // waitForRendering removed for perf
 
             // Assert
             var flickable = findChild(categoriesScroller, "flickable")
@@ -280,7 +280,7 @@ Item {
         function test_model_emptyModelShowsNoCards() {
             // Arrange
             categoriesScroller.cardsModel = emptyModel
-            waitForRendering(categoriesScroller)
+            // waitForRendering removed for perf
 
             // Assert
             compare(categoriesScroller.cardCount, 0, "Card count should be 0")
@@ -291,7 +291,7 @@ Item {
         function test_model_singleItemCreatesOneCard() {
             // Arrange
             categoriesScroller.cardsModel = singleItemModel
-            waitForRendering(categoriesScroller)
+            // waitForRendering removed for perf
 
             // Assert
             compare(categoriesScroller.cardCount, 1, "Card count should be 1")
@@ -302,7 +302,7 @@ Item {
         function test_model_multipleItemsCreateMultipleCards() {
             // Arrange
             categoriesScroller.cardsModel = multipleItemsModel
-            waitForRendering(categoriesScroller)
+            // waitForRendering removed for perf
 
             // Assert
             compare(categoriesScroller.cardCount, 5, "Card count should be 5")
@@ -313,12 +313,12 @@ Item {
         function test_model_changingModelUpdatesCards() {
             // Arrange
             categoriesScroller.cardsModel = singleItemModel
-            waitForRendering(categoriesScroller)
+            // waitForRendering removed for perf
             compare(categoriesScroller.cardCount, 1, "Initial count should be 1")
 
             // Act
             categoriesScroller.cardsModel = multipleItemsModel
-            waitForRendering(categoriesScroller)
+            // waitForRendering removed for perf
 
             // Assert
             compare(categoriesScroller.cardCount, 5, "Count should update to 5")
@@ -327,12 +327,12 @@ Item {
         function test_model_settingNullClearsCards() {
             // Arrange
             categoriesScroller.cardsModel = multipleItemsModel
-            waitForRendering(categoriesScroller)
+            // waitForRendering removed for perf
             compare(categoriesScroller.cardCount, 5, "Initial count should be 5")
 
             // Act
             categoriesScroller.cardsModel = null
-            waitForRendering(categoriesScroller)
+            // waitForRendering removed for perf
 
             // Assert
             compare(categoriesScroller.cardCount, 0, "Count should be 0 after null")
@@ -345,7 +345,7 @@ Item {
         function test_delegate_nameDisplayed() {
             // Arrange
             categoriesScroller.cardsModel = singleItemModel
-            waitForRendering(categoriesScroller)
+            // waitForRendering removed for perf
 
             // Assert
             var nameLabel = findChild(categoriesScroller, "nameLabel_0")
@@ -356,7 +356,7 @@ Item {
         function test_delegate_detailDisplayed() {
             // Arrange
             categoriesScroller.cardsModel = singleItemModel
-            waitForRendering(categoriesScroller)
+            // waitForRendering removed for perf
 
             // Assert
             var detailLabel = findChild(categoriesScroller, "detailLabel_0")
@@ -367,7 +367,7 @@ Item {
         function test_delegate_viewersDisplayed() {
             // Arrange
             categoriesScroller.cardsModel = singleItemModel
-            waitForRendering(categoriesScroller)
+            // waitForRendering removed for perf
 
             // Assert
             var viewersLabel = findChild(categoriesScroller, "viewersLabel_0")
@@ -378,7 +378,7 @@ Item {
         function test_delegate_secondItemHasCorrectData() {
             // Arrange
             categoriesScroller.cardsModel = multipleItemsModel
-            waitForRendering(categoriesScroller)
+            // waitForRendering removed for perf
 
             // Assert
             var nameLabel = findChild(categoriesScroller, "nameLabel_1")
@@ -398,7 +398,7 @@ Item {
         function test_scroll_initialPositionAtZero() {
             // Arrange
             categoriesScroller.cardsModel = multipleItemsModel
-            waitForRendering(categoriesScroller)
+            // waitForRendering removed for perf
 
             // Assert
             var flickable = findChild(categoriesScroller, "flickable")
@@ -409,14 +409,14 @@ Item {
             // Arrange
             categoriesScroller.cardsModel = multipleItemsModel
             categoriesScroller.availableWidth = 400  // Less than content width
-            waitForRendering(categoriesScroller)
+            // waitForRendering removed for perf
 
             var flickable = findChild(categoriesScroller, "flickable")
             var maxScroll = flickable.contentWidth - flickable.width
 
             // Act - simulate scroll by setting contentX
             flickable.contentX = 100
-            waitForRendering(categoriesScroller)
+            // waitForRendering removed for perf
 
             // Assert
             compare(flickable.contentX, 100, "Should be able to scroll horizontally")
@@ -440,7 +440,7 @@ Item {
         function test_multipleCards_allHaveCorrectIndex(data) {
             // Arrange
             categoriesScroller.cardsModel = multipleItemsModel
-            waitForRendering(categoriesScroller)
+            // waitForRendering removed for perf
 
             // Assert
             var nameLabel = findChild(categoriesScroller, "nameLabel_" + data.index)
@@ -455,7 +455,7 @@ Item {
         function test_edgeCase_veryLongTitle() {
             // Arrange
             categoriesScroller.sectionTitle = "This is a very long section title that might overflow"
-            waitForRendering(categoriesScroller)
+            // waitForRendering removed for perf
 
             // Assert
             var titleText = findChild(categoriesScroller, "titleText")
@@ -465,7 +465,7 @@ Item {
         function test_edgeCase_specialCharactersInTitle() {
             // Arrange
             categoriesScroller.sectionTitle = "Categories & Games <Test>"
-            waitForRendering(categoriesScroller)
+            // waitForRendering removed for perf
 
             // Assert
             var titleText = findChild(categoriesScroller, "titleText")
@@ -477,7 +477,7 @@ Item {
             categoriesScroller.cardsModel = [
                 { name: "", detail: "", viewers: "" }
             ]
-            waitForRendering(categoriesScroller)
+            // waitForRendering removed for perf
 
             // Assert
             var nameLabel = findChild(categoriesScroller, "nameLabel_0")

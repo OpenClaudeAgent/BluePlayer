@@ -251,7 +251,7 @@ Item {
             volumeRequestedSpy = createTemporaryObject(signalSpyComponent, root, {target: volumeControl, signalName: "volumeRequested"})
             muteClickedSpy = createTemporaryObject(signalSpyComponent, root, {target: volumeControl, signalName: "muteClicked"})
             
-            waitForRendering(volumeControl)
+            // waitForRendering removed for perf
         }
         
         function cleanup() {
@@ -343,7 +343,7 @@ Item {
             
             // Simulate hover behavior
             volumeControl.showSlider = true
-            waitForRendering(volumeControl)
+            // waitForRendering removed for perf
             
             compare(volumeControl.showSlider, true, "showSlider is true")
             compare(popup.visible, true, "Popup becomes visible")
@@ -353,10 +353,10 @@ Item {
             if (!requiresSlider()) return
             volumeControl.muted = false
             volumeControl.showSlider = true
-            waitForRendering(volumeControl)
+            // waitForRendering removed for perf
             
             volumeControl.volume = 0.7
-            waitForRendering(volumeControl)
+            // waitForRendering removed for perf
             
             var slider = findChild(volumeControl, "volumeSlider")
             tryCompare(slider, "value", 0.7, 100, "Slider reflects volume value")
@@ -365,11 +365,11 @@ Item {
         function test_sliderPopup_showsZeroWhenMuted() {
             if (!requiresSlider()) return
             volumeControl.showSlider = true
-            waitForRendering(volumeControl)
+            // waitForRendering removed for perf
             
             volumeControl.volume = 0.8
             volumeControl.muted = true
-            waitForRendering(volumeControl)
+            // waitForRendering removed for perf
             
             var slider = findChild(volumeControl, "volumeSlider")
             tryCompare(slider, "value", 0, 100, "Slider shows 0 when muted")
@@ -383,7 +383,7 @@ Item {
         function test_sliderMoved_emitsVolumeRequested() {
             if (!requiresSlider()) return
             volumeControl.showSlider = true
-            waitForRendering(volumeControl)
+            // waitForRendering removed for perf
             
             var slider = findChild(volumeControl, "volumeSlider")
             slider.value = 0.5
@@ -397,7 +397,7 @@ Item {
             if (!requiresSlider()) return
             volumeControl.muted = true
             volumeControl.showSlider = true
-            waitForRendering(volumeControl)
+            // waitForRendering removed for perf
             
             var slider = findChild(volumeControl, "volumeSlider")
             slider.value = 0.3
@@ -468,7 +468,7 @@ Item {
             
             // 2. Simulate hover to show slider (direct set since mouseMove unreliable in tests)
             volumeControl.showSlider = true
-            waitForRendering(volumeControl)
+            // waitForRendering removed for perf
             compare(volumeControl.showSlider, true, "Slider shown")
             
             // 3. Click to emit mute signal
@@ -487,9 +487,9 @@ Item {
             
             // Show/hide slider
             volumeControl.showSlider = true
-            waitForRendering(volumeControl)
+            // waitForRendering removed for perf
             volumeControl.showSlider = false
-            waitForRendering(volumeControl)
+            // waitForRendering removed for perf
             
             // State should be preserved
             compare(volumeControl.volume, 0.42, "Volume preserved")

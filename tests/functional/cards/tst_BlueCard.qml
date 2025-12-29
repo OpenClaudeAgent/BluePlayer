@@ -73,7 +73,7 @@ Item {
         function init() {
             blueCard = createTemporaryObject(blueCardComponent, root)
             verify(blueCard !== null, "BlueCard should be created")
-            waitForRendering(blueCard)
+            // waitForRendering removed for perf
         }
 
         function cleanup() {
@@ -88,7 +88,7 @@ Item {
             // Arrange - Create card with injected content
             var cardWithContent = createTemporaryObject(blueCardWithContentComponent, root)
             verify(cardWithContent !== null, "Card with content should be created")
-            waitForRendering(cardWithContent)
+            // waitForRendering removed for perf
 
             // Assert
             var container = findChild(cardWithContent, "contentContainer")
@@ -98,7 +98,7 @@ Item {
         function test_contentInjection_childIsVisible() {
             // Arrange
             var cardWithContent = createTemporaryObject(blueCardWithContentComponent, root)
-            waitForRendering(cardWithContent)
+            // waitForRendering removed for perf
 
             // Assert
             var injectedText = findChild(cardWithContent, "injectedText")
@@ -109,7 +109,7 @@ Item {
         function test_contentInjection_childTextIsCorrect() {
             // Arrange
             var cardWithContent = createTemporaryObject(blueCardWithContentComponent, root)
-            waitForRendering(cardWithContent)
+            // waitForRendering removed for perf
 
             // Assert
             var injectedText = findChild(cardWithContent, "injectedText")
@@ -119,7 +119,7 @@ Item {
         function test_contentInjection_multipleChildren() {
             // Arrange
             var cardWithMultiple = createTemporaryObject(blueCardWithMultipleContentComponent, root)
-            waitForRendering(cardWithMultiple)
+            // waitForRendering removed for perf
 
             // Assert
             var container = findChild(cardWithMultiple, "contentContainer")

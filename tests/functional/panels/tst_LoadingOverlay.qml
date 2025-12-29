@@ -67,7 +67,7 @@ Item {
         
         function init() {
             loadingOverlay.reset()
-            waitForRendering(loadingOverlay)
+            // waitForRendering removed for perf
         }
         
         // =====================================================================

@@ -230,7 +230,7 @@ Item {
             chatSpy = createTemporaryObject(signalSpyComponent, root, {target: controlBar, signalName: "chatToggleClicked"})
             pipSpy = createTemporaryObject(signalSpyComponent, root, {target: controlBar, signalName: "pipClicked"})
             
-            waitForRendering(controlBar)
+            // waitForRendering removed for perf
         }
 
         function cleanup() {
@@ -285,7 +285,7 @@ Item {
             // Act
             controlBar.playing = true
             controlBar.paused = false
-            waitForRendering(controlBar)
+            // waitForRendering removed for perf
             
             // Assert
             verify(button.text.indexOf("Pause") >= 0, "Should show Pause text when playing")
@@ -315,7 +315,7 @@ Item {
             
             // Act
             controlBar.muted = true
-            waitForRendering(controlBar)
+            // waitForRendering removed for perf
             
             // Assert
             compare(button.text, "Muted", "Should show Muted text")
@@ -523,7 +523,7 @@ Item {
             
             // Act
             controlBar.pipActive = true
-            waitForRendering(controlBar)
+            // waitForRendering removed for perf
             
             // Assert
             verify(button.text.indexOf("Exit") >= 0, "Should show Exit PiP text when active")
@@ -547,7 +547,7 @@ Item {
             
             // Act
             controlBar.pipEnabled = false
-            waitForRendering(controlBar)
+            // waitForRendering removed for perf
             
             // Assert
             compare(button.enabled, false, "Button should be disabled")
@@ -559,7 +559,7 @@ Item {
             // Arrange
             var button = findChild(controlBar, "pipButton")
             controlBar.pipEnabled = false
-            waitForRendering(controlBar)
+            // waitForRendering removed for perf
             
             // Act
             mouseClick(button)
@@ -579,7 +579,7 @@ Item {
             
             // Simulate state change
             controlBar.pipActive = true
-            waitForRendering(controlBar)
+            // waitForRendering removed for perf
             
             // Second click
             mouseClick(button)
