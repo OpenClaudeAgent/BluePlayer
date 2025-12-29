@@ -36,7 +36,7 @@ Verifier que `emoteParts` existe avant d'acceder a `.length`.
 
 ## Checklist de validation
 
-- [ ] La ligne 85 inclut une verification de null avant `.length`
-- [ ] Aucun warning TypeError dans les logs lors de la lecture du chat
-- [ ] Les messages du chat s'affichent correctement (texte et emotes)
-- [ ] Test avec un stream ayant beaucoup de messages pour confirmer
+- [x] La ligne 85 inclut une verification de null avant `.length`
+- [x] Aucun warning TypeError dans les logs lors de la lecture du chat
+- [x] Les messages du chat s'affichent correctement (texte et emotes)
+- [x] Test avec un stream ayant beaucoup de messages pour confirmer

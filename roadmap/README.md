@@ -161,7 +161,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 39 | Export des VOD cachées | [plan-39](./plan-39-export-cached-vod.md) | `feature/export-vod` | - | 🔴 En attente |
 | **40** | **Infrastructure Tests E2E** | [plan-40](./plan-40-e2e-testing-infrastructure.md) | `test/e2e-infrastructure` | v0.27.0 | 🟢 Terminé |
 | **41** | **Gestion et Nettoyage Logs** | [plan-41](./plan-41-log-management.md) | `feature/log-management` | - | 🔴 En attente |
-| 42 | Fix TypeError ChatMessage.qml | [plan-42](./plan-42-fix-chatmessage-null.md) | `fix/chatmessage-null` | - | 🔴 En attente |
+| 42 | Fix TypeError ChatMessage.qml | [plan-42](./plan-42-fix-chatmessage-null.md) | `fix/chatmessage-null` | v0.27.1 | 🟢 Terminé |
 
 ### Plans spéciaux
 
@@ -224,6 +224,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 2025-12-28 | Tâche 17 terminée - Picture-in-Picture (fenêtre flottante, contrôles hover, ratio 16:9) |
 | 2025-12-28 | Tâche 18 terminée - Thème Clair/Sombre (détection système, sélecteur, migration composants) |
 | 2025-12-28 | Tâche 40 terminée - Infrastructure E2E (MockTwitchServer, MockHlsServer, fixtures, 6 tests passants) |
+| 2025-12-29 | Tâche 42 terminée - Fix TypeError ChatMessage.qml (null-check emoteParts, -35% volume logs) |
 
 ---
 
