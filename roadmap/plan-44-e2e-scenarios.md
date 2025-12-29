@@ -596,3 +596,53 @@ Créer une suite de scénarios E2E qui couvrent les flux utilisateur critiques d
 - Chaque scenario est un executable independant
 - Le mode offscreen (QT_QPA_PLATFORM=offscreen) peut limiter certains tests (fullscreen)
 - Privilegier les assertions sur l'etat UI plutot que le timing
+
+---
+
+## Specifications (Sprint 1)
+
+### Scenarios implementes
+
+| Scenario | Tests | Description |
+|----------|-------|-------------|
+| `search-stream` | 6 | Recherche + navigation vers player |
+| `quality-switch` | 5 | Selecteur qualite, 480p, bouton SD, toast |
+| `chat-open-close` | 8 | Toggle chat, connexion IRC, reception/envoi messages |
+
+### Infrastructure creee
+
+- **MockIrcServer** : Serveur WebSocket IRC mock pour tests chat
+- **add_e2e_scenario()** : Macro CMake pour reduire duplication (~60 lignes → ~10 lignes par scenario)
+- **Labels e2e/e2e-extended** : Profils de test pour CI (rapide) vs nightly (complet)
+- **setEchoMessages()** : Echo des messages envoyes pour verification UI
+
+### ObjectNames ajoutes pour E2E
+
+- `QualityControl.qml` : qualityControl, qualityButton, qualityPopup, qualityOption_N, qualityButtonText
+- `SearchResults.qml` : searchResultsPopup, searchResult_N
+- `ChatPanel.qml` : chatPanel, chatMessageList, chatMessageInput
+- `PlayerControlBar.qml` : chatToggleButton
+- `PlayerView.qml` : qualityToast
+
+---
+
+## Bonus (au-dela du plan initial)
+
+### Refactorings appliques
+
+| # | Refactoring | Impact |
+|---|-------------|--------|
+| 1 | Unification namespace MockIrcServer (`E2E` → `blueplayer::test::e2e`) | Consistance |
+| 2 | Extraction helper `_traverseTree()` dans E2ETestCase | -40 lignes duplication |
+| 3 | Deplacer initTestCase/cleanupTestCase communs dans base | -40 lignes boilerplate |
+| 4 | Ajout E2EConstants manquants (search, quality, chat) | Maintenabilite |
+| 5 | Standardisation strategie screenshots | Consistance |
+
+### Verifications supplementaires
+
+- **Toast verification** : Apres changement qualite, verification que le toast "Quality: 480p" apparait (opacity > 0, text correct)
+- **Message UI verification** : Apres envoi message chat, verification qu'il apparait dans la liste (count augmente)
+
+### Quality Reviews
+
+- `quality/review-03-e2e-plan44-2025-12-29.md` : Code review complet du Sprint 1

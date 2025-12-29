@@ -270,3 +270,4 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 2025-12-29 | Ajout plan 43 - Refactoring Infrastructure E2E (BaseE2EContext, MockHttpServer, FixtureLoader) |
 | 2025-12-29 | Ajout plan 44 - Scenarios E2E (17 scenarios couvrant 23 plans termines, 4 sprints) |
 | 2025-12-29 | Ajout plan 45 - Parallelisme E2E (isolation ports pour execution parallele) |
+| 2025-12-29 | Plan 44 Sprint 1 termine - 3 scenarios E2E (search, quality, chat) + refactorings |
