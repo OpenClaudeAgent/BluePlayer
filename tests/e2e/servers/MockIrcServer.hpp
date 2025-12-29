@@ -8,7 +8,7 @@
 #include <QTimer>
 #include <memory>
 
-namespace E2E {
+namespace blueplayer::test::e2e {
 
 /**
  * @brief Mock IRC server for E2E testing of TwitchChatClient
@@ -158,4 +158,4 @@ private:
     QString m_echoColor{"#9147FF"};
 };
 
-} // namespace E2E
+} // namespace blueplayer::test::e2e

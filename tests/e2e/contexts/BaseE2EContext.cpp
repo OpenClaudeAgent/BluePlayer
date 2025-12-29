@@ -1,6 +1,5 @@
 #include "BaseE2EContext.hpp"
 #include "E2EContextHelpers.hpp"
-#include "../servers/MockIrcServer.hpp"
 
 #include <clocale>
 
@@ -133,7 +132,7 @@ void BaseE2EContext::startMockServers()
     }
 
     // Start MockIrcServer for chat testing
-    m_ircServer = std::make_unique<E2E::MockIrcServer>();
+    m_ircServer = std::make_unique<MockIrcServer>();
     if (!m_ircServer->start()) {
         warn("Failed to start MockIrcServer");
     } else {
