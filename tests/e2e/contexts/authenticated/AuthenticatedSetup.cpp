@@ -1,4 +1,4 @@
-#include "Setup.hpp"
+#include "AuthenticatedSetup.hpp"
 
 #include "api/twitch/TwitchService.hpp"
 #include "chat/TwitchChatClient.hpp"
@@ -18,51 +18,53 @@
 #include <QQmlContext>
 #include <qqml.h>
 
-Setup::Setup() = default;
-Setup::~Setup() = default;
+namespace blueplayer::test::e2e {
 
-void Setup::applicationAvailable()
+AuthenticatedSetup::AuthenticatedSetup() = default;
+AuthenticatedSetup::~AuthenticatedSetup() = default;
+
+void AuthenticatedSetup::applicationAvailable()
 {
-    qInfo() << "[E2E Setup] Initializing E2E test environment...";
+    qInfo() << "[E2E Context: Authenticated] Initializing...";
     
-    // Find fixtures path first (needed for auth and mock data)
+    // Find fixtures path
     QString fixturesPath = QDir::currentPath() + "/tests/e2e/fixtures";
     if (!QDir(fixturesPath).exists()) {
-        fixturesPath = QCoreApplication::applicationDirPath() + "/../../../tests/e2e/fixtures";
+        fixturesPath = QCoreApplication::applicationDirPath() + "/../../../../../tests/e2e/fixtures";
     }
     if (!QDir(fixturesPath).exists()) {
-        fixturesPath = QDir::currentPath() + "/../tests/e2e/fixtures";
+        fixturesPath = QCoreApplication::applicationDirPath() + "/../../fixtures";
     }
-    qInfo() << "[E2E Setup] Fixtures path:" << fixturesPath;
+    qInfo() << "[E2E Context: Authenticated] Fixtures path:" << fixturesPath;
 
     // ========================================================================
-    // STEP 1: Start mock servers FIRST (before Application)
+    // STEP 1: Start mock servers
     // ========================================================================
-    qInfo() << "[E2E Setup] Starting mock servers...";
+    qInfo() << "[E2E Context: Authenticated] Starting mock servers...";
 
-    m_twitchServer = std::make_unique<blueplayer::test::e2e::MockTwitchServer>();
-    m_hlsServer = std::make_unique<blueplayer::test::e2e::MockHlsServer>();
+    m_twitchServer = std::make_unique<MockTwitchServer>();
+    m_hlsServer = std::make_unique<MockHlsServer>();
 
     if (!m_twitchServer->start(static_cast<quint16>(m_twitchPort))) {
-        qWarning() << "[E2E Setup] Failed to start MockTwitchServer on port" << m_twitchPort;
+        qWarning() << "[E2E Context: Authenticated] Failed to start MockTwitchServer";
         return;
     }
     m_twitchPort = m_twitchServer->port();
-    qInfo() << "[E2E Setup] MockTwitchServer started on port" << m_twitchPort;
+    qInfo() << "[E2E Context: Authenticated] MockTwitchServer on port" << m_twitchPort;
 
     if (!m_hlsServer->start(static_cast<quint16>(m_hlsPort))) {
-        qWarning() << "[E2E Setup] Failed to start MockHlsServer on port" << m_hlsPort;
+        qWarning() << "[E2E Context: Authenticated] Failed to start MockHlsServer";
         return;
     }
     m_hlsPort = m_hlsServer->port();
-    qInfo() << "[E2E Setup] MockHlsServer started on port" << m_hlsPort;
+    qInfo() << "[E2E Context: Authenticated] MockHlsServer on port" << m_hlsPort;
 
     m_twitchServer->setHlsServerUrl(m_hlsServer->baseUrl());
 
     // ========================================================================
-    // STEP 2: Load fixtures into mock servers
+    // STEP 2: Load fixtures
     // ========================================================================
-    qInfo() << "[E2E Setup] Loading fixtures from:" << fixturesPath;
+    qInfo() << "[E2E Context: Authenticated] Loading fixtures...";
 
     QString accessToken;
     QString refreshToken;
@@ -77,22 +79,19 @@ void Setup::applicationAvailable()
                 accessToken = obj["access_token"].toString();
                 refreshToken = obj["refresh_token"].toString();
                 m_twitchServer->setValidToken(accessToken);
-                qInfo() << "[E2E Setup] Loaded auth token:" << accessToken.left(10) + "...";
+                qInfo() << "[E2E Context: Authenticated] Auth token loaded";
             }
             authFile.close();
-        } else {
-            qWarning() << "[E2E Setup] Could not load auth_token.json";
         }
     }
 
-    // Load streams.json (format: {"data": [...]})
+    // Load streams.json
     {
         QFile streamsFile(fixturesPath + "/streams.json");
         if (streamsFile.open(QIODevice::ReadOnly)) {
             QJsonDocument doc = QJsonDocument::fromJson(streamsFile.readAll());
             QJsonArray streamsArray;
             
-            // Handle both formats: {"data": [...]} or direct [...]
             if (doc.isObject() && doc.object().contains("data")) {
                 streamsArray = doc.object()["data"].toArray();
             } else if (doc.isArray()) {
@@ -101,7 +100,7 @@ void Setup::applicationAvailable()
             
             if (!streamsArray.isEmpty()) {
                 m_twitchServer->setStreams(streamsArray);
-                qInfo() << "[E2E Setup] Loaded" << streamsArray.size() << "streams";
+                qInfo() << "[E2E Context: Authenticated] Loaded" << streamsArray.size() << "streams";
                 
                 for (const QJsonValue& streamVal : streamsArray) {
                     QJsonObject stream = streamVal.toObject();
@@ -110,22 +109,17 @@ void Setup::applicationAvailable()
                         m_hlsServer->addChannel(userLogin);
                     }
                 }
-            } else {
-                qWarning() << "[E2E Setup] No streams found in streams.json";
             }
-        } else {
-            qWarning() << "[E2E Setup] Could not load streams.json";
         }
     }
 
-    // Load users.json (format: {"data": [...]})
+    // Load users.json
     {
         QFile usersFile(fixturesPath + "/users.json");
         if (usersFile.open(QIODevice::ReadOnly)) {
             QJsonDocument doc = QJsonDocument::fromJson(usersFile.readAll());
             QJsonArray usersArray;
             
-            // Handle both formats: {"data": [...]} or direct [...]
             if (doc.isObject() && doc.object().contains("data")) {
                 usersArray = doc.object()["data"].toArray();
             } else if (doc.isArray()) {
@@ -134,133 +128,110 @@ void Setup::applicationAvailable()
             
             if (!usersArray.isEmpty()) {
                 m_twitchServer->setUsers(usersArray);
-                qInfo() << "[E2E Setup] Loaded" << usersArray.size() << "users";
-            } else {
-                qWarning() << "[E2E Setup] No users found in users.json";
+                qInfo() << "[E2E Context: Authenticated] Loaded" << usersArray.size() << "users";
             }
-        } else {
-            qWarning() << "[E2E Setup] Could not load users.json";
         }
     }
 
     // ========================================================================
-    // STEP 3: Set environment variables BEFORE creating Application
+    // STEP 3: Configure environment
     // ========================================================================
-    qputenv("BLUEPLAYER_TEST_MODE", "1");
-    qputenv("BLUEPLAYER_MOCK_API_URL", m_twitchServer->baseUrl().toUtf8());
-    qputenv("BLUEPLAYER_MOCK_HLS_URL", m_hlsServer->baseUrl().toUtf8());
+    qputenv("BLUEPLAYER_API_URL", m_twitchServer->baseUrl().toUtf8());
+    qputenv("BLUEPLAYER_HLS_PROXY_URL", m_hlsServer->baseUrl().toUtf8());
     
-    // Set a test client ID if not already set (required for API requests)
     if (qgetenv("TWITCH_CLIENT_ID").isEmpty()) {
         qputenv("TWITCH_CLIENT_ID", "e2e_test_client_id");
-        qInfo() << "[E2E Setup] Set test TWITCH_CLIENT_ID";
     }
 
-    qInfo() << "[E2E Setup] Environment configured:";
-    qInfo() << "  BLUEPLAYER_TEST_MODE=1";
-    qInfo() << "  BLUEPLAYER_MOCK_API_URL=" << m_twitchServer->baseUrl();
-    qInfo() << "  BLUEPLAYER_MOCK_HLS_URL=" << m_hlsServer->baseUrl();
-
     // ========================================================================
-    // STEP 3.5: Load Config NOW to pick up environment variables
-    // This must happen BEFORE Application is created, otherwise TwitchAuthManager
-    // will make requests to the real API during credential loading
+    // STEP 4: Load Config
     // ========================================================================
     blueplayer::core::Config::instance().load();
-    qInfo() << "[E2E Setup] Config loaded - test mode:" << blueplayer::core::Config::instance().isTestMode();
 
     // ========================================================================
-    // STEP 4: Create MockSecureStorage with test credentials
+    // STEP 5: Create MockSecureStorage WITH credentials
     // ========================================================================
-    m_mockStorage = std::make_unique<blueplayer::test::e2e::MockSecureStorage>();
+    m_mockStorage = std::make_unique<MockSecureStorage>();
     
     if (!accessToken.isEmpty()) {
-        // Get current TWITCH_CLIENT_ID from environment (may be empty in tests)
         QString clientId = QString::fromUtf8(qgetenv("TWITCH_CLIENT_ID"));
-        int expiresIn = 14400; // 4 hours
-        
-        m_mockStorage->setCredentials(accessToken, refreshToken, clientId, expiresIn);
-        qInfo() << "[E2E Setup] Mock credentials configured";
+        m_mockStorage->setCredentials(accessToken, refreshToken, clientId, 14400);
+        qInfo() << "[E2E Context: Authenticated] Credentials injected";
     }
 
     // ========================================================================
-    // STEP 5: Create and initialize Application (will trigger API calls)
+    // STEP 6: Create Application (will be authenticated)
     // ========================================================================
     m_coreApp = std::make_unique<blueplayer::core::Application>(m_mockStorage.get());
     m_coreApp->initialize();
     
     if (m_coreApp->twitchService()) {
-        bool isAuth = m_coreApp->twitchService()->isAuthenticated();
-        qInfo() << "[E2E Setup] Core Application initialized, authenticated:" << isAuth;
+        qInfo() << "[E2E Context: Authenticated] Ready, authenticated:" 
+                << m_coreApp->twitchService()->isAuthenticated();
     }
 }
 
-void Setup::qmlEngineAvailable(QQmlEngine* engine)
+void AuthenticatedSetup::qmlEngineAvailable(QQmlEngine* engine)
 {
-    qInfo() << "[E2E Setup] QML engine available, configuring...";
+    qInfo() << "[E2E Context: Authenticated] Configuring QML engine...";
 
-    // ========================================================================
-    // Register QML types (same as main.mm)
-    // ========================================================================
+    // Register QML types
     qmlRegisterType<blueplayer::media::MpvQuickItem>("BluePlayer.Media", 1, 0, "MpvQuickItem");
     qmlRegisterType<blueplayer::api::twitch::TwitchService>("BluePlayer.Twitch", 1, 0, "TwitchService");
     qmlRegisterType<blueplayer::ui::HomeViewModel>("BluePlayer.UI", 1, 0, "HomeViewModel");
     qmlRegisterType<blueplayer::ui::CacheManagerViewModel>("BluePlayer.UI", 1, 0, "CacheManagerViewModel");
     qmlRegisterType<BluePlayer::TwitchChatClient>("BluePlayer.Chat", 1, 0, "TwitchChatClient");
-    qInfo() << "[E2E Setup] QML types registered";
 
-    // ========================================================================
     // Configure import paths
-    // ========================================================================
     QString appDir = QCoreApplication::applicationDirPath();
-    QDir srcDir(appDir + "/../../../src");
+    QDir srcDir(appDir + "/../../../../../src");
     QString srcPath = srcDir.absolutePath();
     QString uiPath = srcPath + "/ui";
     
-    // Add import paths for QML modules
     engine->addImportPath(srcPath);
     engine->addImportPath(uiPath);
     engine->addImportPath(uiPath + "/components");
     engine->addImportPath(uiPath + "/themes");
-    
-    // Add build directory for generated files
     engine->addImportPath(appDir);
     engine->addImportPath(appDir + "/../src");
 
-    // Expose the UI path as a context property for tests to use
+    // Context properties
     engine->rootContext()->setContextProperty("E2E_QML_PATH", uiPath);
 
-    // ========================================================================
-    // Expose core services to QML (same as main.mm does)
-    // ========================================================================
+    QString screenshotsPath = appDir + "/screenshots";
+    QDir().mkpath(screenshotsPath);
+    engine->rootContext()->setContextProperty("E2E_SCREENSHOTS_PATH", screenshotsPath);
+
+    // Expose services
     if (m_coreApp) {
         engine->rootContext()->setContextProperty("twitchService", 
             qobject_cast<QObject*>(m_coreApp->twitchService()));
         engine->rootContext()->setContextProperty("cacheManager", 
             qobject_cast<QObject*>(m_coreApp->cacheManager()));
-        qInfo() << "[E2E Setup] Core services exposed to QML";
     }
 
-    qInfo() << "[E2E Setup] Import paths configured:";
-    qInfo() << "  - Source:" << srcPath;
-    qInfo() << "  - UI:" << uiPath;
+    qInfo() << "[E2E Context: Authenticated] QML engine configured";
 }
 
-void Setup::cleanupTestCase()
+void AuthenticatedSetup::cleanupTestCase()
 {
-    qInfo() << "[E2E Setup] Cleaning up...";
+    qInfo() << "[E2E Context: Authenticated] Cleaning up...";
 
     if (m_twitchServer) {
-        qInfo() << "[E2E Setup] MockTwitchServer handled" << m_twitchServer->requestCount() << "requests";
+        qInfo() << "[E2E Context: Authenticated] MockTwitchServer handled" 
+                << m_twitchServer->requestCount() << "requests";
         m_twitchServer->stop();
         m_twitchServer.reset();
     }
 
     if (m_hlsServer) {
-        qInfo() << "[E2E Setup] MockHlsServer handled" << m_hlsServer->requestCount() << "requests";
+        qInfo() << "[E2E Context: Authenticated] MockHlsServer handled" 
+                << m_hlsServer->requestCount() << "requests";
         m_hlsServer->stop();
         m_hlsServer.reset();
     }
 
-    qInfo() << "[E2E Setup] Cleanup complete";
+    qInfo() << "[E2E Context: Authenticated] Cleanup complete";
 }
+
+} // namespace blueplayer::test::e2e

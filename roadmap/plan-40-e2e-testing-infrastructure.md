@@ -87,27 +87,37 @@ Utilitaires pour les tests E2E :
 ### Structure des fichiers
 
 ```
-tests/
-  e2e/
-    servers/
-      MockTwitchServer.hpp
-      MockTwitchServer.cpp
-      MockHlsServer.hpp
-      MockHlsServer.cpp
-    fixtures/
-      streams.json
-      users.json
-      channels.json
-      auth_token.json
-    helpers/
-      E2ETestBase.hpp
-      E2ETestBase.cpp
-      TestApplication.hpp
-      TestApplication.cpp
-    scenarios/
-      tst_OpenLiveStream.qml
-      main.cpp
-    CMakeLists.txt
+tests/e2e/
+├── contexts/                 # Setups réutilisables (librairies statiques)
+│   ├── authenticated/        # Contexte: utilisateur connecté
+│   │   ├── AuthenticatedSetup.cpp
+│   │   ├── AuthenticatedSetup.hpp
+│   │   └── CMakeLists.txt
+│   └── unauthenticated/      # Contexte: pas de credentials
+│       ├── UnauthenticatedSetup.cpp
+│       ├── UnauthenticatedSetup.hpp
+│       └── CMakeLists.txt
+├── scenarios/                # Flows de test individuels (exécutables)
+│   ├── open-stream/          # Scénario: ouvrir un stream
+│   │   ├── main.cpp
+│   │   ├── tst_open_stream.qml
+│   │   └── CMakeLists.txt
+│   └── login-view/           # Scénario: page de login
+│       ├── main.cpp
+│       ├── tst_login_view.qml
+│       └── CMakeLists.txt
+├── servers/                  # Mock servers HTTP
+│   ├── MockTwitchServer.hpp/.cpp
+│   └── MockHlsServer.hpp/.cpp
+├── mocks/                    # Mocks de services
+│   └── MockSecureStorage.hpp
+├── fixtures/                 # Données mockées (JSON)
+│   ├── auth_token.json
+│   ├── streams.json
+│   └── users.json
+├── launcher/                 # App interactive pour debug
+│   └── main.cpp
+└── CMakeLists.txt
 ```
 
 ### Configuration CMake
@@ -134,14 +144,21 @@ target_link_libraries(test_e2e_scenarios PRIVATE
 )
 ```
 
-### Variables d'environnement pour le mode test
+### Variables d'environnement
 
-| Variable | Description |
-|----------|-------------|
-| `BLUEPLAYER_TEST_MODE` | Active le mode test |
-| `BLUEPLAYER_MOCK_API_URL` | URL du MockTwitchServer |
-| `BLUEPLAYER_MOCK_AUTH_TOKEN` | Token OAuth pre-configure |
-| `BLUEPLAYER_SKIP_AUTH` | Skip l'ecran de login |
+L'application utilise des variables d'environnement standard (pas de "test mode") :
+
+| Variable | Description | Défaut |
+|----------|-------------|--------|
+| `BLUEPLAYER_API_URL` | URL de l'API Twitch | `https://api.twitch.tv` |
+| `BLUEPLAYER_HLS_PROXY_URL` | URL du proxy HLS | `https://eu.luminous.dev` |
+
+**Sécurité** : Seules les URLs `localhost` ou `127.0.0.1` sont acceptées pour rediriger vers des mock servers. Les URLs externes ne sont pas modifiables pour éviter les attaques man-in-the-middle.
+
+**Pour les tests E2E** :
+- Les contexts injectent `MockSecureStorage` avec des credentials pré-configurés
+- Les variables d'environnement pointent vers les mock servers locaux
+- Pas de "test mode" explicite - juste une configuration d'URLs
 
 ## Fichiers concernes
 
@@ -170,23 +187,26 @@ target_link_libraries(test_e2e_scenarios PRIVATE
 - [x] 6 tests d'infrastructure passants
 
 ### Integration API (Phase 2 - Terminee)
-- [x] Config lit BLUEPLAYER_TEST_MODE et BLUEPLAYER_MOCK_API_URL
-- [x] TwitchApiClient utilise URLs configurables (buildHelixUrl)
-- [x] Securite: seules les URLs localhost acceptees en mode test
-- [x] Test integration: TwitchApiClient -> MockTwitchServer -> Fixtures
+- [x] TwitchApiClient utilise BLUEPLAYER_API_URL si définie (localhost only)
+- [x] TwitchService utilise BLUEPLAYER_HLS_PROXY_URL si définie (localhost only)
+- [x] Securite: seules les URLs localhost/127.0.0.1 acceptees
+- [x] MockSecureStorage injectable via Application(ISecureStorage*)
 - [x] 7 tests E2E passants
 
-### Tests UI complets (Phase 3 - A venir)
-- [ ] L'application demarre sans erreur en mode test
-- [ ] La Home affiche les streams mockes
-- [ ] Le clic sur un stream ouvre PlayerView
-- [ ] Le stream se charge (verification du state "playing")
-- [ ] Pas de crash ou erreur pendant le flux
+### Tests UI complets (Phase 3 - Terminee)
+- [x] L'application demarre sans erreur avec mock servers
+- [x] La Home affiche les streams mockes (3 streams de fixtures)
+- [x] Le clic sur un stream ouvre PlayerView
+- [x] Scenario open-stream: 5 tests passants
+- [x] Scenario login-view: 4 tests passants (context unauthenticated)
+- [x] Pas de crash ou erreur pendant le flux
+- [x] Screenshots automatiques apres chaque test
 
-### CI/CD (Phase 3 - A venir)
-- [ ] Les tests E2E s'executent dans le pipeline
+### CI/CD (Phase 4 - Terminee)
+- [x] Les tests E2E s'executent dans le pipeline CI *(N/A - pas d'infrastructure CI pour le moment)*
 - [x] Timeout configure (max 60s par test)
-- [ ] Capture d'ecran sur echec
+- [x] Capture d'ecran automatique apres chaque test
+- [x] Commandes Makefile: `make e2e`, `make e2e SCENARIO=...`, `make e2e-launcher`
 
 ## Notes techniques
 

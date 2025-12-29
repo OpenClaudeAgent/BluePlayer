@@ -785,31 +785,24 @@ void TwitchService::getStreamHlsUrl(const QString &streamerLogin) {
   m_currentHlsUrl.clear();
 
   // ========================================
-  // PROXY-BASED AD BLOCKING (luminous-ttv)
+  // HLS PROXY URL (configurable via environment)
   // ========================================
-  // Use a proxy that returns ad-free streams
-  // This bypasses the normal Twitch token flow
-
-  bool useProxy = true; // TODO: Make this a setting
-
-  if (useProxy) {
-    // luminous-ttv proxy - returns ad-free HLS stream
-    QString proxyUrl = QStringLiteral("https://eu.luminous.dev/live/%1"
-                                      "?allow_source=true"
-                                      "&allow_audio_only=true"
-                                      "&fast_bread=true")
-                           .arg(streamerLogin);
-
-    Logger::info(
-        LogCategory::Twitch,
-        QStringLiteral("[PROXY] Using luminous-ttv proxy for ad-free stream"));
-    Logger::debug(LogCategory::Twitch,
-                  QStringLiteral("[PROXY] URL: %1").arg(proxyUrl));
-
-    // Fetch and parse the proxy's master playlist to get quality options
-    fetchAndSelectBestQuality(proxyUrl);
-    return;
+  // Default: luminous-ttv proxy for ad-free streams
+  // Can be overridden via BLUEPLAYER_HLS_PROXY_URL for testing
+  
+  QString proxyBaseUrl = QString::fromUtf8(qgetenv("BLUEPLAYER_HLS_PROXY_URL"));
+  if (proxyBaseUrl.isEmpty()) {
+    proxyBaseUrl = QStringLiteral("https://eu.luminous.dev");
   }
+  
+  QString proxyUrl = QStringLiteral("%1/live/%2?allow_source=true&allow_audio_only=true&fast_bread=true")
+                         .arg(proxyBaseUrl, streamerLogin);
+
+  Logger::info(LogCategory::Twitch,
+               QStringLiteral("[PROXY] Using HLS proxy: %1").arg(proxyBaseUrl));
+
+  // Fetch and parse the proxy's master playlist to get quality options
+  fetchAndSelectBestQuality(proxyUrl);
 
   // ========================================
   // NORMAL FLOW (with AdFilter)

@@ -401,7 +401,7 @@ Item {
       Layout.fillWidth: true
       Layout.fillHeight: true
       clip: true
-      ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+      contentWidth: availableWidth  // Prevent horizontal scrolling
 
       ColumnLayout {
         id: contentLayout

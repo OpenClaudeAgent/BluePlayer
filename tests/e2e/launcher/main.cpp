@@ -49,13 +49,14 @@ int main(int argc, char *argv[])
 
     // ========================================================================
     // STEP 1: Find fixtures path
+    // Executable is in build/tests/e2e/launcher/
     // ========================================================================
     QString fixturesPath = QDir::currentPath() + "/tests/e2e/fixtures";
     if (!QDir(fixturesPath).exists()) {
-        fixturesPath = QCoreApplication::applicationDirPath() + "/../../../tests/e2e/fixtures";
+        fixturesPath = QCoreApplication::applicationDirPath() + "/../../../../tests/e2e/fixtures";
     }
     if (!QDir(fixturesPath).exists()) {
-        fixturesPath = QDir::currentPath() + "/../tests/e2e/fixtures";
+        fixturesPath = QCoreApplication::applicationDirPath() + "/../fixtures";
     }
     qInfo() << "[E2E Launcher] Fixtures path:" << fixturesPath;
 
@@ -143,23 +144,22 @@ int main(int argc, char *argv[])
     // ========================================================================
     // STEP 4: Set environment variables
     // ========================================================================
-    qputenv("BLUEPLAYER_TEST_MODE", "1");
-    qputenv("BLUEPLAYER_MOCK_API_URL", twitchServer->baseUrl().toUtf8());
-    qputenv("BLUEPLAYER_MOCK_HLS_URL", hlsServer->baseUrl().toUtf8());
+    qputenv("BLUEPLAYER_API_URL", twitchServer->baseUrl().toUtf8());
+    qputenv("BLUEPLAYER_HLS_PROXY_URL", hlsServer->baseUrl().toUtf8());
     
     if (qgetenv("TWITCH_CLIENT_ID").isEmpty()) {
         qputenv("TWITCH_CLIENT_ID", "e2e_test_client_id");
     }
 
     qInfo() << "[E2E Launcher] Environment configured";
-    qInfo() << "  BLUEPLAYER_TEST_MODE=1";
-    qInfo() << "  BLUEPLAYER_MOCK_API_URL=" << twitchServer->baseUrl();
+    qInfo() << "  BLUEPLAYER_API_URL=" << twitchServer->baseUrl();
+    qInfo() << "  BLUEPLAYER_HLS_PROXY_URL=" << hlsServer->baseUrl();
 
     // ========================================================================
     // STEP 5: Load config (picks up env vars)
     // ========================================================================
     blueplayer::core::Config::instance().load();
-    qInfo() << "[E2E Launcher] Config loaded, test mode:" << blueplayer::core::Config::instance().isTestMode();
+    qInfo() << "[E2E Launcher] Config loaded";
 
     // ========================================================================
     // STEP 6: Create mock storage with credentials
@@ -193,8 +193,9 @@ int main(int argc, char *argv[])
     QQmlApplicationEngine engine;
 
     // Add import paths
+    // Executable is in build/tests/e2e/launcher/
     QString appDir = QCoreApplication::applicationDirPath();
-    QDir srcDir(appDir + "/../../../src");
+    QDir srcDir(appDir + "/../../../../src");
     QString srcPath = srcDir.absolutePath();
     QString uiPath = srcPath + "/ui";
 

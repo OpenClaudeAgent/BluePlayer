@@ -67,16 +67,14 @@ void TwitchApiClient::setAccessToken(const QString& token) {
 }
 
 QUrl TwitchApiClient::buildHelixUrl(const QString& endpoint) const {
-  const auto& config = core::Config::instance();
   QString baseUrl = QStringLiteral("https://api.twitch.tv");
   
-  // SECURITY: Only use mock URL in test mode AND if it's localhost
-  if (config.isTestMode()) {
-    const QString mockUrl = config.twitchApiBaseUrl();
-    if (mockUrl.startsWith(QStringLiteral("http://localhost")) || 
-        mockUrl.startsWith(QStringLiteral("http://127.0.0.1"))) {
-      baseUrl = mockUrl;
-    }
+  // Allow override via environment variable (localhost only for security)
+  QString customUrl = QString::fromUtf8(qgetenv("BLUEPLAYER_API_URL"));
+  if (!customUrl.isEmpty() &&
+      (customUrl.startsWith(QStringLiteral("http://localhost")) || 
+       customUrl.startsWith(QStringLiteral("http://127.0.0.1")))) {
+    baseUrl = customUrl;
   }
   
   return QUrl(baseUrl + endpoint);
