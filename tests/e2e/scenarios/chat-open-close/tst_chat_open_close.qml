@@ -43,7 +43,7 @@ E2EScenarioTemplate {
             
             verify(navigated, "Should navigate to player view")
             console.log("OK Player view opened")
-            takeScreenshot()
+            // Screenshot taken automatically by baseCleanup()
         }
 
         function test_02_chat_button_exists() {
@@ -65,7 +65,6 @@ E2EScenarioTemplate {
             verify(chatButton.visible, "Chat toggle button should be visible")
             
             console.log("OK Chat toggle button found")
-            takeScreenshot()
         }
 
         function test_03_open_chat_panel() {
@@ -100,7 +99,6 @@ E2EScenarioTemplate {
             }, 2000, "Chat panel should be visible")
             
             console.log("OK Chat panel opened")
-            takeScreenshot()
         }
 
         function test_04_chat_connects() {
@@ -127,7 +125,6 @@ E2EScenarioTemplate {
             verify(joinedChannel.length > 0, "Should have joined a channel")
             
             console.log("OK Chat connected to MockIrcServer")
-            takeScreenshot()
         }
 
         function test_05_receive_chat_messages() {
@@ -162,7 +159,6 @@ E2EScenarioTemplate {
             
             console.log("  Final message count:", messageList.count)
             console.log("OK Received", messageList.count - initialMessageCount, "messages")
-            takeScreenshot()
         }
 
         function test_06_send_chat_message() {
@@ -227,7 +223,6 @@ E2EScenarioTemplate {
             verify(messageList.count > initialCount, "Message should be visible in chat list")
             
             console.log("OK Message sent and visible in UI")
-            takeScreenshot()
         }
 
         function test_07_close_chat_panel() {
@@ -258,7 +253,6 @@ E2EScenarioTemplate {
             }, 2000, "Chat should become hidden")
             
             console.log("OK Chat panel closed")
-            takeScreenshot()
         }
 
         function test_08_reopen_chat_reconnects() {
@@ -288,7 +282,6 @@ E2EScenarioTemplate {
             }, 5000, "Should reconnect to MockIrcServer")
             
             console.log("OK Chat reconnected successfully")
-            takeScreenshot()
         }
     }
 }

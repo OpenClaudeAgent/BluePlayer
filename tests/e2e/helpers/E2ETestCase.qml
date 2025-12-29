@@ -10,10 +10,17 @@ import QtTest
  * - Wait utilities for async conditions
  * - Standard setup/cleanup hooks
  * 
+ * Screenshot Strategy:
+ *   Screenshots are automatically taken after EACH test function via baseCleanup().
+ *   This provides consistent visual documentation without cluttering test code.
+ *   - Set screenshotsEnabled = false to disable automatic screenshots
+ *   - Call takeScreenshot("suffix") explicitly only for additional mid-test captures
+ *   - Screenshots are saved to E2E_SCREENSHOT_DIR with pattern: TestName_timestamp.png
+ * 
  * Usage:
  *   E2ETestCase {
  *       name: "MyTest"
- *       function test_something() { ... }
+ *       function test_something() { ... }  // Screenshot auto-taken after this
  *   }
  */
 TestCase {
