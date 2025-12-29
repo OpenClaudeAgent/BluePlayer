@@ -160,6 +160,8 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 38 | Mode Debug | [plan-38](./plan-38-debug-mode.md) | `feature/debug-mode` | - | 🔴 En attente |
 | 39 | Export des VOD cachées | [plan-39](./plan-39-export-cached-vod.md) | `feature/export-vod` | - | 🔴 En attente |
 | **40** | **Infrastructure Tests E2E** | [plan-40](./plan-40-e2e-testing-infrastructure.md) | `test/e2e-infrastructure` | v0.27.0 | 🟢 Terminé |
+| **41** | **Gestion et Nettoyage Logs** | [plan-41](./plan-41-log-management.md) | `feature/log-management` | - | 🔴 En attente |
+| 42 | Fix TypeError ChatMessage.qml | [plan-42](./plan-42-fix-chatmessage-null.md) | `fix/chatmessage-null` | - | 🔴 En attente |
 
 ### Plans spéciaux
 
@@ -172,6 +174,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 🧹 Cleanup | Plan 27 | Suppression code legacy (remplace tâche 24.20) |
 | 🏗️ Architecture | Plan 28 | Stratégie navigation globale (TopBar, composants réutilisables) |
 | 🧪 Testing | Plan 40 | **Infrastructure E2E** - Mock servers, test application, premier scenario |
+| 🧹 Maintenance | Plan 41 | **Gestion Logs** - Rotation automatique, audit logs excessifs |
 
 > **Note Plan 21 vs Plan 24** :
 > - **Plan 21** est un template récurrent définissant la méthodologie d'audit qualité
@@ -248,3 +251,5 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 2025-12-28 | Ajout plan 31 - Supprimer section Recommandation (nettoyage interface cassée) |
 | 2025-12-28 | Ajout plan 32 - Section Continuer à regarder (raccourci VOD cachées depuis Home) |
 | 2025-12-28 | Ajout plans 33-39 - Emotes tierces, Points chaîne, Clips, Multi-stream, Hotkeys, Debug, Export VOD |
+| 2025-12-29 | Ajout plan 41 - Gestion et Nettoyage Logs (rotation automatique, audit logs excessifs) |
+| 2025-12-29 | Ajout plan 42 - Fix TypeError ChatMessage.qml (null check sur emoteParts) |
