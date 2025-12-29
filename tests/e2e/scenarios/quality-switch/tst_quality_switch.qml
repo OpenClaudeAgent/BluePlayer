@@ -42,7 +42,7 @@ E2EScenarioTemplate {
         function test_01_navigate_to_player() {
             console.log("Testing: Navigate to player")
             
-            // Wait for home to load streams
+            // Wait for home to fully initialize (API calls, rendering, etc.)
             wait(E2EConstants.timeoutMedium)
             
             var streamCard = findChildByPrefix(mainWindow, "streamCard_")
