@@ -208,6 +208,13 @@ L'application utilise des variables d'environnement standard (pas de "test mode"
 - [x] Capture d'ecran automatique apres chaque test
 - [x] Commandes Makefile: `make e2e`, `make e2e SCENARIO=...`, `make e2e-launcher`
 
+### Lecture video (Phase 5 - Terminee)
+- [x] Segment video reel (test_segment.ts) genere avec FFmpeg (H.264, 1s, 640x360)
+- [x] MockHlsServer sert le segment via endpoint /playlist/{channel}_{quality}.m3u8
+- [x] mpv initialise correctement (fix locale LC_NUMERIC apres QApplication)
+- [x] Le stream mocke se charge et joue dans le launcher E2E (validation manuelle)
+- [x] 13 tests E2E passants (7 open-stream + 6 login-view)
+
 ## Notes techniques
 
 ### Qt HTTP Server
