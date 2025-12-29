@@ -121,34 +121,33 @@ E2E_SCENARIOS_DIR := $(BUILD_DIR)/tests/e2e/scenarios
 E2E_LAUNCHER_DIR := $(BUILD_DIR)/tests/e2e/launcher
 E2E_SRC_SCENARIOS_DIR := $(BLUEPLAYER_ROOT)/tests/e2e/scenarios
 
-# Auto-detect all E2E scenarios from directory structure (directories only)
-E2E_ALL_SCENARIOS := $(shell find $(E2E_SRC_SCENARIOS_DIR) -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
-
-# Run E2E tests (optionally filtered by SCENARIO)
+# Run fast E2E tests only (label: e2e, excludes e2e-extended)
 # Usage:
-#   make e2e                      # Run all scenarios
-#   make e2e SCENARIO=open-stream # Run only open-stream
+#   make e2e                      # Run fast E2E tests
+#   make e2e SCENARIO=open-stream # Run specific scenario
 .PHONY: e2e
 e2e: build
 ifdef SCENARIO
-	@echo "== Building E2E scenario: $(SCENARIO) =="
-	@cd $(BUILD_DIR) && $(CMAKE_EXECUTABLE) --build . --target e2e_$(subst -,_,$(SCENARIO)) --parallel
-	@echo ""
 	@echo "== Running E2E scenario: $(SCENARIO) =="
-	@cd $(E2E_SCENARIOS_DIR)/$(SCENARIO) && ./e2e_$(subst -,_,$(SCENARIO))
+	@cd $(BUILD_DIR) && ctest -R "e2e_$(subst -,_,$(SCENARIO))" --output-on-failure
 else
-	@echo "== Building all E2E scenarios =="
-	@cd $(BUILD_DIR) && $(CMAKE_EXECUTABLE) --build . --target $(foreach s,$(E2E_ALL_SCENARIOS),e2e_$(subst -,_,$s)) --parallel
+	@echo "== Running fast E2E tests (label: e2e) =="
+	@cd $(BUILD_DIR) && ctest -L "^e2e$$" --output-on-failure
 	@echo ""
-	@echo "== Running all E2E scenarios =="
-	@for scenario in $(E2E_ALL_SCENARIOS); do \
-		echo ""; \
-		echo "--- $$scenario ---"; \
-		cd $(E2E_SCENARIOS_DIR)/$$scenario && ./e2e_$$(echo $$scenario | tr '-' '_') || true; \
-	done
-	@echo ""
-	@echo "== E2E tests completed =="
+	@echo "== Fast E2E tests completed =="
+	@echo "Run 'make e2e-extended' for all E2E tests (including slow tests)"
 endif
+	@echo "Screenshots: $(BUILD_DIR)/tests/e2e/scenarios/*/e2e_screenshots/"
+
+# Run ALL E2E tests (fast + slow/extended)
+# Usage:
+#   make e2e-extended             # Run all E2E tests
+.PHONY: e2e-extended
+e2e-extended: build
+	@echo "== Running ALL E2E tests (fast + extended) =="
+	@cd $(BUILD_DIR) && ctest -L "e2e" --output-on-failure
+	@echo ""
+	@echo "== All E2E tests completed =="
 	@echo "Screenshots: $(BUILD_DIR)/tests/e2e/scenarios/*/e2e_screenshots/"
 
 # Launch app with mock servers (interactive)
@@ -199,7 +198,8 @@ help:
 	@echo ""
   @echo "  Testing:"
 	@echo "    make test                     - Build and run unit tests"
-	@echo "    make e2e                      - Run all E2E scenarios"
+	@echo "    make e2e                      - Run fast E2E tests only"
+	@echo "    make e2e-extended             - Run ALL E2E tests (fast + slow)"
 	@echo "    make e2e SCENARIO=<name>      - Run specific scenario (open-stream, login-view)"
 	@echo "    make e2e-launcher             - Launch app with mock servers (interactive)"
 	@echo "    make coverage     - Generate code coverage report"

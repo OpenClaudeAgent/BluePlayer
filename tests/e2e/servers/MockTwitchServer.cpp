@@ -37,6 +37,16 @@ void MockTwitchServer::setHlsServerUrl(const QString& hlsServerUrl)
     m_hlsServerUrl = hlsServerUrl;
 }
 
+void MockTwitchServer::setSearchResults(const QJsonArray& searchResults)
+{
+    m_searchResults = searchResults;
+}
+
+void MockTwitchServer::setVideos(const QJsonArray& videos)
+{
+    m_videos = videos;
+}
+
 void MockTwitchServer::simulateError(const QString& path, int statusCode, const QString& message)
 {
     m_simulatedErrors[path] = qMakePair(statusCode, message);
@@ -180,6 +190,12 @@ QByteArray MockTwitchServer::handleHelixChannels()
 
 QByteArray MockTwitchServer::handleHelixSearchChannels()
 {
+    // Use custom search results if set, otherwise generate from users
+    if (!m_searchResults.isEmpty()) {
+        return makeTwitchResponse(m_searchResults);
+    }
+
+    // Fallback: generate from users
     QJsonArray searchResults;
     for (const QJsonValue& userVal : m_users) {
         QJsonObject user = userVal.toObject();
@@ -217,7 +233,7 @@ QByteArray MockTwitchServer::handleHelixGamesTop()
 
 QByteArray MockTwitchServer::handleHelixVideos()
 {
-    return makeTwitchResponse(QJsonArray());
+    return makeTwitchResponse(m_videos);
 }
 
 QByteArray MockTwitchServer::handleHelixChannelsFollowed()

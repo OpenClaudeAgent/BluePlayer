@@ -18,7 +18,22 @@ void MockHlsServer::addChannel(const QString& channelName, int segmentCount, int
     config.segmentCount = segmentCount;
     config.segmentDuration = segmentDuration;
     config.mediaSequence = 0;
+    config.isVod = false;
     m_channels[channelName] = config;
+}
+
+void MockHlsServer::addVodChannel(const QString& channelName, int totalDurationSec, int segmentDuration)
+{
+    ChannelConfig config;
+    config.segmentCount = totalDurationSec / segmentDuration;
+    config.segmentDuration = segmentDuration;
+    config.mediaSequence = 0;
+    config.isVod = true;
+    m_channels[channelName] = config;
+
+    qDebug() << "MockHlsServer: Added VOD channel" << channelName
+             << "with" << config.segmentCount << "segments of" << segmentDuration << "s"
+             << "(" << totalDurationSec << "s total)";
 }
 
 void MockHlsServer::removeChannel(const QString& channelName)
@@ -121,11 +136,11 @@ QByteArray MockHlsServer::handleMasterPlaylist(const QString& channel)
     QString playlist = QString(
         "#EXTM3U\n"
         "#EXT-X-VERSION:3\n"
-        "#EXT-X-STREAM-INF:BANDWIDTH=6000000,RESOLUTION=1920x1080,CODECS=\"avc1.4d401f,mp4a.40.2\"\n"
+        "#EXT-X-STREAM-INF:BANDWIDTH=6000000,RESOLUTION=1920x1080,CODECS=\"avc1.4d401f,mp4a.40.2\",VIDEO=\"chunked\"\n"
         "%1/playlist/%2_chunked.m3u8\n"
-        "#EXT-X-STREAM-INF:BANDWIDTH=3000000,RESOLUTION=1280x720,CODECS=\"avc1.4d401f,mp4a.40.2\"\n"
+        "#EXT-X-STREAM-INF:BANDWIDTH=3000000,RESOLUTION=1280x720,CODECS=\"avc1.4d401f,mp4a.40.2\",VIDEO=\"720p\"\n"
         "%1/playlist/%2_720p.m3u8\n"
-        "#EXT-X-STREAM-INF:BANDWIDTH=1500000,RESOLUTION=854x480,CODECS=\"avc1.4d401e,mp4a.40.2\"\n"
+        "#EXT-X-STREAM-INF:BANDWIDTH=1500000,RESOLUTION=854x480,CODECS=\"avc1.4d401e,mp4a.40.2\",VIDEO=\"480p\"\n"
         "%1/playlist/%2_480p.m3u8\n"
     ).arg(baseUrl(), channel);
 
@@ -144,23 +159,33 @@ QByteArray MockHlsServer::handleMediaPlaylist(const QString& channel, const QStr
     int duration = config.segmentDuration;
     int segmentCount = config.segmentCount;
 
+    // VOD playlists are complete with all segments available
+    // Live playlists have rolling segments (mediaSequence increments)
+    QString playlistType = config.isVod ? "VOD" : "EVENT";
+
     QString playlist = QString(
         "#EXTM3U\n"
         "#EXT-X-VERSION:6\n"
         "#EXT-X-TARGETDURATION:%1\n"
         "#EXT-X-MEDIA-SEQUENCE:%2\n"
-        "#EXT-X-PLAYLIST-TYPE:EVENT\n"
-    ).arg(duration).arg(config.mediaSequence);
+        "#EXT-X-PLAYLIST-TYPE:%3\n"
+    ).arg(duration).arg(config.mediaSequence).arg(playlistType);
 
     for (int i = 0; i < segmentCount; ++i) {
-        int segNum = config.mediaSequence + i;
+        int segNum = config.isVod ? i : (config.mediaSequence + i);
         playlist += QString("#EXTINF:%1.000,\n").arg(duration);
         playlist += QString("%1/segments/%2_%3_%4.ts\n")
                         .arg(baseUrl(), channel, quality)
                         .arg(segNum);
     }
 
-    config.mediaSequence++;
+    // VOD playlists end with #EXT-X-ENDLIST
+    if (config.isVod) {
+        playlist += "#EXT-X-ENDLIST\n";
+    } else {
+        // Live playlists increment mediaSequence
+        config.mediaSequence++;
+    }
 
     return makeResponse(200, "OK", playlist.toUtf8(), "application/vnd.apple.mpegurl");
 }

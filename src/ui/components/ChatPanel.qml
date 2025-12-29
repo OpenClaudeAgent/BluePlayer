@@ -9,6 +9,7 @@ import "../themes/BlueTheme.js" as BlueTheme
  */
 Rectangle {
     id: chatPanel
+    objectName: "chatPanel"  // For E2E testing
 
     property var chatClient: null
     property string channelName: ""
@@ -236,6 +237,7 @@ Rectangle {
         // Message list
         ListView {
             id: messageListView
+            objectName: "chatMessageList"  // For E2E testing
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
@@ -344,6 +346,7 @@ Rectangle {
 
                 TextField {
                     id: messageInput
+                    objectName: "chatMessageInput"  // For E2E testing
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     placeholderText: activeFocus ? "" : qsTr("Send a message...")

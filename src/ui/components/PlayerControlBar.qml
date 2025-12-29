@@ -331,6 +331,7 @@ Rectangle {
             // Chat Toggle Button (hidden in VOD mode)
             ControlButton {
                 id: chatButton
+                objectName: "chatToggleButton"  // For E2E testing
                 visible: chatEnabled
                 width: chipHeight; height: chipHeight
                 active: chatVisible

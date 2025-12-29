@@ -1,0 +1,51 @@
+{
+  "data": [
+    {
+      "id": "12345",
+      "broadcaster_login": "teststreamer",
+      "display_name": "TestStreamer",
+      "game_id": "509658",
+      "game_name": "Just Chatting",
+      "is_live": true,
+      "title": "Test Stream for E2E Testing",
+      "thumbnail_url": "https://static-cdn.jtvnw.net/previews-ttv/live_user_teststreamer-{width}x{height}.jpg",
+      "started_at": "2025-12-28T10:00:00Z"
+    },
+    {
+      "id": "23456",
+      "broadcaster_login": "gamestreamer",
+      "display_name": "GameStreamer",
+      "game_id": "33214",
+      "game_name": "Fortnite",
+      "is_live": true,
+      "title": "Playing Fortnite - Come hang out!",
+      "thumbnail_url": "https://static-cdn.jtvnw.net/previews-ttv/live_user_gamestreamer-{width}x{height}.jpg",
+      "started_at": "2025-12-28T08:30:00Z"
+    },
+    {
+      "id": "34567",
+      "broadcaster_login": "frenchstreamer",
+      "display_name": "FrenchStreamer",
+      "game_id": "21779",
+      "game_name": "League of Legends",
+      "is_live": false,
+      "title": "",
+      "thumbnail_url": "https://static-cdn.jtvnw.net/previews-ttv/live_user_frenchstreamer-{width}x{height}.jpg",
+      "started_at": ""
+    },
+    {
+      "id": "45678",
+      "broadcaster_login": "offlinestreamer",
+      "display_name": "OfflineStreamer",
+      "game_id": "",
+      "game_name": "",
+      "is_live": false,
+      "title": "",
+      "thumbnail_url": "https://static-cdn.jtvnw.net/previews-ttv/live_user_offlinestreamer-{width}x{height}.jpg",
+      "started_at": ""
+    }
+  ],
+  "pagination": {
+    "cursor": ""
+  }
+}
