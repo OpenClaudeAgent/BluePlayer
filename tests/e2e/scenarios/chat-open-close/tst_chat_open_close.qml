@@ -31,7 +31,7 @@ E2EScenarioTemplate {
             // Wait for home to fully initialize (API calls, rendering, etc.)
             wait(E2EConstants.timeoutMedium)
             
-            var streamCard = findChildByPrefix(mainWindow, "streamCard_")
+            var streamCard = findChildByPrefix(mainWindow, E2EConstants.streamCardPrefix)
             verify(streamCard !== null, "Stream card should exist")
             
             console.log("  Clicking stream card: " + streamCard.objectName)
@@ -56,11 +56,11 @@ E2EScenarioTemplate {
             
             // Wait for controls to be ready
             tryVerify(function() {
-                var btn = findChild(mainWindow, "chatToggleButton")
+                var btn = findChild(mainWindow, E2EConstants.chatToggleButton)
                 return btn !== null && btn.visible
             }, 3000, "Chat toggle button should be visible")
             
-            var chatButton = findChild(mainWindow, "chatToggleButton")
+            var chatButton = findChild(mainWindow, E2EConstants.chatToggleButton)
             verify(chatButton !== null, "Chat toggle button should exist")
             verify(chatButton.visible, "Chat toggle button should be visible")
             
@@ -76,7 +76,7 @@ E2EScenarioTemplate {
                 return
             }
             
-            var chatButton = findChild(mainWindow, "chatToggleButton")
+            var chatButton = findChild(mainWindow, E2EConstants.chatToggleButton)
             verify(chatButton !== null, "Chat toggle button should exist")
             
             // Get player view to check chatVisible state
@@ -95,7 +95,7 @@ E2EScenarioTemplate {
             
             // Verify chat panel element exists
             tryVerify(function() {
-                var panel = findChild(mainWindow, "chatPanel")
+                var panel = findChild(mainWindow, E2EConstants.chatPanel)
                 return panel !== null && panel.visible
             }, 2000, "Chat panel should be visible")
             
@@ -143,7 +143,7 @@ E2EScenarioTemplate {
                 return
             }
             
-            var messageList = findChild(mainWindow, "chatMessageList")
+            var messageList = findChild(mainWindow, E2EConstants.chatMessageList)
             verify(messageList !== null, "Message list should exist")
             
             initialMessageCount = messageList.count
@@ -178,10 +178,10 @@ E2EScenarioTemplate {
                 return
             }
             
-            var messageInput = findChild(mainWindow, "chatMessageInput")
+            var messageInput = findChild(mainWindow, E2EConstants.chatMessageInput)
             verify(messageInput !== null, "Message input should exist")
             
-            var messageList = findChild(mainWindow, "chatMessageList")
+            var messageList = findChild(mainWindow, E2EConstants.chatMessageList)
             verify(messageList !== null, "Message list should exist")
             
             // Clear any previous client messages
@@ -246,7 +246,7 @@ E2EScenarioTemplate {
                 return
             }
             
-            var chatButton = findChild(mainWindow, "chatToggleButton")
+            var chatButton = findChild(mainWindow, E2EConstants.chatToggleButton)
             verify(chatButton !== null, "Chat toggle button should exist")
             
             // Click to close chat
@@ -269,7 +269,7 @@ E2EScenarioTemplate {
                 return
             }
             
-            var chatButton = findChild(mainWindow, "chatToggleButton")
+            var chatButton = findChild(mainWindow, E2EConstants.chatToggleButton)
             var playerView = findChild(mainWindow, "playerView")
             
             verify(chatButton !== null, "Chat toggle button should exist")

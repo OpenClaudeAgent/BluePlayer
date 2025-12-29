@@ -44,7 +44,7 @@ E2EScenarioTemplate {
         function test_02_search_field_exists() {
             console.log("Testing: Search field exists")
             
-            var searchField = findChild(mainWindow, "searchField")
+            var searchField = findChild(mainWindow, E2EConstants.searchField)
             verify(searchField !== null, "Search field should exist")
             verify(searchField.visible, "Search field should be visible")
             
@@ -58,10 +58,10 @@ E2EScenarioTemplate {
         function test_03_search_triggers_api() {
             console.log("Testing: Search triggers API and loads results")
             
-            var searchField = findChild(mainWindow, "searchField")
+            var searchField = findChild(mainWindow, E2EConstants.searchField)
             verify(searchField !== null, "Search field should exist")
             
-            var searchResultsPopup = findChild(mainWindow, "searchResultsPopup")
+            var searchResultsPopup = findChild(mainWindow, E2EConstants.searchResultsPopup)
             verify(searchResultsPopup !== null, "Search results popup should exist")
             
             // Set search text programmatically (triggers debounce timer)
@@ -97,7 +97,7 @@ E2EScenarioTemplate {
         function test_04_search_results_exist() {
             console.log("Testing: Search result items exist")
             
-            var searchResultsPopup = findChild(mainWindow, "searchResultsPopup")
+            var searchResultsPopup = findChild(mainWindow, E2EConstants.searchResultsPopup)
             if (!searchResultsPopup || !searchResultsPopup.channelResults || searchResultsPopup.channelResults.length === 0) {
                 skip("No search results available")
                 return
@@ -105,7 +105,7 @@ E2EScenarioTemplate {
             
             // Force the popup to be visible for testing
             // In offscreen mode, activeFocus doesn't work, so we set visibility directly
-            var searchField = findChild(mainWindow, "searchField")
+            var searchField = findChild(mainWindow, E2EConstants.searchField)
             if (searchField) {
                 // Ensure we still have text
                 if (searchField.text.length === 0) {
@@ -123,7 +123,7 @@ E2EScenarioTemplate {
             }, 500, "Popup should become visible")
             
             // Find search result item
-            var searchResult0 = findChild(mainWindow, "searchResult_0")
+            var searchResult0 = findChild(mainWindow, E2EConstants.searchResultName(0))
             console.log("  Search result 0 found: " + (searchResult0 !== null))
             
             if (searchResult0) {
@@ -144,11 +144,11 @@ E2EScenarioTemplate {
         function test_05_click_search_result_opens_player() {
             console.log("Testing: Click search result opens player")
             
-            var searchResult0 = findChild(mainWindow, "searchResult_0")
+            var searchResult0 = findChild(mainWindow, E2EConstants.searchResultName(0))
             
             if (!searchResult0) {
                 // Fallback: try to get results and click using the popup's signal
-                var searchResultsPopup = findChild(mainWindow, "searchResultsPopup")
+                var searchResultsPopup = findChild(mainWindow, E2EConstants.searchResultsPopup)
                 if (searchResultsPopup && searchResultsPopup.channelResults && searchResultsPopup.channelResults.length > 0) {
                     console.log("  Triggering channel click programmatically...")
                     var channel = searchResultsPopup.channelResults[0]
