@@ -40,7 +40,15 @@ QtObject {
     // Panels
     readonly property string preferencesPanel: "preferencesPanel"
     readonly property string cacheManagerPanel: "cacheManagerPanel"
+    readonly property string cacheManagerView: "cacheManagerView"
     readonly property string chatPanel: "chatPanel"
+
+    // Navigation buttons
+    readonly property string replaysButton: "replaysButton"
+    readonly property string preferencesButton: "preferencesButton"
+    
+    // Cache Manager
+    readonly property string emptyState: "emptyState"
 
     // Quality selector
     readonly property string qualityControl: "qualityControl"

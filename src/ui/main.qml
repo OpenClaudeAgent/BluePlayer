@@ -89,6 +89,7 @@ ApplicationWindow {
 
     // Bouton Replays - Utilise CircleButton
     CircleButton {
+      objectName: "replaysButton"  // For E2E testing
       iconText: "\u21BA"
       active: cacheActive
       tooltipText: {
@@ -102,6 +103,7 @@ ApplicationWindow {
 
     // Bouton Préférences - Utilise CircleButton
     CircleButton {
+      objectName: "preferencesButton"  // For E2E testing
       iconText: "\u2699"
       iconSize: 18
       active: preferencesActive

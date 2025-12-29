@@ -9,6 +9,7 @@ import "components"
 
 Item {
   id: root
+  objectName: "cacheManagerView"  // For E2E testing
 
   // Theme access
   readonly property var tm: typeof themeManager !== "undefined" ? themeManager : null
@@ -320,10 +321,12 @@ Item {
           spacing: BlueTheme.spacingMedium
 
         Repeater {
+          id: vodRepeater
           model: viewModel.vodList
 
           Rectangle {
             id: cardRect
+            objectName: "vodCard_" + index  // For E2E testing
             width: 200
             implicitHeight: cardContent.implicitHeight + BlueTheme.spacingMedium * 2
             radius: 12
@@ -569,6 +572,7 @@ Item {
 
       // État vide (dans le Flow)
       Item {
+        objectName: "emptyState"  // For E2E testing
         width: vodFlowLayout.width
         height: 200
         visible: viewModel.vodCount === 0

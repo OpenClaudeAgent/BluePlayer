@@ -28,6 +28,7 @@ add_subdirectory(search-stream)
 add_subdirectory(quality-switch)
 add_subdirectory(chat-open-close)
 add_subdirectory(audio-only-mode)
+add_subdirectory(play-cached-vod)
 
 # Unauthenticated scenarios (no login required)
 add_subdirectory(login-view)
