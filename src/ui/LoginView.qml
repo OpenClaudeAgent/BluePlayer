@@ -12,25 +12,10 @@ Item {
   // Quand chargé via Loader avec source, le contexte global est disponible
   // Utiliser une fonction pour éviter les problèmes de binding
   property var twitchServiceRef: (function() {
-    var service = typeof twitchService !== "undefined" ? twitchService : null
-    console.log("[LoginView] twitchServiceRef initialization - service:", service ? "EXISTS" : "NULL")
-    return service
+    return typeof twitchService !== "undefined" ? twitchService : null
   })()
   
-  Component.onCompleted: {
-    console.log("[LoginView] Component.onCompleted - twitchServiceRef:", twitchServiceRef ? "EXISTS" : "NULL")
-    console.log("[LoginView] Component.onCompleted - typeof twitchService:", typeof twitchService)
-    // Essayer d'accéder directement aussi
-    if (typeof twitchService !== "undefined") {
-      console.log("[LoginView] Direct twitchService access:", twitchService ? "EXISTS" : "NULL")
-      if (twitchService) {
-        console.log("[LoginView] twitchService.authenticated:", twitchService.authenticated)
-      }
-    }
-    if (twitchServiceRef) {
-      console.log("[LoginView] twitchServiceRef.authenticated:", twitchServiceRef.authenticated)
-    }
-  }
+
 
   ColumnLayout {
     anchors.centerIn: parent
@@ -128,23 +113,23 @@ Item {
           color: BlueTheme.accent
           radius: 14
           
-          MouseArea {
-            anchors.fill: parent
-            cursorShape: Qt.PointingHandCursor
-            onClicked: {
-              // Essayer d'abord twitchServiceRef, puis accès direct
-              var service = loginRoot.twitchServiceRef
-              if (!service && typeof twitchService !== "undefined") {
-                service = twitchService
-              }
-              if (service) {
-                console.log("[LoginView] Logging in...")
-                service.login()
-              } else {
-                console.warn("[LoginView] WARNING: twitchService is not available when button clicked")
+            MouseArea {
+              anchors.fill: parent
+              cursorShape: Qt.PointingHandCursor
+              onClicked: {
+                // Essayer d'abord twitchServiceRef, puis accès direct
+                var service = loginRoot.twitchServiceRef
+                if (!service && typeof twitchService !== "undefined") {
+                  service = twitchService
+                }
+                if (service) {
+                  console.info("[Auth] Sign in initiated")
+                  service.login()
+                } else {
+                  console.warn("[Auth] Service not available")
+                }
               }
             }
-          }
           
           Text {
             anchors.centerIn: parent
@@ -180,13 +165,11 @@ Item {
       target: loginRoot.twitchServiceRef
       enabled: loginRoot.twitchServiceRef !== null && loginRoot.twitchServiceRef !== undefined
       function onErrorOccurred(message) {
-        console.log("[LoginView] Error:", message)
         errorText.text = message
         errorText.visible = true
       }
       function onAuthenticatedChanged(authenticated) {
         if (authenticated) {
-          console.log("[LoginView] User authenticated, view will be switched")
           errorText.visible = false
         }
       }

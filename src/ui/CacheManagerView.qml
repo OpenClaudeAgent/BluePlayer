@@ -142,7 +142,10 @@ Item {
           MouseArea {
             anchors.fill: parent
             cursorShape: Qt.PointingHandCursor
-            onClicked: viewModel.sortField = modelData.value
+            onClicked: {
+              console.info("[Cache] Sort changed:", modelData.value)
+              viewModel.sortField = modelData.value
+            }
           }
         }
       }
@@ -166,7 +169,11 @@ Item {
           anchors.fill: parent
           hoverEnabled: true
           cursorShape: Qt.PointingHandCursor
-          onClicked: viewModel.sortAscending = !viewModel.sortAscending
+          onClicked: {
+            var newOrder = !viewModel.sortAscending
+            console.info("[Cache] Sort order:", newOrder ? "ascending" : "descending")
+            viewModel.sortAscending = newOrder
+          }
         }
       }
 
@@ -255,7 +262,14 @@ Item {
         textRole: "text"
         valueRole: "value"
         currentIndex: 0
-        onCurrentValueChanged: viewModel.filterStreamer = currentValue
+        onCurrentValueChanged: {
+          if (currentValue) {
+            console.info("[Cache] Filter by streamer:", currentValue)
+          } else {
+            console.info("[Cache] Filter cleared")
+          }
+          viewModel.filterStreamer = currentValue
+        }
 
         background: Rectangle {
           radius: 14
@@ -540,6 +554,7 @@ Item {
                 if (viewModel.selectionMode) {
                   viewModel.toggleSelection(modelData.id, !viewModel.isSelected(modelData.id))
                 } else {
+                  console.info("[Cache] VOD played:", modelData.streamerName)
                   root.playVodRequested(modelData.id, modelData.filePath, modelData)
                 }
               }
@@ -675,6 +690,7 @@ Item {
             anchors.fill: parent
             cursorShape: Qt.PointingHandCursor
             onClicked: {
+              console.info("[Cache] VODs deleted:", viewModel.selectedCount)
               viewModel.deleteSelected()
               viewModel.selectionMode = false
               deleteSelectedDialog.close()
@@ -770,6 +786,7 @@ Item {
             anchors.fill: parent
             cursorShape: Qt.PointingHandCursor
             onClicked: {
+              console.info("[Cache] All VODs cleared:", viewModel.vodCount, "videos")
               viewModel.clearAll()
               clearAllDialog.close()
             }

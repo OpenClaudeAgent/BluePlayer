@@ -162,6 +162,7 @@ Window {
             }
             
             onDoubleClicked: {
+                console.info("[PiP] Returned to main window (double-click)")
                 pipWindow.returnToAppRequested()
             }
         }
@@ -312,7 +313,10 @@ Window {
                 anchors.fill: parent
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
-                onClicked: pipWindow.closeRequested()
+                onClicked: {
+                    console.info("[PiP] Closed")
+                    pipWindow.closeRequested()
+                }
             }
         }
 
@@ -478,7 +482,10 @@ Window {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: pipWindow.returnToAppRequested()
+                        onClicked: {
+                            console.info("[PiP] Returned to main window")
+                            pipWindow.returnToAppRequested()
+                        }
                     }
                     
                     ToolTip.visible: hovered

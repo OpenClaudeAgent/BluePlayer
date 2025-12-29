@@ -144,7 +144,6 @@ Item {
           isPlaceholder: card ? (card.isPlaceholder || false) : true
           
           onClicked: function(login, name, title, thumbnailUrl) {
-            console.log("[DEBUG HorizontalRowSection] StreamCard clicked, thumbnailUrl:", thumbnailUrl)
             root.streamClicked(login, name, title, thumbnailUrl)
           }
         }
@@ -163,7 +162,6 @@ Item {
           isPlaceholder: card ? (card.isPlaceholder || false) : true
           
           onCategoryClicked: function(categoryId, categoryName) {
-            console.log("[DEBUG HorizontalRowSection] Category clicked, emitting signal with categoryId:", categoryId)
             root.categoryClicked(categoryId, categoryName)
           }
         }

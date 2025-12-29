@@ -47,7 +47,6 @@ Item {
     target: typeof languageManager !== "undefined" ? languageManager : null
     enabled: target !== null
     function onLanguageChanged() {
-      console.log("[HomeView] Language changed, refreshing sections")
       viewModel.refreshTranslations()
     }
   }
@@ -71,7 +70,6 @@ Item {
     interval: 400
     onTriggered: {
       if (searchField.text.length > 0) {
-        console.log("[HomeView] Recherche déclenchée après debounce:", searchField.text)
         // Rechercher dans Twitch
         var service = getTwitchService()
         if (service) {
@@ -81,7 +79,6 @@ Item {
         var cache = getCacheManager()
         if (cache) {
           searchResultsPopup.cacheResults = cache.searchVods(searchField.text)
-          console.log("[HomeView] Cache search results:", searchResultsPopup.cacheResults.length)
         }
       }
     }
@@ -131,47 +128,27 @@ Item {
       }
     }
     function onPopularClipsChanged() {
-      console.log("[DEBUG HomeView] onPopularClipsChanged() called")
       var service = getTwitchService()
-      console.log("[DEBUG HomeView] service:", service ? "exists" : "null")
-      if (service) {
-        console.log("[DEBUG HomeView] service.popularClips:", service.popularClips ? "exists" : "null", "length:", service.popularClips ? service.popularClips.length : 0)
-        if (service.popularClips && service.popularClips.length > 0) {
-          console.log("[DEBUG HomeView] Calling viewModel.updatePopularClips()")
-          viewModel.updatePopularClips(service.popularClips)
-        } else {
-          console.log("[DEBUG HomeView] No popular clips to update")
-        }
+      if (service && service.popularClips && service.popularClips.length > 0) {
+        viewModel.updatePopularClips(service.popularClips)
       }
     }
     function onFollowedClipsChanged() {
-      console.log("[DEBUG HomeView] onFollowedClipsChanged() called")
       var service = getTwitchService()
       if (service && service.followedClips && service.followedClips.length > 0) {
-        console.log("[DEBUG HomeView] Calling viewModel.updateFollowedClips() with", service.followedClips.length, "clips")
         viewModel.updateFollowedClips(service.followedClips)
-      } else {
-        console.log("[DEBUG HomeView] No followed clips to update")
       }
     }
     function onVideosChanged() {
-      console.log("[DEBUG HomeView] onVideosChanged() called")
       var service = getTwitchService()
       if (service && service.videos && service.videos.length > 0) {
-        console.log("[DEBUG HomeView] Calling viewModel.updateVideos() with", service.videos.length, "videos")
         viewModel.updateVideos(service.videos)
-      } else {
-        console.log("[DEBUG HomeView] No videos to update")
       }
     }
     function onFollowedChannelsChanged() {
-      console.log("[DEBUG HomeView] onFollowedChannelsChanged() called")
       var service = getTwitchService()
       if (service && service.followedChannels && service.followedChannels.length > 0) {
-        console.log("[DEBUG HomeView] Calling viewModel.updateFollowedChannels() with", service.followedChannels.length, "channels")
         viewModel.updateFollowedChannels(service.followedChannels)
-      } else {
-        console.log("[DEBUG HomeView] No followed channels to update")
       }
     }
     function onNewStreamersChanged() {
@@ -181,35 +158,23 @@ Item {
       }
     }
     function onCategoryStreamsChanged() {
-      console.log("[DEBUG HomeView] onCategoryStreamsChanged() called")
       var service = getTwitchService()
-      console.log("[DEBUG HomeView] service:", service ? "exists" : "null")
-      console.log("[DEBUG HomeView] service.categoryStreams:", service && service.categoryStreams ? "exists" : "null", "length:", service && service.categoryStreams ? service.categoryStreams.length : 0)
       if (service && service.categoryStreams && service.categoryStreams.length > 0) {
-        console.log("[DEBUG HomeView] Calling viewModel.updateCategoryStreams() with", service.categoryStreams.length, "streams")
         viewModel.updateCategoryStreams(service.categoryStreams)
-      } else {
-        console.log("[DEBUG HomeView] No category streams to update - service:", service ? "exists" : "null", "categoryStreams:", service && service.categoryStreams ? "exists" : "null", "length:", service && service.categoryStreams ? service.categoryStreams.length : 0)
       }
     }
     function onErrorOccurred(message) {
-      console.log("[HomeView] ERROR Twitch:", message)
+      console.warn("[Home] Twitch error:", message)
     }
     function onSearchChannelResultsChanged() {
-      console.log("[HomeView] Search channel results changed")
       // Force update of SearchResults binding
       searchResultsPopup.channelResults = getTwitchService() ? getTwitchService().searchChannelResults : []
     }
     function onSearchCategoryResultsChanged() {
       // Categories are no longer displayed in search results
-      console.log("[HomeView] Search category results changed (ignored)")
     }
     function onUserIdChanged() {
-      console.log("[DEBUG HomeView] onUserIdChanged() called")
-      var service = getTwitchService()
-      if (service && service.userId) {
-        console.log("[DEBUG HomeView] UserId available:", service.userId, "- user-specific data should be loaded")
-      }
+      // User ID changed - user-specific data will be loaded by TwitchService
     }
     function onAuthenticatedChanged(authenticated) {
       // Charger les streams recommandés et catégories quand l'utilisateur s'authentifie
@@ -232,25 +197,15 @@ Item {
       if (service.recommendedStreams && service.recommendedStreams.length > 0) {
         viewModel.updateRecommendedStreams(service.recommendedStreams)
       } else {
-        // Charger les streams recommandés même sans authentification
         service.refreshRecommendedStreams()
       }
       if (service.categories && service.categories.length > 0) {
         viewModel.updateCategories(service.categories)
       } else {
-        // Charger les catégories même sans authentification
         service.refreshCategories()
       }
-      // Charger les sections publiques même sans authentification
-      console.log("[DEBUG HomeView] Loading public sections")
+      // Charger les sections publiques
       service.refreshPopularClips()
-      
-      // Charger les sections nécessitant authentification si l'utilisateur est authentifié
-      if (service.authenticated) {
-        console.log("[DEBUG HomeView] User authenticated, will load user-specific data after userId is available")
-        // Les données spécifiques à l'utilisateur seront chargées dans TwitchService::onUserInfoReady()
-        // après que userId soit disponible
-      }
     }
   }
 
@@ -261,7 +216,6 @@ Item {
     visible: searchResultsPopup.visible || searchField.activeFocus
     z: 5  // Au-dessus du contenu mais en-dessous du popup de résultats
     onClicked: {
-      console.log("[HomeView] Click outside search results - closing")
       closeSearchResults()
     }
   }
@@ -287,20 +241,20 @@ Item {
     cacheResults: []  // Updated via searchDebounceTimer
     
     onChannelClicked: function(broadcasterLogin, displayName, isLive, thumbnailUrl) {
-      console.log("[HomeView] Search result channel clicked:", displayName, "login:", broadcasterLogin, "isLive:", isLive)
+      console.info("[Search] Opening stream:", displayName)
       searchField.text = ""
       clearSearchResults()
       searchField.focus = false
-      // Ouvrir le player pour le stream en direct (only live channels are shown)
+      // Ouvrir le player pour le stream en direct
       homeRoot.openStreamPlayer(broadcasterLogin, displayName, "", thumbnailUrl)
     }
     
     onCacheVodClicked: function(vodId, filePath, streamerName) {
-      console.log("[HomeView] Cache VOD clicked:", streamerName, "path:", filePath)
+      console.info("[Search] Opening cached VOD:", streamerName)
       searchField.text = ""
       clearSearchResults()
       searchField.focus = false
-      // Ouvrir le player pour la VOD en cache avec le bon signal
+      // Ouvrir le player pour la VOD en cache
       homeRoot.playVodRequested(vodId, filePath, { streamerName: streamerName, streamTitle: "VOD en cache" })
     }
     
@@ -399,7 +353,7 @@ Item {
                 // (seulement si aucun élément n'est sélectionné - sinon géré par Keys.onPressed)
                 if (searchResultsPopup.selectedIndex < 0 && text.length > 0) {
                   searchDebounceTimer.stop()
-                  console.log("[HomeView] Recherche immédiate:", text)
+                  console.info("[Search] Query submitted:", text)
                   var service = getTwitchService()
                   if (service) {
                     service.search(text)
@@ -485,20 +439,13 @@ Item {
             cardSpacing: 16
             
             onCategoryClicked: function(categoryId, categoryName) {
-              console.log("[DEBUG HomeView] Category clicked:", categoryName, "ID:", categoryId)
               const service = getTwitchService()
               if (service && categoryId) {
-                console.log("[DEBUG HomeView] Calling service.refreshCategoryStreams() with gameId:", categoryId)
                 service.refreshCategoryStreams(categoryId)
-              } else {
-                console.log("[DEBUG HomeView] Cannot refresh category streams - service:", service ? "exists" : "null", "categoryId:", categoryId)
               }
             }
             
             onStreamClicked: function(streamerLogin, streamerName, streamTitle, thumbnailUrl) {
-              console.log("[DEBUG HomeView] Stream clicked:", streamerName, "login:", streamerLogin)
-              console.log("[DEBUG HomeView] thumbnailUrl received:", thumbnailUrl)
-              // Émettre un signal pour ouvrir le player
               homeRoot.openStreamPlayer(streamerLogin, streamerName, streamTitle, thumbnailUrl)
             }
           }

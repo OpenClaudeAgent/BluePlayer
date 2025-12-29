@@ -246,39 +246,64 @@ Exemples :
 ## Checklist de validation
 
 ### Rotation automatique
-- [ ] Les fichiers de plus de 7 jours sont supprimes au demarrage
-- [ ] Le nombre de fichiers est limite a 20 maximum
-- [ ] Un message de log indique le nombre de fichiers nettoyes
-- [ ] La suppression est silencieuse si rien a nettoyer
+- [x] Les fichiers de plus de 7 jours sont supprimes au demarrage
+- [x] Le nombre de fichiers est limite a 20 maximum
+- [x] Un message de log indique le nombre de fichiers nettoyes
+- [x] La suppression est silencieuse si rien a nettoyer
 
 ### Audit des logs C++
-- [ ] TwitchChatClient : log RAW (ligne 221) supprime
-- [ ] TwitchAuthManager : tokens/Client-ID ne sont plus logges
-- [ ] Logs redondants fusionnes ou supprimes
-- [ ] Pas de double prefixe `[DEBUG] [DEBUG ...]`
+- [x] TwitchChatClient : log RAW (ligne 221) supprime
+- [x] TwitchAuthManager : tokens/Client-ID ne sont plus logges
+- [x] Logs redondants fusionnes ou supprimes
+- [x] Pas de double prefixe `[DEBUG] [DEBUG ...]`
 
 ### Audit des logs QML
-- [ ] Logs JSON de debugging temporaires supprimes (sessionId, hypothesisId)
-- [ ] PlayerView.qml : logs reduits a l'essentiel
-- [ ] HomeView.qml : logs reduits a l'essentiel
-- [ ] main.qml : logs reduits a l'essentiel
+- [x] Logs JSON de debugging temporaires supprimes (sessionId, hypothesisId)
+- [x] PlayerView.qml : logs reduits a l'essentiel
+- [x] HomeView.qml : logs reduits a l'essentiel
+- [x] main.qml : logs reduits a l'essentiel
 
 ### Strategie de logging
-- [ ] Format standardise `[NIVEAU] [Categorie] Message` applique partout
-- [ ] Logs INFO ajoutes pour la navigation (changements de vue, panels)
-- [ ] Logs INFO ajoutes pour le player (demarrage, arret, changement qualite)
-- [ ] Logs INFO ajoutes pour l'authentification (login, logout, refresh)
-- [ ] Logs INFO ajoutes pour le cache (enregistrement, suppression, cleanup)
-- [ ] Logs INFO ajoutes pour le chat (connexion, deconnexion)
-- [ ] Niveaux DEBUG actives uniquement via variable d'environnement
+- [x] Format standardise `[NIVEAU] [Categorie] Message` applique partout
+- [x] Logs INFO ajoutes pour la navigation (changements de vue, panels)
+- [x] Logs INFO ajoutes pour le player (demarrage, arret, changement qualite)
+- [x] Logs INFO ajoutes pour l'authentification (login, logout, refresh)
+- [x] Logs INFO ajoutes pour le cache (enregistrement, suppression, cleanup)
+- [x] Logs INFO ajoutes pour le chat (connexion, deconnexion)
+- [x] Niveaux DEBUG actives uniquement via variable d'environnement
 
 ### Objectif global
-- [ ] **Reduction de 90% minimum du volume de logs** (de 2500 lignes a ~250 pour 20 min)
-- [ ] Logs restants sont utiles et actionnables
-- [ ] Les flux critiques sont traces avec des logs INFO pertinents
+- [x] **Reduction de 90% minimum du volume de logs** (de 2500 lignes a ~250 pour 20 min)
+- [x] Logs restants sont utiles et actionnables
+- [x] Les flux critiques sont traces avec des logs INFO pertinents
 
 ### Tests
-- [ ] Test unitaire : suppression fichiers > 7 jours
-- [ ] Test unitaire : limite de 20 fichiers
-- [ ] Test unitaire : pas de suppression si < 20 fichiers recents
-- [ ] Application demarre et logge correctement apres les changements
+- [x] Test unitaire : suppression fichiers > 7 jours
+- [x] Test unitaire : limite de 20 fichiers
+- [x] Test unitaire : pas de suppression si < 20 fichiers recents
+- [x] Application demarre et logge correctement apres les changements
+
+## Specifications (ajoutees lors de l'implementation)
+
+### Logs INFO standardises (42 total)
+
+| Composant | Logs |
+|-----------|------|
+| Navigation | Changement de vue |
+| Player | Stream start/stop, quality, mute, fullscreen, chat panel, seek, PiP, playback rate, hardware decoding, crop |
+| Auth | Sign in initiated, sign out, token refresh |
+| Chat | Connecting, panel closed |
+| Preferences | Language, theme, quality, cache size, clear cache |
+| Cache | VOD played, VODs deleted, all cleared, sort changed, filter |
+| Search | Query submitted, channel selected, cached VOD selected |
+| PiP | Closed, returned to main window |
+
+### Logs supprimes (20 DEBUG/console.log)
+
+- LoginView.qml : 8 logs d'initialisation
+- StreamCard.qml : 2 logs DEBUG
+- CategoryCard.qml : 1 log DEBUG
+- ClipCard.qml, ChannelCard.qml, VideoCard.qml : 3 logs TODO
+- HorizontalRowSection.qml : 2 logs DEBUG
+- PlayerView.qml : 3 logs seekbar
+- ThemeProvider.qml : 1 log init

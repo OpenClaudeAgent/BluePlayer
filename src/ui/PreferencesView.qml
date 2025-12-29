@@ -39,7 +39,7 @@ Item {
         var mgr = getLanguageManager()
         if (mgr) {
             mgr.setLanguage(lang)
-            console.log("[PreferencesView] Language changed to:", lang)
+            console.info("[Preferences] Language changed:", lang)
         }
     }
 
@@ -57,7 +57,7 @@ Item {
         var mgr = getThemeManager()
         if (mgr) {
             mgr.themePreference = pref
-            console.log("[PreferencesView] Theme preference changed to:", pref)
+            console.info("[Preferences] Theme changed:", pref)
         }
     }
 
@@ -189,7 +189,7 @@ Item {
                                     var service = getTwitchService()
                                     if (service) {
                                         service.setDefaultQuality(value)
-                                        console.log("[PreferencesView] Default quality saved: " + value)
+                                        console.info("[Preferences] Default quality changed:", value)
                                     }
                                 }
                             }
@@ -355,10 +355,10 @@ Item {
                                             var service = getTwitchService()
                                             if (service) {
                                                 if (service.authenticated) {
-                                                    console.log("[PreferencesView] Logging out...")
+                                                    console.info("[Preferences] Sign out requested")
                                                     service.logout()
                                                 } else {
-                                                    console.log("[PreferencesView] Logging in...")
+                                                    console.info("[Preferences] Sign in requested")
                                                     service.login()
                                                 }
                                             }
@@ -508,6 +508,7 @@ Item {
                                                         var currentGB = cm.maxCacheSize / (1024 * 1024 * 1024)
                                                         var newGB = Math.max(1, currentGB - 10)
                                                         cm.setMaxCacheSize(newGB * 1024 * 1024 * 1024)
+                                                        console.info("[Preferences] Max cache size changed:", newGB, "GB")
                                                     }
                                                 }
                                             }
@@ -570,6 +571,7 @@ Item {
                                                         var currentGB = cm.maxCacheSize / (1024 * 1024 * 1024)
                                                         var newGB = currentGB + 10
                                                         cm.setMaxCacheSize(newGB * 1024 * 1024 * 1024)
+                                                        console.info("[Preferences] Max cache size changed:", newGB, "GB")
                                                     }
                                                 }
                                             }
@@ -777,13 +779,14 @@ Item {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            var cm = getCacheManager()
-                            if (cm) {
-                                cm.clearAllVods()
-                            }
-                            clearCacheDialog.close()
-                        }
+                                        onClicked: {
+                                            var cm = getCacheManager()
+                                            if (cm) {
+                                                console.info("[Preferences] Cache cleared, freed:", cm.formattedTotalSize())
+                                                cm.clearAllVods()
+                                            }
+                                            clearCacheDialog.close()
+                                        }
                     }
                 }
             }
@@ -798,7 +801,6 @@ Item {
         enabled: getTwitchService() !== null
         function onAuthenticatedChanged(authenticated) {
             if (!authenticated) {
-                console.log("[PreferencesView] User logged out, closing preferences")
                 preferencesRoot.closeRequested()
             }
         }

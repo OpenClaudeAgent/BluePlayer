@@ -15,7 +15,6 @@ BaseCard {
   signal categoryClicked(string categoryId, string categoryName)
 
   onCardClicked: {
-    console.log("[DEBUG CategoryCard] Clicked on category:", categoryName, "ID:", categoryId)
     categoryClicked(categoryId, categoryName)
   }
 

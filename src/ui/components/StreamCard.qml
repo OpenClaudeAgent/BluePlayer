@@ -18,8 +18,6 @@ BaseCard {
 
   onCardClicked: {
     if (streamerLogin) {
-      console.log("[DEBUG StreamCard] Clicked on stream:", streamerName, "login:", streamerLogin)
-      console.log("[DEBUG StreamCard] previewImage:", previewImage)
       clicked(streamerLogin, streamerName, streamTitle, previewImage)
     }
   }

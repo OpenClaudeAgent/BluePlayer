@@ -193,11 +193,7 @@ TwitchAuthManager::TwitchAuthManager(blueplayer::core::network::IHttpClient* htt
   m_clientId = QString::fromUtf8(qgetenv("TWITCH_CLIENT_ID"));
   m_clientSecret = QString::fromUtf8(qgetenv("TWITCH_CLIENT_SECRET"));
 
-  // Log Client-ID used during OAuth token generation for investigation
-  Logger::debug(
-      LogCategory::Twitch,
-      QStringLiteral("[DEBUG] OAuth Client-ID: %1")
-          .arg(m_clientId.isEmpty() ? QStringLiteral("EMPTY") : m_clientId));
+  // Client-ID logging removed for security - was exposing full Client-ID
   const QByteArray certPath = qgetenv("TWITCH_TLS_CERT_PATH");
   if (!certPath.isEmpty()) {
     m_tlsCertPath = QString::fromUtf8(certPath);
@@ -235,11 +231,8 @@ bool TwitchAuthManager::isAuthenticated() const { return m_isAuthenticated; }
 
 QString TwitchAuthManager::accessToken() const {
   // Si un refresh est en cours, ne pas retourner l'ancien token expiré
-  // Attendre que le refresh soit terminé
   if (m_isRefreshing) {
-    Logger::debug(LogCategory::Twitch,
-                  QStringLiteral("Token refresh in progress, returning empty token"));
-    return QString(); // Retourner un token vide pendant le refresh
+    return QString();
   }
   
   // Vérifier et rafraîchir le token si nécessaire avant de le retourner
@@ -247,9 +240,7 @@ QString TwitchAuthManager::accessToken() const {
   
   // Si le token est expiré et qu'un refresh vient d'être lancé, retourner vide
   if (m_isRefreshing || (isTokenExpiredOrExpiringSoon() && !m_refreshToken.isEmpty())) {
-    Logger::debug(LogCategory::Twitch,
-                  QStringLiteral("Token expired and refresh needed, returning empty token"));
-    return QString(); // Retourner un token vide si expiré et refresh nécessaire
+    return QString();
   }
   
   return m_accessToken;
@@ -304,6 +295,7 @@ void TwitchAuthManager::logout() {
 
   // Émettre explicitement le signal de déconnexion
   if (wasAuthenticated) {
+    qInfo() << "[Auth] User logged out";
     emit authenticatedChanged(false);
   }
   emit accessTokenChanged(m_accessToken);
@@ -323,15 +315,10 @@ void TwitchAuthManager::refresh() {
   }
 
   if (m_isRefreshing) {
-    Logger::debug(
-        LogCategory::Twitch,
-        QStringLiteral("Token refresh already in progress, skipping"));
     return;
   }
 
   m_isRefreshing = true;
-  Logger::debug(LogCategory::Twitch,
-                QStringLiteral("Refreshing access token..."));
 
   QUrl tokenUrl(
       QString::fromUtf8(blueplayer::core::constants::twitch::kTokenEndpoint));
@@ -438,12 +425,8 @@ void TwitchAuthManager::handleTokenReply() {
   const int expiresIn = object.value(QStringLiteral("expires_in")).toInt(14400);
   m_tokenExpirationTime = QDateTime::currentDateTimeUtc().addSecs(expiresIn);
 
-  Logger::debug(LogCategory::Twitch,
-                QStringLiteral("Token expires at: %1 (in %2 seconds)")
-                    .arg(m_tokenExpirationTime.toString(Qt::ISODate))
-                    .arg(expiresIn));
-
   m_isRefreshing = false;
+  qInfo() << "[Auth] Token refreshed successfully";
   persistCredentials();
   emitTokenChanged();
   emitAuthenticated();
@@ -510,14 +493,6 @@ void TwitchAuthManager::requestAccessToken(const QString &code) {
 }
 
 void TwitchAuthManager::persistCredentials() {
-  // Ne logger que les premiers caractères du token pour la sécurité
-  QString tokenPreview = m_accessToken.isEmpty()
-                             ? QStringLiteral("EMPTY")
-                             : m_accessToken.left(8) + "...";
-  Logger::debug(
-      LogCategory::Twitch,
-      QStringLiteral("Persisting access token: %1").arg(tokenPreview));
-
   m_secureStorage->store(QStringLiteral("access_token"), m_accessToken);
   m_secureStorage->store(QStringLiteral("refresh_token"), m_refreshToken);
 
@@ -527,18 +502,12 @@ void TwitchAuthManager::persistCredentials() {
                            m_tokenExpirationTime.toString(Qt::ISODate));
   }
 
-  // IMPORTANT: Stocker le Client-ID utilisé pour générer le token
-  // Cela permet de vérifier que le token correspond au Client-ID actuel
+  // Stocker le Client-ID utilisé pour générer le token
   m_secureStorage->store(QStringLiteral("token_client_id"), m_clientId);
-  Logger::debug(LogCategory::Twitch,
-                QStringLiteral("Persisting Client-ID used for token: %1")
-                    .arg(m_clientId.isEmpty() ? QStringLiteral("EMPTY")
-                                              : m_clientId.left(10) + "..."));
 }
 
 void TwitchAuthManager::loadCredentials() {
-  Logger::debug(LogCategory::Twitch,
-                QStringLiteral("loadCredentials() called"));
+  // Verbose debug logging removed - loadCredentials called at startup
 
   m_accessToken = m_secureStorage->retrieve(QStringLiteral("access_token"));
   m_refreshToken = m_secureStorage->retrieve(QStringLiteral("refresh_token"));
@@ -584,34 +553,14 @@ void TwitchAuthManager::loadCredentials() {
       m_secureStorage->remove(QStringLiteral("refresh_token"));
       m_secureStorage->remove(QStringLiteral("token_expiration"));
       m_secureStorage->remove(QStringLiteral("token_client_id"));
-    } else {
-      Logger::debug(LogCategory::Twitch,
-                    QStringLiteral("Client-ID verification passed: token "
-                                   "matches current Client-ID"));
     }
   } else if (!m_accessToken.isEmpty() && storedClientId.isEmpty()) {
-    // Token existe mais pas de Client-ID stocké (ancien token avant cette
-    // implémentation) On considère le token comme valide pour l'instant et on
-    // stocke le Client-ID actuel Si le token ne fonctionne pas avec ce
-    // Client-ID, l'erreur 400 sera détectée lors de la première requête API et
-    // le token sera invalidé à ce moment-là
-    Logger::debug(
-        LogCategory::Twitch,
-        QStringLiteral("Token found but no stored Client-ID - storing current "
-                       "Client-ID for future verification"));
-    Logger::debug(
-        LogCategory::Twitch,
-        QStringLiteral(
-            "Token will be validated on first API call - if Client-ID "
-            "mismatch, error 400 will trigger token invalidation"));
+    // Token existe mais pas de Client-ID stocké - stocker le Client-ID actuel
     m_secureStorage->store(QStringLiteral("token_client_id"), m_clientId);
   }
 
   // Migration depuis l'ancien QSettings si SecureStorage est vide
   if (m_accessToken.isEmpty()) {
-    Logger::debug(LogCategory::Twitch,
-                  QStringLiteral(
-                      "No tokens in SecureStorage, checking legacy QSettings"));
     QSettings legacySettings(QStringLiteral("BluePlayer"),
                              QStringLiteral("Twitch"));
     QString legacyAccessToken =
@@ -620,35 +569,21 @@ void TwitchAuthManager::loadCredentials() {
         legacySettings.value(QStringLiteral("refresh_token")).toString();
 
     if (!legacyAccessToken.isEmpty()) {
-      Logger::debug(
-          LogCategory::Twitch,
-          QStringLiteral("Found legacy tokens, migrating to SecureStorage"));
       m_accessToken = legacyAccessToken;
       m_refreshToken = legacyRefreshToken;
       // Migrer vers SecureStorage
       m_secureStorage->store(QStringLiteral("access_token"), m_accessToken);
       m_secureStorage->store(QStringLiteral("refresh_token"), m_refreshToken);
-      // Stocker le Client-ID actuel avec le token migré
       m_secureStorage->store(QStringLiteral("token_client_id"), m_clientId);
       // Supprimer les anciens tokens
       legacySettings.remove(QStringLiteral("access_token"));
       legacySettings.remove(QStringLiteral("refresh_token"));
       legacySettings.sync();
-      Logger::debug(LogCategory::Twitch, QStringLiteral("Migration completed"));
+      qInfo() << "[Auth] Migrated tokens from legacy storage to Keychain";
     }
   }
 
-  // Ne logger que les premiers caractères du token pour la sécurité
-  QString tokenPreview = m_accessToken.isEmpty()
-                             ? QStringLiteral("EMPTY")
-                             : m_accessToken.left(8) + "...";
-  Logger::debug(LogCategory::Twitch,
-                QStringLiteral("Loaded access token: %1 (length: %2)")
-                    .arg(tokenPreview)
-                    .arg(m_accessToken.length()));
-  Logger::debug(LogCategory::Twitch,
-                QStringLiteral("Loaded refresh token, length: %1")
-                    .arg(m_refreshToken.length()));
+  // Token preview logging removed - was exposing partial tokens
 
   const bool wasAuthenticated = m_isAuthenticated;
   
@@ -663,48 +598,21 @@ void TwitchAuthManager::loadCredentials() {
   // OU si on n'a pas besoin de refresh (token valide)
   m_isAuthenticated = !m_accessToken.isEmpty() && !needsRefresh;
 
-  Logger::debug(LogCategory::Twitch,
-                QStringLiteral("Was authenticated: %1").arg(wasAuthenticated));
-  Logger::debug(LogCategory::Twitch,
-                QStringLiteral("Is authenticated: %1").arg(m_isAuthenticated));
-  Logger::debug(LogCategory::Twitch,
-                QStringLiteral("Needs refresh: %1").arg(needsRefresh));
+  // Verbose auth state logging removed
 
   // Si on a un token, émettre les signaux pour déclencher l'auto-login
   if (!m_accessToken.isEmpty()) {
-    Logger::debug(LogCategory::Twitch,
-                  QStringLiteral("Token found, checking expiration"));
-    
     // Si le token est expiré ou va expirer bientôt, le rafraîchir
     if (needsRefresh) {
-      Logger::debug(
-          LogCategory::Twitch,
-          QStringLiteral("Token expired or expiring soon, refreshing..."));
       refresh();
-      // Ne pas émettre les signaux maintenant - ils seront émis après le refresh
-      // dans handleTokenReply() via emitTokenChanged() et emitAuthenticated()
-      Logger::debug(LogCategory::Twitch,
-                    QStringLiteral("Refresh started during load - will emit "
-                                   "signals after refresh completes"));
       return;
     }
 
     // Token valide, émettre les signaux
-    Logger::debug(LogCategory::Twitch,
-                  QStringLiteral("Token is valid, emitting authentication signals"));
     if (!wasAuthenticated) {
-      Logger::debug(LogCategory::Twitch,
-                    QStringLiteral("Emitting authenticatedChanged(true)"));
       emit authenticatedChanged(true);
     }
-    Logger::debug(LogCategory::Twitch,
-                  QStringLiteral("Emitting accessTokenChanged()"));
     emit accessTokenChanged(m_accessToken);
-
-  } else {
-    Logger::debug(
-        LogCategory::Twitch,
-        QStringLiteral("No credentials found, user not authenticated"));
   }
 }
 
@@ -712,6 +620,9 @@ void TwitchAuthManager::emitAuthenticated() {
   const bool authenticated = !m_accessToken.isEmpty();
   if (m_isAuthenticated != authenticated) {
     m_isAuthenticated = authenticated;
+    if (authenticated) {
+      qInfo() << "[Auth] User authenticated successfully";
+    }
     emit authenticatedChanged(authenticated);
   }
 }
@@ -739,30 +650,17 @@ bool TwitchAuthManager::isTokenExpiredOrExpiringSoon() const {
 }
 
 void TwitchAuthManager::ensureValidToken() {
-  // Ne rien faire si on n'a pas de token
-  if (m_accessToken.isEmpty()) {
-    return;
-  }
-
-  // Ne rien faire si un rafraîchissement est déjà en cours
-  if (m_isRefreshing) {
+  // Ne rien faire si on n'a pas de token ou si un rafraîchissement est en cours
+  if (m_accessToken.isEmpty() || m_isRefreshing) {
     return;
   }
 
   // Vérifier si le token est expiré ou va expirer bientôt
   if (isTokenExpiredOrExpiringSoon()) {
     if (!m_refreshToken.isEmpty()) {
-      Logger::debug(
-          LogCategory::Twitch,
-          QStringLiteral(
-              "Token expired or expiring soon, refreshing automatically..."));
       refresh();
     } else {
-      Logger::warning(
-          LogCategory::Twitch,
-          QStringLiteral("Token expired but no refresh token available"));
-      // Le token est expiré et on ne peut pas le rafraîchir, déconnecter
-      // l'utilisateur
+      // Le token est expiré et on ne peut pas le rafraîchir
       logout();
     }
   }
