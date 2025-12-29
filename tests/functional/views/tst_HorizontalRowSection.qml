@@ -362,8 +362,6 @@ Item {
             streamClickedSpy.target = sectionInstance
             categoryClickedSpy.clear()
             streamClickedSpy.clear()
-
-            wait(50)
         }
 
         function cleanup() {
@@ -804,7 +802,6 @@ Item {
         function test_categoryClick_emitsSignal() {
             // Arrange
             sectionInstance.cardsModel = categoryModel
-            wait(50)
 
             // Act
             var mouseArea = findChild(sectionInstance, "cardMouseArea_0")
@@ -818,7 +815,6 @@ Item {
         function test_categoryClick_signalArguments() {
             // Arrange
             sectionInstance.cardsModel = categoryModel
-            wait(50)
 
             // Act
             var mouseArea = findChild(sectionInstance, "cardMouseArea_0")
@@ -832,7 +828,6 @@ Item {
         function test_streamClick_emitsSignal() {
             // Arrange
             sectionInstance.cardsModel = streamModel
-            wait(50)
 
             // Act
             var mouseArea = findChild(sectionInstance, "cardMouseArea_0")
@@ -845,7 +840,6 @@ Item {
         function test_streamClick_signalArguments() {
             // Arrange
             sectionInstance.cardsModel = streamModel
-            wait(50)
 
             // Act
             var mouseArea = findChild(sectionInstance, "cardMouseArea_0")

@@ -456,7 +456,6 @@ Item {
             channelClickedSpy.clear()
             cacheVodClickedSpy.clear()
             closeRequestedSpy.clear()
-            wait(50)
         }
 
         // =====================================================================
@@ -928,7 +927,6 @@ Item {
             searchResults.isVisible = true
             searchResults.hasSearchQuery = true
             searchResults.channelResults = singleChannelResult
-            wait(50)
 
             var mouseArea = findChild(searchResults, "channelMouseArea_0")
             verify(mouseArea !== null, "Channel mouse area should exist")
@@ -945,7 +943,6 @@ Item {
             searchResults.isVisible = true
             searchResults.hasSearchQuery = true
             searchResults.channelResults = singleChannelResult
-            wait(50)
 
             var mouseArea = findChild(searchResults, "channelMouseArea_0")
 
@@ -980,7 +977,6 @@ Item {
             searchResults.isVisible = true
             searchResults.hasSearchQuery = true
             searchResults.cacheResults = singleCacheResult
-            wait(50)
 
             var mouseArea = findChild(searchResults, "cacheMouseArea_0")
             verify(mouseArea !== null, "Cache mouse area should exist")
@@ -997,7 +993,6 @@ Item {
             searchResults.isVisible = true
             searchResults.hasSearchQuery = true
             searchResults.cacheResults = singleCacheResult
-            wait(50)
 
             var mouseArea = findChild(searchResults, "cacheMouseArea_0")
 
