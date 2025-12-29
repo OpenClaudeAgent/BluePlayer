@@ -207,7 +207,20 @@ E2EScenarioTemplate {
             console.log("  Button text: " + qualityButtonText.text)
             verify(qualityButtonText.text === "SD", "Button should show SD for 480p")
             
-            console.log("OK Quality switched to 480p (SD)")
+            // Verify toast appears with quality change message
+            var qualityToast = findChild(mainWindow, E2EConstants.qualityToast)
+            verify(qualityToast !== null, "Quality toast should exist")
+            
+            // Toast should be visible (opacity > 0) after quality change
+            tryVerify(function() {
+                return qualityToast.opacity > 0
+            }, 2000, "Quality toast should appear")
+            
+            console.log("  Toast visible: " + qualityToast.visible + ", opacity: " + qualityToast.opacity)
+            console.log("  Toast text: " + qualityToast.text)
+            verify(qualityToast.text.indexOf("Quality") !== -1, "Toast should show quality message")
+            
+            console.log("OK Quality switched to 480p (SD) with toast confirmation")
         }
 
         // =====================================================================
