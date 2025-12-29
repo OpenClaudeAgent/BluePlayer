@@ -1,96 +1,50 @@
 # tests/e2e/CMakeLists.txt
-# End-to-End Testing Infrastructure for BluePlayer
+# E2E Testing Infrastructure - Main entry point
 
 cmake_minimum_required(VERSION 3.24)
 
-# Find required Qt modules
-find_package(Qt6 6.5 COMPONENTS Core Gui Network Test REQUIRED)
+message(STATUS "")
+message(STATUS "========================================")
+message(STATUS "E2E Testing Infrastructure")
+message(STATUS "========================================")
 
-message(STATUS "E2E tests - configuring mock servers and scenarios")
+# ============================================================================
+# Dependencies
+# ============================================================================
 
-# Common libraries for E2E tests
-set(E2E_TEST_LIBS
-  Qt6::Core
-  Qt6::Network
-  Qt6::Test
-)
+find_package(Qt6 6.5 COMPONENTS Core Network Quick QuickTest REQUIRED)
 
-# E2E Server library (MockTwitchServer, MockHlsServer)
-add_library(e2e_servers STATIC
-  servers/MockTwitchServer.cpp
-  servers/MockHlsServer.cpp
-)
+# ============================================================================
+# Sub-modules
+# ============================================================================
 
-target_link_libraries(e2e_servers PUBLIC
-  ${E2E_TEST_LIBS}
-)
+# Mock HTTP servers (Twitch API, HLS)
+add_subdirectory(servers)
 
-target_include_directories(e2e_servers PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}
-  ${CMAKE_CURRENT_SOURCE_DIR}/servers
-  ${CMAKE_CURRENT_SOURCE_DIR}/helpers
-  ${CMAKE_CURRENT_SOURCE_DIR}/../
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../src
-)
+# QML test helpers (E2ETestCase base class)
+add_subdirectory(helpers)
 
-set_target_properties(e2e_servers PROPERTIES AUTOMOC ON)
+# Reusable contexts (setups)
+add_subdirectory(contexts)
 
-# E2E Helpers library
-add_library(e2e_helpers STATIC
-  helpers/E2ETestBase.cpp
-)
+# E2E test scenarios
+add_subdirectory(scenarios)
 
-target_link_libraries(e2e_helpers PUBLIC
-  e2e_servers
-  ${E2E_TEST_LIBS}
-)
+# Standalone launcher for manual testing
+add_subdirectory(launcher)
 
-target_include_directories(e2e_helpers PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}
-  ${CMAKE_CURRENT_SOURCE_DIR}/helpers
-  ${CMAKE_CURRENT_SOURCE_DIR}/servers
-)
+# ============================================================================
+# Usage
+# ============================================================================
 
-set_target_properties(e2e_helpers PROPERTIES AUTOMOC ON)
-
-# E2E Infrastructure Test (validates mock servers work)
-add_executable(test_e2e_infrastructure
-  scenarios/main.cpp
-)
-
-target_link_libraries(test_e2e_infrastructure PRIVATE
-  e2e_helpers
-  e2e_servers
-  ${E2E_TEST_LIBS}
-  blueplayer_core  # For TwitchApiClient integration tests
-)
-
-target_compile_definitions(test_e2e_infrastructure PRIVATE
-  QUICK_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/scenarios"
-)
-
-target_include_directories(test_e2e_infrastructure PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../src
-)
-
-target_link_directories(test_e2e_infrastructure PRIVATE /opt/homebrew/lib)
-
-set_target_properties(test_e2e_infrastructure PROPERTIES AUTOMOC ON)
-
-# Apply coverage flags if enabled
-if(BLUEPLAYER_COVERAGE_ENABLED)
-  target_compile_options(test_e2e_infrastructure PRIVATE ${BLUEPLAYER_COVERAGE_FLAGS})
-  target_link_options(test_e2e_infrastructure PRIVATE ${BLUEPLAYER_COVERAGE_FLAGS})
-endif()
-
-add_test(NAME E2E_Infrastructure COMMAND test_e2e_infrastructure)
-
-set_tests_properties(E2E_Infrastructure PROPERTIES
-  LABELS "e2e"
-  TIMEOUT 60
-)
-
-message(STATUS "E2E tests configured:")
-message(STATUS "  - test_e2e_infrastructure (mock server validation)")
-message(STATUS "Run with: ctest -L e2e")
+message(STATUS "")
+message(STATUS "Targets:")
+message(STATUS "  e2e_open_stream   - Open stream flow (authenticated)")
+message(STATUS "  e2e_login_view    - Login flow (unauthenticated)")
+message(STATUS "  e2e_launcher      - Interactive app with mock servers")
+message(STATUS "")
+message(STATUS "Run tests:")
+message(STATUS "  ctest -L e2e                    # All E2E tests")
+message(STATUS "  ctest -L authenticated          # Authenticated tests only")
+message(STATUS "  ctest -L unauthenticated        # Unauthenticated tests only")
+message(STATUS "")

@@ -10,6 +10,7 @@ import "components"
 
 Item {
   id: homeRoot
+  objectName: "homeRoot"  // For E2E testing
 
   // Theme access
   readonly property var tm: typeof themeManager !== "undefined" ? themeManager : null
@@ -320,6 +321,7 @@ Item {
 
           TextField {
             id: searchField
+            objectName: "searchField"  // For E2E testing
             Layout.fillWidth: true
             Layout.fillHeight: true
             verticalAlignment: Text.AlignVCenter
@@ -399,7 +401,7 @@ Item {
       Layout.fillWidth: true
       Layout.fillHeight: true
       clip: true
-      ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+      contentWidth: availableWidth  // Prevent horizontal scrolling
 
       ColumnLayout {
         id: contentLayout

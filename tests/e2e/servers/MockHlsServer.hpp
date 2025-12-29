@@ -66,10 +66,10 @@ public:
   /**
    * @brief Adds a channel that the server will serve HLS for
    * @param channelName Name of the channel
-   * @param segmentCount Number of segments in the playlist (default: 3)
-   * @param segmentDuration Duration of each segment in seconds (default: 2)
+   * @param segmentCount Number of segments in the playlist (default: 2 for fast buffering)
+   * @param segmentDuration Duration of each segment in seconds (default: 1 for low latency)
    */
-  void addChannel(const QString& channelName, int segmentCount = 3, int segmentDuration = 2);
+  void addChannel(const QString& channelName, int segmentCount = 2, int segmentDuration = 1);
 
   /**
    * @brief Removes a channel
@@ -110,6 +110,13 @@ public:
    * @brief Simulates a stall (stop serving segments)
    */
   void simulateStall(bool stall);
+
+  /**
+   * @brief Loads a video segment from file to serve for all segment requests
+   * @param filePath Path to the .ts segment file
+   * @return true if file was loaded successfully
+   */
+  bool loadSegmentFromFile(const QString& filePath);
 
 Q_SIGNALS:
   /**
@@ -154,6 +161,9 @@ private:
   // Simulation
   int m_responseDelayMs = 0;
   bool m_stalled = false;
+
+  // Video segment data (loaded from file or generated)
+  QByteArray m_segmentData;
 };
 
 } // namespace blueplayer::test::e2e

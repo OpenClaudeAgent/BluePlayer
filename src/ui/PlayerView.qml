@@ -11,6 +11,7 @@ import "components"
 
 Item {
   id: playerRoot
+  objectName: "playerView"  // For E2E testing
   
   property var twitchService: null
   property string streamerLogin: ""
@@ -93,6 +94,8 @@ Item {
     
     lastSavedPosition = position
     
+    console.log("[PlayerView] Saving watch progress for VOD", vodId, "at position", Math.floor(position))
+    
     // Mettre à jour le CacheManager avec la position
     if (typeof cacheManager !== "undefined" && cacheManager) {
       cacheManager.updateWatchPosition(vodId, Math.floor(position))
@@ -108,8 +111,10 @@ Item {
   }
   
   function seekTo(seconds) {
+    if (loggingEnabled) {
+      console.log("[seekbar] seekTo seconds=" + seconds.toFixed(2))
+    }
     if (seconds >= 0) {
-      console.info("[Player] Seek to:", Math.floor(seconds) + "s")
       mpvPlayer.seek(seconds)
     }
   }
@@ -119,26 +124,32 @@ Item {
   }
   
   function loadStream() {
+    console.log("[PlayerView] loadStream() called")
+    console.log("[PlayerView] streamerLogin:", streamerLogin)
+    console.log("[PlayerView] streamerName:", streamerName)
+    console.log("[PlayerView] streamTitle:", streamTitle)
+    console.log("[PlayerView] twitchService:", twitchService ? "exists" : "null")
+    
+    
     if (!streamerLogin) {
+      console.log("[PlayerView] ERROR: No streamerLogin provided")
       updateStatus(qsTr("No stream selected"))
       return
     }
     
-    console.info("[Player] Stream starting:", streamerLogin, "(live)")
     updateStatus(qsTr("Fetching stream URL..."))
+    console.log("[PlayerView] Calling twitchService.getStreamHlsUrl() with login:", streamerLogin)
     
     // Obtenir l'URL HLS via le service Twitch
     if (twitchService) {
       twitchService.getStreamHlsUrl(streamerLogin)
     } else {
-      console.warn("[Player] Twitch service unavailable")
+      console.log("[PlayerView] ERROR: twitchService is null")
       updateStatus(qsTr("Twitch service unavailable"))
     }
   }
   
   function requestStop() {
-    console.info("[Player] Playback stopped")
-    
     // Déconnecter le chat
     if (chatClient) {
       chatClient.disconnect()
@@ -147,6 +158,7 @@ Item {
     
     // Sauvegarder la progression de visionnage VOD à la fermeture
     if (isVodMode && vodId && vodId.length > 0 && position > 0) {
+      console.log("[PlayerView] Saving watch progress on stop:", Math.floor(position))
       saveWatchProgress()
     }
     
@@ -158,12 +170,17 @@ Item {
   
   function updateChatCredentials() {
     if (twitchService && twitchService.accessToken && twitchService.userName) {
+      console.log("[PlayerView] Setting chat credentials for:", twitchService.userName)
       chatClient.setCredentials(twitchService.accessToken, twitchService.userName)
+    } else {
+      console.log("[PlayerView] Cannot set chat credentials - missing token or username")
     }
   }
   
   function startAutoRecording() {
     if (isVodMode || !streamerLogin) return
+    
+    console.log("[PlayerView] startAutoRecording called")
     
     // Utiliser CacheManager pour préparer l'enregistrement
     if (typeof cacheManager !== "undefined" && cacheManager) {
@@ -175,8 +192,11 @@ Item {
         recordingStartTime = new Date(result.startTime)
         recordingGameCategory = ""
         
+        console.log("[PlayerView] Starting auto-recording to:", currentRecordingPath)
         mpvPlayer.startRecording(currentRecordingPath)
       }
+    } else {
+      console.log("[PlayerView] Cannot start recording - cacheManager not available")
     }
   }
   
@@ -184,6 +204,7 @@ Item {
     if (!currentRecordingPath || currentRecordingPath.length === 0) return
     if (isVodMode) return
     
+    console.log("[PlayerView] Stopping recording and saving metadata")
     mpvPlayer.stopRecording()
     
     // Utiliser CacheManager pour finaliser l'enregistrement
@@ -207,12 +228,15 @@ Item {
   }
   
   function loadVod() {
+    console.log("[PlayerView] loadVod() called")
+    console.log("[PlayerView] vodFilePath:", vodFilePath)
+    
     if (!vodFilePath || vodFilePath.length === 0) {
+      console.log("[PlayerView] ERROR: No VOD file path provided")
       updateStatus(qsTr("No file selected"))
       return
     }
     
-    console.info("[Player] VOD started:", vodId || "unknown", "(cached)")
     isVodMode = true
     liveMode = false
     updateStatus(qsTr("Loading video..."))
@@ -225,12 +249,15 @@ Item {
     // Sauvegarder la position de reprise (sera appliquée quand le média est prêt)
     pendingSeekPosition = (vodMetadata && vodMetadata.watchPosition > 5) ? vodMetadata.watchPosition : 0
     
+    console.log("[PlayerView] Playing VOD file:", vodFilePath)
+    if (pendingSeekPosition > 0) {
+      console.log("[PlayerView] Will resume at position:", pendingSeekPosition)
+    }
     mpvPlayer.play(vodFilePath)
     controlsVisible = true
   }
   
   function togglePlayPause() {
-    console.info("[Player] Toggle play/pause")
     mpvPlayer.togglePause()
   }
   
@@ -239,12 +266,13 @@ Item {
   }
   
   function toggleMute() {
-    console.info("[Player] Mute toggled:", !mpvPlayer.muted ? "muted" : "unmuted")
     mpvPlayer.muted = !mpvPlayer.muted
   }
 
   function goLive() {
-    console.info("[Player] Seek to live edge")
+    if (loggingEnabled) {
+      console.log("[seekbar] goLive")
+    }
     mpvPlayer.seekToLive()
   }
   
@@ -264,7 +292,6 @@ Item {
 
   function adjustPlaybackRate(targetRate) {
     var clamped = Math.max(0.25, Math.min(3.0, targetRate))
-    console.info("[Player] Playback rate changed:", clamped.toFixed(2) + "x")
     playbackRate = clamped
     playerSettings.playbackRate = clamped
     if (mpvPlayer) {
@@ -275,7 +302,6 @@ Item {
 
   function toggleHardwareDecoding() {
     hardwareDecodingEnabled = !hardwareDecodingEnabled
-    console.info("[Player] Hardware decoding:", hardwareDecodingEnabled ? "enabled" : "disabled")
     playerSettings.hardwareDecoding = hardwareDecodingEnabled
     if (mpvPlayer) {
       mpvPlayer.hardwareDecoding = hardwareDecodingEnabled
@@ -285,7 +311,6 @@ Item {
 
   function toggleCropMode() {
     cropMode = !cropMode
-    console.info("[Player] Crop mode:", cropMode ? "enabled" : "disabled")
     playerSettings.cropVideo = cropMode
     if (mpvPlayer) {
       mpvPlayer.cropVideo = cropMode
@@ -296,7 +321,6 @@ Item {
   // PiP functions
   function togglePip() {
     if (!pipEnabled) return
-    console.info("[Player] Picture-in-Picture toggled")
     playerRoot.pipRequested()
   }
   
@@ -403,6 +427,7 @@ Item {
         playerRoot.duration = dur
         // Appliquer le seek de reprise quand le média est prêt
         if (dur > 0 && playerRoot.pendingSeekPosition > 0) {
+          console.log("[PlayerView] Media ready, seeking to:", playerRoot.pendingSeekPosition)
           mpvPlayer.seek(playerRoot.pendingSeekPosition)
           playerRoot.pendingSeekPosition = 0
         }
@@ -740,21 +765,31 @@ Item {
       onSeekRequested: function(seconds) {
         seekTo(seconds)
       }
-      onSeekDragStarted: { }
-      onSeekPreviewed: function(seconds) { }
-      onSeekDragEnded: function(seconds) { }
+      onSeekDragStarted: {
+        if (playerRoot.loggingEnabled) {
+          console.log("[seekbar] drag_start")
+        }
+      }
+      onSeekPreviewed: function(seconds) {
+        if (playerRoot.loggingEnabled && playerRoot.loggingVerbose) {
+          console.log("[seekbar] drag_preview seconds=", seconds.toFixed(2))
+        }
+      }
+      onSeekDragEnded: function(seconds) {
+        if (playerRoot.loggingEnabled) {
+          console.log("[seekbar] drag_end seconds=", seconds.toFixed(2))
+        }
+      }
       onLiveRequested: goLive()
       onLiveClicked: goLive()
       onFullscreenClicked: {
           // Use same mechanism as double-click for native fullscreen
           var win = Window.window
           if (win) {
-              var goingFullscreen = win.visibility !== Window.FullScreen
-              console.info("[Player] Fullscreen:", goingFullscreen ? "enabled" : "disabled")
-              if (goingFullscreen)
-                  win.showFullScreen()
-              else
+              if (win.visibility === Window.FullScreen)
                   win.showNormal()
+              else
+                  win.showFullScreen()
           }
       }
       onPlaybackRateRequested: function(rate) { adjustPlaybackRate(rate) }
@@ -762,7 +797,6 @@ Item {
       onCropToggleClicked: toggleCropMode()
       onChatToggleClicked: {
         playerRoot.chatVisible = !playerRoot.chatVisible
-        console.info("[Player] Chat panel:", playerRoot.chatVisible ? "opened" : "closed")
         if (playerRoot.chatVisible && playerRoot.streamerLogin) {
           updateChatCredentials()
           chatClient.connectToChannel(playerRoot.streamerLogin)
@@ -771,6 +805,7 @@ Item {
         }
       }
       onQualitySelected: function(quality) {
+        console.log("[PlayerView] Quality selected:", quality)
         if (twitchService) {
           twitchService.setStreamQuality(quality)
         }
@@ -1007,10 +1042,13 @@ Item {
     target: twitchService
     enabled: twitchService !== null
     function onHlsUrlReady(url) {
+      console.log("[PlayerView] onHlsUrlReady() called with url length:", url ? url.length : 0)
       if (url && url.length > 0) {
         hlsUrl = url
+        console.log("[PlayerView] HLS URL received:", url.substring(0, 100) + "...")
         updateStatus(adsActive ? qsTr("Ads detected - Connecting...") : qsTr("Connecting to stream..."))
         buffering = true
+        console.log("[PlayerView] Calling mpvPlayer.play() with URL")
         mpvPlayer.hardwareDecoding = hardwareDecodingEnabled
         mpvPlayer.cropVideo = cropMode
         mpvPlayer.playbackRate = playbackRate
@@ -1018,39 +1056,44 @@ Item {
         controlsVisible = true
         // Force live mode and seek to live edge when a new stream is loaded
         mpvPlayer.seekToLive()
+        // #endregion
       } else {
-        console.warn("[Player] Failed to fetch stream URL")
+        console.log("[PlayerView] ERROR: Empty or invalid HLS URL")
         updateStatus(qsTr("Failed to fetch stream URL"))
       }
     }
     function onErrorOccurred(message) {
-      console.warn("[Player] Twitch error:", message)
+      console.log("[PlayerView] Twitch error:", message)
       updateStatus(qsTr("Twitch error: %1").arg(message))
     }
     function onAdsDetected(count) {
+      console.log("[PlayerView] Ads detected:", count, "markers")
       adsActive = true
       adSegments = count
     }
     function onAdsFinished() {
+      console.log("[PlayerView] Ads finished")
       adsActive = false
       adSegments = 0
     }
     function onAdFilterLog(message) {
-      // Ad filter logs removed - too verbose
+      console.log("[PlayerView AdFilter]", message)
     }
     function onAvailableQualitiesChanged() {
       playerRoot.availableQualities = twitchService.availableQualities
+      console.log("[PlayerView] Available qualities:", playerRoot.availableQualities.length)
     }
     function onCurrentQualityChanged() {
       playerRoot.currentQuality = twitchService.currentQuality
+      console.log("[PlayerView] Current quality:", playerRoot.currentQuality)
     }
     function onQualityChanged(url) {
-      console.info("[Player] Quality changed:", playerRoot.currentQuality)
-      
+      console.log("[PlayerView] Quality changed, new URL:", url.substring(0, 80) + "...")
       // Switch mpv to the new quality URL while preserving playback state
       if (mpvPlayer && url) {
         // Store current position to resume after quality switch
         var currentPos = playerRoot.position
+        var wasPlaying = playerRoot.playing && !playerRoot.paused
         
         mpvPlayer.play(url)
         
@@ -1068,6 +1111,7 @@ Item {
   
   // Appeler loadStream() quand streamerLogin devient disponible
   onStreamerLoginChanged: {
+    console.log("[PlayerView] onStreamerLoginChanged called, streamerLogin:", streamerLogin)
     if (streamerLogin && streamerLogin.length > 0 && !isVodMode) {
       playerRoot.liveMode = true // Force live mode for new streams
       loadStream()
@@ -1076,12 +1120,14 @@ Item {
   
   // Appeler loadVod() quand vodFilePath devient disponible
   onVodFilePathChanged: {
+    console.log("[PlayerView] onVodFilePathChanged called, vodFilePath:", vodFilePath)
     if (vodFilePath && vodFilePath.length > 0) {
       loadVod()
     }
   }
 
   Component.onCompleted: {
+    console.log("[PlayerView] Component.onCompleted called - Using MpvQuickItem for GPU rendering")
     applyPersistedSettings()
     playerRoot.forceActiveFocus()
   }

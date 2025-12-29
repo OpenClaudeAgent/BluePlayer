@@ -25,6 +25,7 @@ build:
 	@{ \
 		echo "== [$$(date '+%F %T')] Configuring and building BluePlayer =="; \
 		cd $(BUILD_DIR) && $(LOAD_ENV_SCRIPT) $(CMAKE_EXECUTABLE) .. -G Ninja -DCMAKE_PREFIX_PATH=$${QT6_DIR}; \
+		cd $(BUILD_DIR) && $(LOAD_ENV_SCRIPT) $(CMAKE_EXECUTABLE) --build . --target release_translations; \
 		cd $(BUILD_DIR) && $(LOAD_ENV_SCRIPT) $(CMAKE_EXECUTABLE) --build .; \
 		echo "== [$$(date '+%F %T')] Build completed =="; \
 	} 2>&1 | tee -a $(BUILD_LOG)
@@ -112,6 +113,53 @@ lint:
 	@$(SCRIPTS_DIR)/analyze.sh
 	@echo "Static analysis complete."
 
+# ============================================================================
+# E2E Testing
+# ============================================================================
+
+E2E_SCENARIOS_DIR := $(BUILD_DIR)/tests/e2e/scenarios
+E2E_LAUNCHER_DIR := $(BUILD_DIR)/tests/e2e/launcher
+E2E_SRC_SCENARIOS_DIR := $(BLUEPLAYER_ROOT)/tests/e2e/scenarios
+
+# Auto-detect all E2E scenarios from directory structure (directories only)
+E2E_ALL_SCENARIOS := $(shell find $(E2E_SRC_SCENARIOS_DIR) -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
+
+# Run E2E tests (optionally filtered by SCENARIO)
+# Usage:
+#   make e2e                      # Run all scenarios
+#   make e2e SCENARIO=open-stream # Run only open-stream
+.PHONY: e2e
+e2e: build
+ifdef SCENARIO
+	@echo "== Building E2E scenario: $(SCENARIO) =="
+	@cd $(BUILD_DIR) && $(CMAKE_EXECUTABLE) --build . --target e2e_$(subst -,_,$(SCENARIO)) --parallel
+	@echo ""
+	@echo "== Running E2E scenario: $(SCENARIO) =="
+	@cd $(E2E_SCENARIOS_DIR)/$(SCENARIO) && ./e2e_$(subst -,_,$(SCENARIO))
+else
+	@echo "== Building all E2E scenarios =="
+	@cd $(BUILD_DIR) && $(CMAKE_EXECUTABLE) --build . --target $(foreach s,$(E2E_ALL_SCENARIOS),e2e_$(subst -,_,$s)) --parallel
+	@echo ""
+	@echo "== Running all E2E scenarios =="
+	@for scenario in $(E2E_ALL_SCENARIOS); do \
+		echo ""; \
+		echo "--- $$scenario ---"; \
+		cd $(E2E_SCENARIOS_DIR)/$$scenario && ./e2e_$$(echo $$scenario | tr '-' '_') || true; \
+	done
+	@echo ""
+	@echo "== E2E tests completed =="
+endif
+	@echo "Screenshots: $(BUILD_DIR)/tests/e2e/scenarios/*/e2e_screenshots/"
+
+# Launch app with mock servers (interactive)
+.PHONY: e2e-launcher
+e2e-launcher: build
+	@echo "== Building E2E launcher =="
+	@cd $(BUILD_DIR) && $(CMAKE_EXECUTABLE) --build . --target e2e_launcher --parallel
+	@echo ""
+	@echo "== Launching BluePlayer with mock servers =="
+	@$(E2E_LAUNCHER_DIR)/e2e_launcher
+
 # Sync all worktrees with main branch
 .PHONY: sync-worktrees
 sync-worktrees:
@@ -143,18 +191,28 @@ sync-worktrees:
 .PHONY: help
 help:
 	@echo "Makefile for BluePlayer project:"
-	@echo "  make all          - Configure and build the project (default)"
-	@echo "  make build        - Configure and build the project"
-	@echo "  make clean        - Clean the build directory"
-	@echo "  make test         - Build and run the tests"
-	@echo "  make coverage     - Generate code coverage report"
-	@echo "  make mutation-test - Run mutation tests with Mull"
-	@echo "  make test-all     - Run tests, coverage, and mutation tests"
-	@echo "  make validate     - Validate build (compile, test, coverage check)"
-	@echo "  make run          - Clean, build, test, then run (stops if tests fail)"
-	@echo "  make run-quick    - Build and run without tests (dev mode)"
-	@echo "  make format       - Format source code with clang-format"
-	@echo "  make format-check - Check code formatting (dry run)"
-	@echo "  make lint         - Run clang-tidy static analysis"
-	@echo "  make sync-worktrees - Sync all worktrees with main branch"
+	@echo ""
+	@echo "  Build & Run:"
+	@echo "    make build        - Configure and build the project"
+	@echo "    make run          - Build and run the app"
+	@echo "    make clean        - Clean the build directory"
+	@echo ""
+  @echo "  Testing:"
+	@echo "    make test                     - Build and run unit tests"
+	@echo "    make e2e                      - Run all E2E scenarios"
+	@echo "    make e2e SCENARIO=<name>      - Run specific scenario (open-stream, login-view)"
+	@echo "    make e2e-launcher             - Launch app with mock servers (interactive)"
+	@echo "    make coverage     - Generate code coverage report"
+	@echo "    make mutation-test - Run mutation tests with Mull"
+	@echo "    make test-all     - Run tests, coverage, and mutation tests"
+	@echo "    make validate     - Validate build (compile, test, coverage check)"
+	@echo ""
+	@echo "  Code Quality:"
+	@echo "    make format       - Format source code with clang-format"
+	@echo "    make format-check - Check code formatting (dry run)"
+	@echo "    make lint         - Run clang-tidy static analysis"
+	@echo ""
+	@echo "  Worktrees:"
+	@echo "    make sync-worktrees - Sync all worktrees with main branch"
+	@echo ""
 	@echo "  make help         - Display this help message"

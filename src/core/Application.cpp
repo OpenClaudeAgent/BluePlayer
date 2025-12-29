@@ -10,9 +10,9 @@
 
 namespace blueplayer::core {
 
-Application::Application(QObject* parent)
+Application::Application(ISecureStorage* secureStorage, QObject* parent)
     : QObject(parent),
-      m_twitchService(std::make_unique<api::twitch::TwitchService>(nullptr, this)),
+      m_twitchService(std::make_unique<api::twitch::TwitchService>(secureStorage, this)),
       m_cacheManager(std::make_unique<CacheManager>(this)) {}
 
 Application::~Application() =
