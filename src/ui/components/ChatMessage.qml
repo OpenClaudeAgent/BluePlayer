@@ -82,7 +82,7 @@ Item {
         // Message parts (text and emotes)
         Repeater {
             id: partsRepeater
-            model: root.emoteParts.length > 0 ? root.emoteParts : [{type: "text", content: root.rawMessage}]
+            model: (root.emoteParts && root.emoteParts.length > 0) ? root.emoteParts : [{type: "text", content: root.rawMessage}]
 
             delegate: Loader {
                 property var partData: partsRepeater.model[index] || {}
