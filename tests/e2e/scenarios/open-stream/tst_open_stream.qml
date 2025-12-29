@@ -22,15 +22,7 @@ E2EScenarioTemplate {
         name: "E2E_OpenStream"
         when: windowShown && root.appReady
 
-        function initTestCase() {
-            console.log("=== E2E Open Stream Tests ===")
-            mainWindow = root.app
-            verify(mainWindow !== null, "Main window should load")
-        }
-
-        function cleanupTestCase() {
-            console.log("=== E2E Open Stream Tests Complete ===")
-        }
+        // Uses default initTestCase() and cleanupTestCase() from E2ETestCase base
 
         // =====================================================================
         // Test 1: Home view is displayed for authenticated user

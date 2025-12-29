@@ -25,15 +25,7 @@ E2EScenarioTemplate {
         // Store initial quality for comparison
         property string initialQuality: ""
 
-        function initTestCase() {
-            console.log("=== E2E Quality Switch Tests ===")
-            mainWindow = root.app
-            verify(mainWindow !== null, "Main window should load")
-        }
-
-        function cleanupTestCase() {
-            console.log("=== E2E Quality Switch Tests Complete ===")
-        }
+        // Uses default initTestCase() and cleanupTestCase() from E2ETestCase base
 
         // =====================================================================
         // Test 1: Navigate to player view

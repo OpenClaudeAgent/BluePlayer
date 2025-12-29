@@ -40,6 +40,22 @@ TestCase {
     // =========================================================================
 
     /**
+     * Called once before all test functions.
+     * Override in subclass, but call e2eTestCase.baseInitTestCase() first.
+     */
+    function initTestCase() {
+        baseInitTestCase()
+    }
+
+    /**
+     * Called once after all test functions.
+     * Override in subclass, but call e2eTestCase.baseCleanupTestCase() last.
+     */
+    function cleanupTestCase() {
+        baseCleanupTestCase()
+    }
+
+    /**
      * Called before each test function.
      * Override in subclass, but call e2eTestCase.baseInit() first.
      */
@@ -53,6 +69,26 @@ TestCase {
      */
     function cleanup() {
         baseCleanup()
+    }
+
+    /**
+     * Base initialization for test case - sets up mainWindow.
+     * Override initTestCase() in subclass to add custom logging.
+     */
+    function baseInitTestCase() {
+        console.log("=== E2E " + name + " Tests ===")
+        // Get mainWindow from the scenario template's app property
+        if (e2eTestCase.parent && e2eTestCase.parent.app) {
+            mainWindow = e2eTestCase.parent.app
+        }
+        verify(mainWindow !== null, "Main window should load")
+    }
+
+    /**
+     * Base cleanup for test case.
+     */
+    function baseCleanupTestCase() {
+        console.log("=== E2E " + name + " Tests Complete ===")
     }
 
     /**

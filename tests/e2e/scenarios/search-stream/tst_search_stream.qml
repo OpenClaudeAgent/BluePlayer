@@ -21,15 +21,7 @@ E2EScenarioTemplate {
         name: "E2E_SearchStream"
         when: windowShown && root.appReady
 
-        function initTestCase() {
-            console.log("=== E2E Search Stream Tests ===")
-            mainWindow = root.app
-            verify(mainWindow !== null, "Main window should load")
-        }
-
-        function cleanupTestCase() {
-            console.log("=== E2E Search Stream Tests Complete ===")
-        }
+        // Uses default initTestCase() and cleanupTestCase() from E2ETestCase base
 
         // =====================================================================
         // Test 1: Home view is displayed for authenticated user

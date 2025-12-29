@@ -23,15 +23,7 @@ E2EScenarioTemplate {
         // Track received message count for verification
         property int initialMessageCount: 0
 
-        function initTestCase() {
-            console.log("=== E2E Chat Open/Close Tests ===")
-            mainWindow = root.app
-            verify(mainWindow !== null, "Main window should load")
-        }
-
-        function cleanupTestCase() {
-            console.log("=== E2E Chat Open/Close Tests Complete ===")
-        }
+        // Uses default initTestCase() and cleanupTestCase() from E2ETestCase base
 
         function test_01_navigate_to_player() {
             console.log("Testing: Navigate to player")
