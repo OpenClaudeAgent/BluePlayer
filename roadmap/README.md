@@ -86,6 +86,8 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | **28 (Navigation)** | Aucune | Recommandé avant Plan 12 (Préférences) pour architecture propre |
 | 29 (Qualité défaut) | 11 (Qualité) ✅, 12 (Préférences) ✅ | Persistance et intégration de l'UI créée en Plan 12 |
 | **40 (E2E Testing)** | Aucune | Infrastructure technique, peut démarrer immédiatement |
+| **43 (Refactoring E2E)** | 40 (E2E Testing) ✅ | Améliore l'infrastructure créée en Plan 40 |
+| **44 (Scénarios E2E)** | 43 (Refactoring E2E) | Recommandé : les helpers simplifiés facilitent la création de scénarios |
 
 ---
 
@@ -162,6 +164,8 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | **40** | **Infrastructure Tests E2E** | [plan-40](./plan-40-e2e-testing-infrastructure.md) | `test/e2e-infrastructure` | v0.29.0 | 🟢 Terminé |
 | **41** | **Gestion et Nettoyage Logs** | [plan-41](./plan-41-log-management.md) | `feature/log-management` | v0.28.0 | 🟢 Terminé |
 | 42 | Fix TypeError ChatMessage.qml | [plan-42](./plan-42-fix-chatmessage-null.md) | `fix/chatmessage-null` | v0.27.1 | 🟢 Terminé |
+| **43** | **Refactoring Infrastructure E2E** | [plan-43](./plan-43-e2e-refactoring.md) | `refactor/e2e-infra` | - | 🔴 En attente |
+| **44** | **Scenarios E2E - Couverture Features** | [plan-44](./plan-44-e2e-scenarios.md) | `test/e2e-scenarios` | - | 🔴 En attente |
 
 ### Plans spéciaux
 
@@ -175,6 +179,8 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 🏗️ Architecture | Plan 28 | Stratégie navigation globale (TopBar, composants réutilisables) |
 | 🧪 Testing | Plan 40 | **Infrastructure E2E** - Mock servers, test application, premier scenario |
 | 🧹 Maintenance | Plan 41 | **Gestion Logs** - Rotation automatique, audit logs excessifs |
+| 🔧 Refactoring | Plan 43 | **Refactoring E2E** - BaseE2EContext, MockHttpServer, FixtureLoader |
+| 🧪 Testing | Plan 44 | **Scenarios E2E** - 17 nouveaux scenarios couvrant features v0.1.0-v0.29.0 |
 
 > **Note Plan 21 vs Plan 24** :
 > - **Plan 21** est un template récurrent définissant la méthodologie d'audit qualité
@@ -256,3 +262,5 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 2025-12-28 | Ajout plans 33-39 - Emotes tierces, Points chaîne, Clips, Multi-stream, Hotkeys, Debug, Export VOD |
 | 2025-12-29 | Ajout plan 41 - Gestion et Nettoyage Logs (rotation automatique, audit logs excessifs) |
 | 2025-12-29 | Ajout plan 42 - Fix TypeError ChatMessage.qml (null check sur emoteParts) |
+| 2025-12-29 | Ajout plan 43 - Refactoring Infrastructure E2E (BaseE2EContext, MockHttpServer, FixtureLoader) |
+| 2025-12-29 | Ajout plan 44 - Scenarios E2E (17 scenarios couvrant 23 plans termines, 4 sprints) |
