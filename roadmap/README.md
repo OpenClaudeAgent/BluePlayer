@@ -106,6 +106,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | **v0.14.0** | Plan 24 Sprint 4 | BaseCard & Cards refactorées |
 | **v0.15.0** | Plan 24 Sprint 5 | TwitchService helper |
 | **v0.16.0** | Plan 24 Sprint 6 | downloadThumbnail() asynchrone |
+| **v0.33.0** | Plan 46 | Sécurisation credentials & setup automatisé |
 
 ### Prochaines versions prévues
 
@@ -168,7 +169,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | **43** | **Refactoring Infrastructure E2E** | [plan-43](./plan-43-e2e-refactoring.md) | `feature/e2e-refactoring` | v0.30.0 | 🟢 Terminé |
 | **44** | **Scenarios E2E - Sprint 1** | [plan-44](./plan-44-e2e-scenarios.md) | `feature/e2e-scenarios` | v0.31.0 | 🟢 Terminé |
 | **45** | **Parallelisme Tests E2E** | [plan-45](./plan-45-e2e-parallelism.md) | `test/e2e-parallelism` | - | 🔴 En attente |
-| **46** | **Securisation Credentials** | [plan-46](./plan-46-credentials-security.md) | `security/credentials` | - | 🔴 En attente |
+| **46** | **Securisation Credentials** | [plan-46](./plan-46-credentials-security.md) | `main` | v0.33.0 | 🟢 Terminé |
 
 ### Plans spéciaux
 
@@ -241,6 +242,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 2025-12-29 | Tâche 43 terminée - Refactoring E2E (BaseE2EContext -96%, MockHttpServer -38%, FixtureLoader, E2EConstants, E2EScenarioTemplate) |
 | 2025-12-29 | Tâche 44 Sprint 1 terminée - Scenarios E2E (search-stream, quality-switch, chat-open-close + MockIrcServer + macro CMake) |
 | 2025-12-30 | Tâche 44 Sprint 2 terminée - Scenarios E2E (audio-only-mode, play-cached-vod, picture-in-picture + helpers refactorés) |
+| 2025-12-30 | Tâche 46 terminée - Sécurisation Credentials (script setup interactif, .env.example, documentation) |
 
 ---
 

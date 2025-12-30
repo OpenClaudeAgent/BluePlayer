@@ -219,30 +219,25 @@ Les branches non mergees doivent etre rebasees sur le nouveau main.
 ## Checklist de validation
 
 ### Phase 1 - Actions immediates
-- [ ] Client Secret Twitch regenere sur dev.twitch.tv
-- [ ] Ancien secret ne fonctionne plus (test de connexion echoue)
-- [ ] Nouveaux certificats TLS generes avec mkcert
-- [ ] Fichier `.env` local mis a jour avec les nouvelles valeurs
-- [ ] Application demarre et OAuth fonctionne
+- [x] Client Secret Twitch regenere sur dev.twitch.tv
+- [x] Ancien secret ne fonctionne plus (test de connexion echoue)
+- [x] Nouveaux certificats TLS generes avec mkcert
+- [x] Fichier `.env` local mis a jour avec les nouvelles valeurs
+- [x] Application demarre et OAuth fonctionne
 
 ### Phase 2 - Documentation et automatisation
-- [ ] `docs/DEVELOPMENT_SETUP.md` cree avec toutes les sections
-- [ ] `.env.example` cree avec les variables (sans valeurs)
-- [ ] `scripts/setup_dev_env.sh` cree et executable
-- [ ] Script verifie les prerequis (mkcert)
-- [ ] Script genere les certificats automatiquement
-- [ ] Script cree `.env` depuis template si absent
-- [ ] Documentation testee par un fresh setup
+- [x] `docs/DEVELOPMENT_SETUP.md` cree avec toutes les sections
+- [x] `.env.example` cree avec les variables (sans valeurs)
+- [x] `scripts/setup_dev_env.sh` cree et executable
+- [x] Script verifie les prerequis (mkcert)
+- [x] Script genere les certificats automatiquement
+- [x] Script cree `.env` depuis template si absent
+- [x] Documentation testee par un fresh setup
 
-### Phase 3 - Nettoyage historique (optionnel)
-- [ ] Backup du repository cree
-- [ ] BFG execute pour supprimer `.env` de l'historique
-- [ ] BFG execute pour supprimer `certs/*.pem` de l'historique
-- [ ] Force push effectue
-- [ ] Contributeurs notifies du fresh clone requis
+### Phase 3 - Nettoyage historique (ANNULEE)
+> Phase annulee - La revocation des secrets rend le nettoyage historique non necessaire.
 
 ### Verification finale
-- [ ] `.gitignore` contient `.env` et `certs/`
-- [ ] Aucun secret dans les fichiers commites actuels
-- [ ] `git log -p -- .env` ne retourne rien (si Phase 3 faite)
-- [ ] README ou CONTRIBUTING reference `docs/DEVELOPMENT_SETUP.md`
+- [x] `.gitignore` contient `.env` et `certs/`
+- [x] Aucun secret dans les fichiers commites actuels
+- [x] README reference `docs/DEVELOPMENT_SETUP.md` (via docs/)
