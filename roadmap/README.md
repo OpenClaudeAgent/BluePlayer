@@ -168,6 +168,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | **43** | **Refactoring Infrastructure E2E** | [plan-43](./plan-43-e2e-refactoring.md) | `feature/e2e-refactoring` | v0.30.0 | 🟢 Terminé |
 | **44** | **Scenarios E2E - Sprint 1** | [plan-44](./plan-44-e2e-scenarios.md) | `feature/e2e-scenarios` | v0.31.0 | 🟢 Terminé |
 | **45** | **Parallelisme Tests E2E** | [plan-45](./plan-45-e2e-parallelism.md) | `test/e2e-parallelism` | - | 🔴 En attente |
+| **46** | **Securisation Credentials** | [plan-46](./plan-46-credentials-security.md) | `security/credentials` | - | 🔴 En attente |
 
 ### Plans spéciaux
 
@@ -184,6 +185,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 🔧 Refactoring | Plan 43 | **Refactoring E2E** - BaseE2EContext, MockHttpServer, FixtureLoader |
 | 🧪 Testing | Plan 44 | **Scenarios E2E** - 17 nouveaux scenarios couvrant features v0.1.0-v0.29.0 |
 | 🧪 Testing | Plan 45 | **Parallelisme E2E** - Isolation ports pour execution parallele des tests |
+| 🔒 Securite | Plan 46 | **Credentials Security** - Revocation secrets, setup automatise, nettoyage historique |
 
 > **Note Plan 21 vs Plan 24** :
 > - **Plan 21** est un template récurrent définissant la méthodologie d'audit qualité
@@ -273,3 +275,4 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 2025-12-29 | Ajout plan 45 - Parallelisme E2E (isolation ports pour execution parallele) |
 | 2025-12-29 | Plan 44 Sprint 1 termine - 3 scenarios E2E (search, quality, chat) + refactorings |
 | 2025-12-30 | Plan 44 Sprint 2 termine - 3 scenarios E2E (audio-only, cached-vod, pip) + helpers ameliores |
+| 2025-12-30 | Ajout plan 46 - Securisation Credentials (revocation secrets, setup automatise, nettoyage git) |
