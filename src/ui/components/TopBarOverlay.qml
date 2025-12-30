@@ -53,6 +53,7 @@ Rectangle {
         
         // Back Button
         Rectangle {
+            objectName: "backButton"  // For E2E testing
             Layout.preferredWidth: 40
             Layout.preferredHeight: 40
             radius: 20

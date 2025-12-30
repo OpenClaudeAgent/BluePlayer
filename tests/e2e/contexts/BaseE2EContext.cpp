@@ -256,8 +256,30 @@ void BaseE2EContext::registerQmlTypes()
 void BaseE2EContext::configureImportPaths(QQmlEngine* engine)
 {
     QString appDir = QCoreApplication::applicationDirPath();
-    QDir srcDir(appDir + "/../../../../../src");
-    QString srcPath = srcDir.absolutePath();
+    
+    // Find src directory by searching up the directory tree
+    // This is more robust than hard-coding "../../../../../src"
+    QString srcPath;
+    QDir searchDir(appDir);
+    int maxLevels = 10;  // Prevent infinite loop
+    
+    while (maxLevels-- > 0) {
+        if (searchDir.exists("src/ui/main.qml")) {
+            srcPath = searchDir.absoluteFilePath("src");
+            break;
+        }
+        if (!searchDir.cdUp()) {
+            break;
+        }
+    }
+    
+    // Fallback to relative path if search failed
+    if (srcPath.isEmpty()) {
+        QDir fallbackDir(appDir + "/../../../../../src");
+        srcPath = fallbackDir.absolutePath();
+        warn("Could not find src directory by search, using fallback path");
+    }
+    
     QString uiPath = srcPath + "/ui";
 
     engine->addImportPath(srcPath);

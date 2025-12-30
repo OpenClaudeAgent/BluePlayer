@@ -96,58 +96,39 @@ E2EScenarioTemplate {
             console.log("OK Navigated to cache")
         }
 
-        function test_04_cache_has_vods() {
-            console.log("Testing: Cache has VODs")
+        function test_04_find_vod_card() {
+            console.log("Testing: Find VOD card in cache view")
             
             verify(mainWindow.currentView === "cache", "Should be on cache view")
-            
-            // Wait for CacheManagerView to initialize
-            wait(500)
             
             // Verify cacheManager has VODs
             console.log("  cacheManager.vodCount: " + cacheManager.vodCount)
             verify(cacheManager.vodCount > 0, "Cache should have VODs")
             
-            // Verify our mock VOD is in the list
-            var vodList = cacheManager.vodList
-            console.log("  vodList length: " + vodList.length)
+            // Wait for VOD card to be rendered
+            tryVerify(function() {
+                var card = findChild(mainWindow, E2EConstants.vodCardPrefix + "0")
+                return card !== null
+            }, 5000, "VOD card should be rendered")
             
-            var foundMockVod = false
-            for (var i = 0; i < vodList.length; i++) {
-                if (vodList[i].streamTitle === "Mock VOD for E2E Testing") {
-                    foundMockVod = true
-                    console.log("  Found mock VOD at index " + i)
-                    break
-                }
-            }
+            var vodCard = findChild(mainWindow, E2EConstants.vodCardPrefix + "0")
+            verify(vodCard !== null, "VOD card should exist")
+            console.log("  Found VOD card: " + vodCard.objectName)
             
-            verify(foundMockVod, "Mock VOD should be in the cache list")
-            
-            console.log("OK Cache has VODs including our mock")
+            console.log("OK VOD card found")
         }
 
-        function test_05_simulate_vod_playback() {
-            console.log("Testing: Simulate VOD playback via properties")
+        function test_05_click_vod_card() {
+            console.log("Testing: Click VOD card to play")
             
             verify(mainWindow.currentView === "cache", "Should be on cache view")
             
-            // Get the first VOD from the list
-            var vodList = cacheManager.vodList
-            verify(vodList.length > 0, "Should have VODs in cache")
+            // Find VOD card
+            var vodCard = findChild(mainWindow, E2EConstants.vodCardPrefix + "0")
+            verify(vodCard !== null, "VOD card should exist")
             
-            var vod = vodList[0]
-            console.log("  Playing VOD: " + vod.streamTitle)
-            console.log("  filePath: " + vod.filePath)
-            
-            // Simulate what happens when clicking a VOD card
-            // (sets properties and navigates to player)
-            mainWindow.vodId = vod.id
-            mainWindow.vodFilePath = vod.filePath
-            mainWindow.vodMetadata = vod
-            mainWindow.playerStreamerLogin = ""
-            mainWindow.playerStreamerName = vod.streamerName || ""
-            mainWindow.playerStreamTitle = vod.streamTitle || ""
-            mainWindow.currentView = "player"
+            console.log("  Clicking VOD card...")
+            mouseClick(vodCard)
             
             // Should navigate to player view
             tryVerify(function() {
@@ -156,19 +137,19 @@ E2EScenarioTemplate {
             
             verify(mainWindow.currentView === "player", "Should be on player view")
             
-            console.log("OK Navigated to player for VOD")
+            console.log("OK Navigated to player via VOD card click")
         }
 
         function test_06_player_in_vod_mode() {
             console.log("Testing: Player is in VOD mode")
             
-            if (mainWindow.currentView !== "player") {
-                skip("Not on player view")
-                return
-            }
+            if (!requiresView("player")) return
             
-            // Wait for player to load
-            wait(500)
+            // Wait for player to initialize
+            tryVerify(function() {
+                var playerView = findChild(mainWindow, E2EConstants.playerView)
+                return playerView !== null
+            }, 3000, "Player view should load")
             
             var playerView = findChild(mainWindow, E2EConstants.playerView)
             verify(playerView !== null, "Player view should exist")
@@ -182,20 +163,34 @@ E2EScenarioTemplate {
             console.log("OK Player in VOD mode")
         }
 
-        function test_07_return_to_home() {
-            console.log("Testing: Return to home from player")
+        function test_07_click_back_button() {
+            console.log("Testing: Click back button to return to cache")
             
-            mainWindow.currentView = "home"
+            if (!requiresView("player")) return
             
+            // Make controls visible
+            showPlayerControls()
+            
+            // Find back button (now visible)
             tryVerify(function() {
-                return mainWindow.currentView === "home"
-            }, 2000, "Should return to home")
+                var btn = findChild(mainWindow, E2EConstants.backButton)
+                return btn !== null && btn.visible
+            }, 3000, "Back button should be visible")
             
-            var replaysBtn = findChild(mainWindow, E2EConstants.replaysButton)
-            verify(replaysBtn !== null, "Replays button should exist")
-            verify(replaysBtn.visible, "Replays button should be visible")
+            var backButton = findChild(mainWindow, E2EConstants.backButton)
+            verify(backButton !== null, "Back button should exist")
             
-            console.log("OK Returned to home")
+            console.log("  Clicking back button...")
+            mouseClick(backButton)
+            
+            // Should return to cache view (since we came from VOD playback)
+            tryVerify(function() {
+                return mainWindow.currentView === "cache"
+            }, 3000, "Should return to cache view")
+            
+            verify(mainWindow.currentView === "cache", "Should be on cache view")
+            
+            console.log("OK Returned to cache via back button")
         }
     }
 }

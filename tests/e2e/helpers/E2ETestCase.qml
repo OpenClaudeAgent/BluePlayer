@@ -173,12 +173,26 @@ TestCase {
     /**
      * Internal: Traverses the QML tree and applies a callback to each node.
      * Searches through children, contentItem, Loader.item, and data.
+     * Uses visited set to prevent cycles and depth limit for performance.
      * @param node The node to start traversal from
      * @param callback Function(node) => object|null. Return non-null to stop traversal.
+     * @param visited Set of already visited nodes (optional, created internally)
+     * @param depth Current depth (optional, for limiting recursion)
      * @returns The callback's return value if it stopped traversal, null otherwise
      */
-    function _traverseTree(node, callback) {
+    function _traverseTree(node, callback, visited, depth) {
         if (!node) return null
+        
+        // Initialize visited set and depth on first call
+        if (!visited) visited = new Set()
+        if (depth === undefined) depth = 0
+        
+        // Prevent infinite loops and limit depth for performance
+        var maxDepth = 50
+        if (depth > maxDepth || visited.has(node)) {
+            return null
+        }
+        visited.add(node)
 
         // Apply callback to current node
         var result = callback(node)
@@ -186,32 +200,32 @@ TestCase {
             return result
         }
 
-        // Search in children array
+        // Search in children array (most common case)
         if (node.children) {
             for (var i = 0; i < node.children.length; i++) {
-                result = _traverseTree(node.children[i], callback)
+                result = _traverseTree(node.children[i], callback, visited, depth + 1)
                 if (result !== null && result !== undefined) return result
             }
         }
 
         // Search in contentItem (for ScrollView, ApplicationWindow, etc.)
         if (node.contentItem && node.contentItem !== node) {
-            result = _traverseTree(node.contentItem, callback)
+            result = _traverseTree(node.contentItem, callback, visited, depth + 1)
             if (result !== null && result !== undefined) return result
         }
 
         // Search in Loader's item
         if (node.item && node.item !== node) {
-            result = _traverseTree(node.item, callback)
+            result = _traverseTree(node.item, callback, visited, depth + 1)
             if (result !== null && result !== undefined) return result
         }
 
-        // Search in data property (for non-visual children)
+        // Search in data property (for non-visual children like Repeater delegates)
         if (node.data) {
-            for (var i = 0; i < node.data.length; i++) {
-                var dataItem = node.data[i]
+            for (var j = 0; j < node.data.length; j++) {
+                var dataItem = node.data[j]
                 if (dataItem && dataItem !== node) {
-                    result = _traverseTree(dataItem, callback)
+                    result = _traverseTree(dataItem, callback, visited, depth + 1)
                     if (result !== null && result !== undefined) return result
                 }
             }
@@ -354,6 +368,78 @@ TestCase {
     function verifyNavigation(expectedView, timeout) {
         var success = waitForProperty(mainWindow, "currentView", expectedView, timeout || 3000)
         verify(success, "Should navigate to '" + expectedView + "' view (current: " + mainWindow.currentView + ")")
+    }
+
+    // =========================================================================
+    // View Guards and Navigation Helpers
+    // =========================================================================
+
+    /**
+     * Checks if the current view matches expected, skips test if not.
+     * Use this at the start of tests that depend on a specific view.
+     * @param viewName The required view ("player", "home", "cache", "login")
+     * @returns true if view is correct, false if test was skipped
+     */
+    function requiresView(viewName) {
+        if (mainWindow.currentView !== viewName) {
+            skip("Not on " + viewName + " view (current: " + mainWindow.currentView + ")")
+            return false
+        }
+        return true
+    }
+
+    /**
+     * Navigates to player view by clicking a stream card from home.
+     * Includes waiting for home view stabilization and player loading.
+     * @param stabilizationMs Optional wait after navigation (default: 500ms)
+     * @returns true if navigation succeeded
+     */
+    function navigateToPlayerFromHome(stabilizationMs) {
+        // Wait for home view to stabilize
+        wait(E2EConstants.timeoutMedium)
+        
+        if (mainWindow.currentView !== "home") {
+            console.warn("E2ETestCase: navigateToPlayerFromHome requires home view")
+            return false
+        }
+        
+        // Find a stream card
+        var streamCard = findChildByPrefix(mainWindow, E2EConstants.streamCardPrefix)
+        if (!streamCard) {
+            console.warn("E2ETestCase: No stream card found on home")
+            return false
+        }
+        
+        // Click and wait for navigation
+        var navigated = clickAndWait(streamCard, function() {
+            return mainWindow.currentView === "player"
+        }, E2EConstants.timeoutLong)
+        
+        if (navigated) {
+            wait(stabilizationMs || 500)
+            console.log("E2ETestCase: Navigated to player from home")
+        } else {
+            console.warn("E2ETestCase: Failed to navigate to player")
+        }
+        
+        return navigated
+    }
+
+    /**
+     * Makes player controls visible by simulating mouse movement.
+     * Required before interacting with control bar buttons.
+     */
+    function showPlayerControls() {
+        var playerView = findChild(mainWindow, E2EConstants.playerView)
+        if (!playerView) {
+            console.warn("E2ETestCase: Player view not found")
+            return false
+        }
+        
+        mouseMove(playerView, playerView.width / 2, playerView.height / 2)
+        playerView.controlsVisible = true
+        wait(200)
+        return true
     }
 
     // =========================================================================

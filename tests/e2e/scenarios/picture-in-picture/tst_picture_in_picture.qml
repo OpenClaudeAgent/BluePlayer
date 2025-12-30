@@ -25,25 +25,8 @@ E2EScenarioTemplate {
         function test_01_navigate_to_player() {
             console.log("Testing: Navigate to player")
             
-            // Wait for home to fully initialize
-            wait(E2EConstants.timeoutMedium)
-            
-            verify(mainWindow.currentView === "home", "Should be on home view")
-            
-            // Find a stream card
-            var streamCard = findChildByPrefix(mainWindow, E2EConstants.streamCardPrefix)
-            verify(streamCard !== null, "Stream card should exist")
-            
-            console.log("  Clicking stream card: " + streamCard.objectName)
-            
-            var navigated = clickAndWait(streamCard, function() {
-                return mainWindow.currentView === "player"
-            }, E2EConstants.timeoutLong)
-            
+            var navigated = navigateToPlayerFromHome(500)
             verify(navigated, "Should navigate to player view")
-            
-            // Wait for player to stabilize
-            wait(500)
             
             console.log("OK Navigated to player")
         }
@@ -51,10 +34,7 @@ E2EScenarioTemplate {
         function test_02_pip_button_exists() {
             console.log("Testing: PiP button exists")
             
-            if (mainWindow.currentView !== "player") {
-                skip("Not on player view")
-                return
-            }
+            if (!requiresView("player")) return
             
             // Wait for PiP button to appear
             tryVerify(function() {
@@ -72,10 +52,7 @@ E2EScenarioTemplate {
         function test_03_pip_initially_inactive() {
             console.log("Testing: PiP initially inactive")
             
-            if (mainWindow.currentView !== "player") {
-                skip("Not on player view")
-                return
-            }
+            if (!requiresView("player")) return
             
             var playerView = findChild(mainWindow, E2EConstants.playerView)
             verify(playerView !== null, "Player view should exist")
@@ -89,10 +66,7 @@ E2EScenarioTemplate {
         function test_04_activate_pip() {
             console.log("Testing: Activate PiP")
             
-            if (mainWindow.currentView !== "player") {
-                skip("Not on player view")
-                return
-            }
+            if (!requiresView("player")) return
             
             var pipButton = findChild(mainWindow, E2EConstants.pipButton)
             if (pipButton === null) {
@@ -122,10 +96,7 @@ E2EScenarioTemplate {
         function test_05_deactivate_pip() {
             console.log("Testing: Deactivate PiP (return to normal)")
             
-            if (mainWindow.currentView !== "player") {
-                skip("Not on player view")
-                return
-            }
+            if (!requiresView("player")) return
             
             var pipButton = findChild(mainWindow, E2EConstants.pipButton)
             if (pipButton === null) {
@@ -164,10 +135,7 @@ E2EScenarioTemplate {
         function test_06_pip_button_still_works() {
             console.log("Testing: PiP button still functional after toggle")
             
-            if (mainWindow.currentView !== "player") {
-                skip("Not on player view")
-                return
-            }
+            if (!requiresView("player")) return
             
             var pipButton = findChild(mainWindow, E2EConstants.pipButton)
             verify(pipButton !== null, "PiP button should still exist")

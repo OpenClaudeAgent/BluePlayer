@@ -28,22 +28,8 @@ E2EScenarioTemplate {
         function test_01_navigate_to_player() {
             console.log("Testing: Navigate to player")
             
-            // Wait for home to fully initialize
-            wait(E2EConstants.timeoutMedium)
-            
-            var streamCard = findChildByPrefix(mainWindow, "streamCard_")
-            verify(streamCard !== null, "Stream card should exist on home")
-            
-            console.log("  Clicking stream card: " + streamCard.objectName)
-            
-            var navigated = clickAndWait(streamCard, function() {
-                return mainWindow.currentView === "player"
-            }, E2EConstants.timeoutLong)
-            
+            var navigated = navigateToPlayerFromHome(1000)
             verify(navigated, "Should navigate to player view")
-            
-            // Wait for player to stabilize
-            wait(1000)
             
             console.log("OK Navigated to player view")
         }
@@ -51,10 +37,7 @@ E2EScenarioTemplate {
         function test_02_quality_button_exists() {
             console.log("Testing: Quality button exists")
             
-            if (mainWindow.currentView !== "player") {
-                skip("Not on player view")
-                return
-            }
+            if (!requiresView("player")) return
             
             tryVerify(function() {
                 var btn = findChild(mainWindow, E2EConstants.qualityButton)
@@ -70,10 +53,7 @@ E2EScenarioTemplate {
         function test_03_audio_quality_available() {
             console.log("Testing: Audio quality is available in selector")
             
-            if (mainWindow.currentView !== "player") {
-                skip("Not on player view")
-                return
-            }
+            if (!requiresView("player")) return
             
             var qualityControl = findChild(mainWindow, E2EConstants.qualityControl)
             verify(qualityControl !== null, "Quality control should exist")
@@ -107,10 +87,7 @@ E2EScenarioTemplate {
         function test_04_select_audio_quality() {
             console.log("Testing: Select audio quality")
             
-            if (mainWindow.currentView !== "player") {
-                skip("Not on player view")
-                return
-            }
+            if (!requiresView("player")) return
             
             var qualityControl = findChild(mainWindow, E2EConstants.qualityControl)
             if (!qualityControl) {
@@ -172,10 +149,7 @@ E2EScenarioTemplate {
         function test_05_audio_mode_activated() {
             console.log("Testing: Audio mode is activated")
             
-            if (mainWindow.currentView !== "player") {
-                skip("Not on player view")
-                return
-            }
+            if (!requiresView("player")) return
             
             var playerView = findChild(mainWindow, E2EConstants.playerView)
             verify(playerView !== null, "Player view should exist")
@@ -194,10 +168,7 @@ E2EScenarioTemplate {
         function test_06_quality_display_updated() {
             console.log("Testing: Quality display shows Audio")
             
-            if (mainWindow.currentView !== "player") {
-                skip("Not on player view")
-                return
-            }
+            if (!requiresView("player")) return
             
             var qualityControl = findChild(mainWindow, E2EConstants.qualityControl)
             if (!qualityControl) {

@@ -30,6 +30,7 @@ QtObject {
     readonly property string chatToggleButton: "chatToggleButton"
     readonly property string qualityButton: "qualityButton"
     readonly property string pipButton: "pipButton"
+    readonly property string backButton: "backButton"
 
     // Cards and lists
     readonly property string streamCardPrefix: "streamCard_"
