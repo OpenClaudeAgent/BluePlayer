@@ -117,6 +117,7 @@ Consultez la [Roadmap](roadmap/README.md) pour le suivi des tâches planifiées 
 
 | Version | Date | Description |
 |---------|------|-------------|
+| v0.32.0 | 2025-12-30 | Scenarios E2E Sprint 2 (audio-only, play-cached-vod, picture-in-picture) + helpers refactorés (requiresView, navigateToPlayer) |
 | v0.31.0 | 2025-12-29 | Scenarios E2E Sprint 1 (search, quality, chat) + refactorings (namespace, DRY, constants) + toast verification |
 | v0.30.0 | 2025-12-29 | Refactoring E2E (BaseE2EContext -96%, MockHttpServer -38%, FixtureLoader, E2EConstants, E2EScenarioTemplate) |
 | v0.29.0 | 2025-12-29 | Infrastructure E2E complete (segment video reel, fix mpv locale, 13 tests, validation lecture) |

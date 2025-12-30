@@ -546,14 +546,14 @@ Créer une suite de scénarios E2E qui couvrent les flux utilisateur critiques d
 
 ### Scenarios Priorite 1 (Sprint 1) - COMPLETE
 - [x] A.1 - search-stream implementé et passant
-- [ ] A.2 - play-cached-vod (reporte Sprint 2)
 - [x] A.3 - quality-switch implementé et passant
 - [x] B.1 - chat-open-close implementé et passant (avec reception/envoi messages)
 
-### Scenarios Priorite 2 (Sprint 2)
-- [ ] A.4 - resume-playback implementé et passant
-- [ ] A.5 - audio-only-mode implementé et passant
-- [ ] C.4 - picture-in-picture implementé et passant
+### Scenarios Priorite 2 (Sprint 2) - COMPLETE
+- [x] A.2 - play-cached-vod implementé et passant (injection VOD mock, vrais clics UI)
+- [x] A.5 - audio-only-mode implementé et passant
+- [x] C.4 - picture-in-picture implementé et passant (activation + désactivation)
+- [ ] A.4 - resume-playback (reporté - nécessite VOD avec progression sauvegardée)
 
 ### Scenarios Priorite 3 (Sprint 3)
 - [ ] C.1 - volume-control implementé et passant
@@ -646,3 +646,42 @@ Créer une suite de scénarios E2E qui couvrent les flux utilisateur critiques d
 ### Quality Reviews
 
 - `quality/review-03-e2e-plan44-2025-12-29.md` : Code review complet du Sprint 1
+- `quality/review-04-e2e-sprint2-2025-12-30.md` : Code review Sprint 2
+
+---
+
+## Specifications (Sprint 2)
+
+### Scenarios implementes
+
+| Scenario | Tests | Description |
+|----------|-------|-------------|
+| `audio-only-mode` | 6 | Selection qualite audio, verification isAudioOnly |
+| `play-cached-vod` | 7 | Injection VOD mock, clic carte, lecture VOD, retour cache |
+| `picture-in-picture` | 6 | Activation PiP, désactivation (retour), toggle cycle |
+
+### Infrastructure amelioree
+
+- **E2E_FIXTURES_PATH** : Context property exposant le chemin des fixtures au QML
+- **clearAllVods()** : Nettoyage automatique du cache VOD au startup ET cleanup
+- **_traverseTree()** : Ajout Set de noeuds visités + limite profondeur (évite boucles infinies)
+- **requiresView()** : Helper guard pour préconditions de vue
+- **navigateToPlayerFromHome()** : Helper navigation standardisé
+- **showPlayerControls()** : Helper pour rendre les contrôles visibles
+
+### ObjectNames ajoutes pour E2E
+
+- `main.qml` : replaysButton, preferencesButton
+- `CacheManagerView.qml` : cacheManagerView, vodCard_N, emptyState
+- `PlayerControlBar.qml` : pipButton
+- `TopBarOverlay.qml` : backButton
+
+### Refactorings appliques
+
+| # | Refactoring | Impact |
+|---|-------------|--------|
+| 1 | Vrais clics UI (plus de manipulation directe currentView) | Tests réalistes |
+| 2 | tryVerify() partout (plus de wait() fixes) | Moins de flakiness |
+| 3 | Helpers requiresView/navigateToPlayerFromHome | -30 lignes duplication |
+| 4 | Recherche dynamique chemin src (plus de hard-coded ../../..) | Maintenabilité |
+| 5 | Nettoyage cache VOD au cleanup | Pas de traces après tests |

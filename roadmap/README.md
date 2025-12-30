@@ -238,6 +238,7 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 2025-12-29 | Tâche 41 terminée - Gestion Logs (rotation 7j/20 fichiers, audit global, 42 logs INFO standardisés) |
 | 2025-12-29 | Tâche 43 terminée - Refactoring E2E (BaseE2EContext -96%, MockHttpServer -38%, FixtureLoader, E2EConstants, E2EScenarioTemplate) |
 | 2025-12-29 | Tâche 44 Sprint 1 terminée - Scenarios E2E (search-stream, quality-switch, chat-open-close + MockIrcServer + macro CMake) |
+| 2025-12-30 | Tâche 44 Sprint 2 terminée - Scenarios E2E (audio-only-mode, play-cached-vod, picture-in-picture + helpers refactorés) |
 
 ---
 
@@ -271,3 +272,4 @@ Pour les tâches complexes avec sous-tâches, ajouter :
 | 2025-12-29 | Ajout plan 44 - Scenarios E2E (17 scenarios couvrant 23 plans termines, 4 sprints) |
 | 2025-12-29 | Ajout plan 45 - Parallelisme E2E (isolation ports pour execution parallele) |
 | 2025-12-29 | Plan 44 Sprint 1 termine - 3 scenarios E2E (search, quality, chat) + refactorings |
+| 2025-12-30 | Plan 44 Sprint 2 termine - 3 scenarios E2E (audio-only, cached-vod, pip) + helpers ameliores |
