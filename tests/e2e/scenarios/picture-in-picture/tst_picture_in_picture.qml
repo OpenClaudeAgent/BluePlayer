@@ -5,12 +5,12 @@ import "." // Import helpers from current directory
 /**
  * E2E Scenario: Picture-in-Picture (C.4)
  *
- * Tests the PiP button and state:
+ * Tests the PiP button activation and deactivation:
  * 1. Navigate to player view
  * 2. Verify PiP button exists and is enabled
- * 3. Verify PiP state properties
- *
- * Note: Actual PiP window behavior may be limited in offscreen mode.
+ * 3. Verify PiP is initially inactive
+ * 4. Click PiP button -> verify pipActive becomes true
+ * 5. Click PiP button again -> verify pipActive becomes false (return)
  *
  * Context: AuthenticatedSetup
  */
@@ -25,7 +25,7 @@ E2EScenarioTemplate {
         function test_01_navigate_to_player() {
             console.log("Testing: Navigate to player")
             
-            // Wait for home to fully initialize (match audio-only-mode pattern)
+            // Wait for home to fully initialize
             wait(E2EConstants.timeoutMedium)
             
             verify(mainWindow.currentView === "home", "Should be on home view")
@@ -41,6 +41,10 @@ E2EScenarioTemplate {
             }, E2EConstants.timeoutLong)
             
             verify(navigated, "Should navigate to player view")
+            
+            // Wait for player to stabilize
+            wait(500)
+            
             console.log("OK Navigated to player")
         }
 
@@ -60,78 +64,13 @@ E2EScenarioTemplate {
             
             var pipButton = findChild(mainWindow, E2EConstants.pipButton)
             verify(pipButton !== null, "PiP button should exist")
+            verify(pipButton.visible, "PiP button should be visible")
             
-            console.log("OK PiP button exists")
+            console.log("OK PiP button exists and visible")
         }
 
-        function test_03_pip_button_enabled() {
-            console.log("Testing: PiP button is enabled")
-            
-            if (mainWindow.currentView !== "player") {
-                skip("Not on player view")
-                return
-            }
-            
-            var pipButton = findChild(mainWindow, E2EConstants.pipButton)
-            if (pipButton === null) {
-                skip("PiP button not found")
-                return
-            }
-            
-            console.log("  pipButton.enabled: " + pipButton.enabled)
-            verify(pipButton.enabled, "PiP button should be enabled")
-            
-            console.log("OK PiP button enabled")
-        }
-
-        function test_04_pip_not_active() {
-            console.log("Testing: PiP not active initially")
-            
-            if (mainWindow.currentView !== "player") {
-                skip("Not on player view")
-                return
-            }
-            
-            var pipButton = findChild(mainWindow, E2EConstants.pipButton)
-            if (pipButton === null) {
-                skip("PiP button not found")
-                return
-            }
-            
-            console.log("  pipButton.active: " + pipButton.active)
-            verify(!pipButton.active, "PiP should not be active initially")
-            
-            console.log("OK PiP not active")
-        }
-
-        function test_05_pip_button_click() {
-            console.log("Testing: PiP button click")
-            
-            if (mainWindow.currentView !== "player") {
-                skip("Not on player view")
-                return
-            }
-            
-            var pipButton = findChild(mainWindow, E2EConstants.pipButton)
-            if (pipButton === null || !pipButton.enabled) {
-                skip("PiP button not available")
-                return
-            }
-            
-            console.log("  Clicking PiP button")
-            mouseClick(pipButton)
-            
-            // In offscreen mode, PiP window may not open
-            // Just verify the click doesn't cause errors
-            wait(300)
-            
-            console.log("  pipButton.active after click: " + pipButton.active)
-            
-            console.log("OK PiP button clickable")
-        }
-
-        function test_06_player_pip_properties() {
-            console.log("Testing: Player PiP properties")
+        function test_03_pip_initially_inactive() {
+            console.log("Testing: PiP initially inactive")
             
             if (mainWindow.currentView !== "player") {
                 skip("Not on player view")
@@ -139,17 +78,103 @@ E2EScenarioTemplate {
             }
             
             var playerView = findChild(mainWindow, E2EConstants.playerView)
-            if (playerView === null) {
-                skip("Player view not found")
+            verify(playerView !== null, "Player view should exist")
+            
+            console.log("  pipActive: " + playerView.pipActive)
+            verify(playerView.pipActive === false, "PiP should be inactive initially")
+            
+            console.log("OK PiP initially inactive")
+        }
+
+        function test_04_activate_pip() {
+            console.log("Testing: Activate PiP")
+            
+            if (mainWindow.currentView !== "player") {
+                skip("Not on player view")
                 return
             }
             
-            console.log("  pipActive: " + playerView.pipActive)
-            console.log("  pipEnabled: " + playerView.pipEnabled)
+            var pipButton = findChild(mainWindow, E2EConstants.pipButton)
+            if (pipButton === null) {
+                skip("PiP button not found")
+                return
+            }
             
-            verify(playerView.pipEnabled !== undefined, "pipEnabled should exist")
+            var playerView = findChild(mainWindow, E2EConstants.playerView)
+            verify(playerView !== null, "Player view should exist")
             
-            console.log("OK Player PiP properties accessible")
+            console.log("  pipActive before click: " + playerView.pipActive)
+            console.log("  Clicking PiP button to activate...")
+            
+            mouseClick(pipButton)
+            
+            // Wait for pipActive to become true
+            tryVerify(function() {
+                return playerView.pipActive === true
+            }, 2000, "PiP should become active after click")
+            
+            console.log("  pipActive after click: " + playerView.pipActive)
+            verify(playerView.pipActive === true, "pipActive should be true")
+            
+            console.log("OK PiP activated")
+        }
+
+        function test_05_deactivate_pip() {
+            console.log("Testing: Deactivate PiP (return to normal)")
+            
+            if (mainWindow.currentView !== "player") {
+                skip("Not on player view")
+                return
+            }
+            
+            var pipButton = findChild(mainWindow, E2EConstants.pipButton)
+            if (pipButton === null) {
+                skip("PiP button not found")
+                return
+            }
+            
+            var playerView = findChild(mainWindow, E2EConstants.playerView)
+            verify(playerView !== null, "Player view should exist")
+            
+            // Should be active from previous test
+            console.log("  pipActive before click: " + playerView.pipActive)
+            
+            if (!playerView.pipActive) {
+                console.log("  PiP not active, activating first...")
+                mouseClick(pipButton)
+                tryVerify(function() {
+                    return playerView.pipActive === true
+                }, 2000, "PiP should become active")
+            }
+            
+            console.log("  Clicking PiP button to deactivate...")
+            mouseClick(pipButton)
+            
+            // Wait for pipActive to become false
+            tryVerify(function() {
+                return playerView.pipActive === false
+            }, 2000, "PiP should become inactive after second click")
+            
+            console.log("  pipActive after click: " + playerView.pipActive)
+            verify(playerView.pipActive === false, "pipActive should be false")
+            
+            console.log("OK PiP deactivated (returned to normal)")
+        }
+
+        function test_06_pip_button_still_works() {
+            console.log("Testing: PiP button still functional after toggle")
+            
+            if (mainWindow.currentView !== "player") {
+                skip("Not on player view")
+                return
+            }
+            
+            var pipButton = findChild(mainWindow, E2EConstants.pipButton)
+            verify(pipButton !== null, "PiP button should still exist")
+            verify(pipButton.visible, "PiP button should still be visible")
+            verify(pipButton.enabled, "PiP button should still be enabled")
+            
+            console.log("OK PiP button still functional")
         }
     }
 }

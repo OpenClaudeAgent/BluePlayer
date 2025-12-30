@@ -278,6 +278,12 @@ void BaseE2EContext::exposeServices(QQmlEngine* engine)
         engine->rootContext()->setContextProperty("mockIrcServer",
             qobject_cast<QObject*>(m_ircServer.get()));
     }
+    
+    // Expose fixtures path for tests that need to reference fixture files
+    if (m_fixtureLoader && m_fixtureLoader->isValid()) {
+        engine->rootContext()->setContextProperty("E2E_FIXTURES_PATH",
+            m_fixtureLoader->fixturesPath());
+    }
 }
 
 void BaseE2EContext::log(const QString& message) const
