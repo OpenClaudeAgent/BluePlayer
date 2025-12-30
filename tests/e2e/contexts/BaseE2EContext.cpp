@@ -70,6 +70,14 @@ void BaseE2EContext::cleanupTestCase()
 {
     log("Cleaning up...");
 
+    // Clear VOD cache to not leave traces after tests
+    if (m_coreApp && m_coreApp->cacheManager()) {
+        int cleared = m_coreApp->cacheManager()->clearAllVods();
+        if (cleared > 0) {
+            log(QString("Cleared %1 VODs from test run").arg(cleared));
+        }
+    }
+
     if (m_twitchServer) {
         log(QString("MockTwitchServer handled %1 requests").arg(m_twitchServer->requestCount()));
         m_twitchServer->stop();
