@@ -38,8 +38,12 @@ qrc_*
 # Dependencies (if not managed by system package manager or vcpkg/conan)
 # libs/
 
-# Environment variables file
+# Environment variables file (contains secrets)
 .env
+
+# TLS certificates (sensitive)
+certs/
+
 build/
 
 # Code coverage reports
@@ -56,8 +60,6 @@ usr/
 *.bc
 *.ll
 .aider*
-.env
-.env
 
 .DS_Store
 
