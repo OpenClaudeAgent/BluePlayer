@@ -95,6 +95,20 @@ private:
       const QList<QByteArray> parts = lines.first().split(' ');
       if (parts.size() >= 2) {
         const QByteArray path = parts.at(1);
+        // Ignorer les requêtes qui ne sont pas sur /callback (extensions browser, etc.)
+        if (!path.startsWith("/callback")) {
+          const QByteArray notFoundResponse =
+              "HTTP/1.1 404 Not Found\r\n"
+              "Content-Type: text/plain\r\n"
+              "Content-Length: 9\r\n"
+              "\r\n"
+              "Not Found";
+          socket->write(notFoundResponse);
+          if (auto tcpSocket = qobject_cast<QAbstractSocket *>(socket)) {
+            tcpSocket->disconnectFromHost();
+          }
+          return;
+        }
         const QString scheme = m_sslConfig.isNull() ? QStringLiteral("http")
                                                     : QStringLiteral("https");
         const QUrl url = QUrl(QStringLiteral("%1://127.0.0.1:%2%3")

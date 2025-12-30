@@ -205,6 +205,14 @@ void BaseE2EContext::loadFixtures()
 
 void BaseE2EContext::configureEnvironment()
 {
+    // Clear production environment variables that could interfere with E2E tests
+    // These are set by .env for the real app but should not affect mock servers
+    qunsetenv("TWITCH_TLS_CERT_PATH");
+    qunsetenv("TWITCH_TLS_KEY_PATH");
+    qunsetenv("TWITCH_REDIRECT_URI");
+    qunsetenv("TWITCH_REDIRECT_PORT");
+    qunsetenv("TWITCH_CLIENT_SECRET");
+
     qputenv("BLUEPLAYER_API_URL", m_twitchServer->baseUrl().toUtf8());
     qputenv("BLUEPLAYER_HLS_PROXY_URL", m_hlsServer->baseUrl().toUtf8());
     
@@ -213,9 +221,8 @@ void BaseE2EContext::configureEnvironment()
         qputenv("BLUEPLAYER_IRC_URL", m_ircServer->url().toUtf8());
     }
 
-    if (qgetenv("TWITCH_CLIENT_ID").isEmpty()) {
-        qputenv("TWITCH_CLIENT_ID", "e2e_test_client_id");
-    }
+    // Force E2E client ID (override any production value)
+    qputenv("TWITCH_CLIENT_ID", "e2e_test_client_id");
 
     // Load Config
     blueplayer::core::Config::instance().load();
