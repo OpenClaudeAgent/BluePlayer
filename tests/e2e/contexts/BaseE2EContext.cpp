@@ -230,6 +230,14 @@ void BaseE2EContext::createApplication()
     m_coreApp = std::make_unique<blueplayer::core::Application>(m_mockStorage.get());
     m_coreApp->initialize();
 
+    // Clear VOD cache to ensure clean state for each test run
+    if (m_coreApp->cacheManager()) {
+        int cleared = m_coreApp->cacheManager()->clearAllVods();
+        if (cleared > 0) {
+            log(QString("Cleared %1 stale VODs from previous test runs").arg(cleared));
+        }
+    }
+
     if (m_coreApp->twitchService()) {
         log(QString("Ready, authenticated: %1")
             .arg(m_coreApp->twitchService()->isAuthenticated() ? "true" : "false"));
